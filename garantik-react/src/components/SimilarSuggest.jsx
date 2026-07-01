@@ -78,8 +78,6 @@ export default function SimilarSuggest({ orgId, table, value, onChange, options 
   const isNewValue = value && value.trim().length >= 2 && !exactMatch;
   const hasCloseMatch = similarItems.length > 0 && similarItems[0].similarity_score >= 0.5;
 
-  console.log('[SimilarSuggest]', { table, value, isNewValue, exactMatch, optionsCount: options.length, similarItems: similarItems.length, hasCloseMatch });
-
   return (
     <div className="field" style={{ position: 'relative' }}>
       {label && <label>{label}</label>}
