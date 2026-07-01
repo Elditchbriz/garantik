@@ -5,6 +5,7 @@ import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ContractScannerModal from '../components/ContractScannerModal.jsx';
 import DuplicateWarningModal from '../components/DuplicateWarningModal.jsx';
+import SimilarSuggest from '../components/SimilarSuggest.jsx';
 
 export default function AddContractPage() {
   const { profile } = useOutletContext();
@@ -17,6 +18,7 @@ export default function AddContractPage() {
   const [provider, setProvider] = useState('');
   const [contractType, setContractType] = useState('');
   const [contractTypes, setContractTypes] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [newType, setNewType] = useState('');
   const [showNewType, setShowNewType] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -46,6 +48,8 @@ export default function AddContractPage() {
     });
     supabase.from('purchases').select('id, object_name, brand').eq('organization_id', orgId).order('object_name')
       .then(({ data }) => setPurchases(data || []));
+    supabase.from('providers').select('name').eq('organization_id', orgId).order('name')
+      .then(({ data }) => setProviders(data?.map(p => p.name) || []));
   }, [orgId]);
 
   async function handleAddType() {
@@ -174,11 +178,16 @@ export default function AddContractPage() {
                   placeholder="Ex : Extension garantie Darty 3 ans" required />
               </div>
 
-              <div className="field">
-                <label>Prestataire</label>
-                <input type="text" value={provider} onChange={e => setProvider(e.target.value)}
-                  placeholder="Ex : Darty, MAIF, April…" />
-              </div>
+              <SimilarSuggest
+                orgId={orgId}
+                table="providers"
+                value={provider}
+                onChange={setProvider}
+                options={providers}
+                onOptionAdded={(v) => setProviders(prev => [...prev, v].sort())}
+                placeholder="Ex : Darty, MAIF, April…"
+                label="Prestataire"
+              />
 
               <div className="field">
                 <label>Type de contrat</label>
