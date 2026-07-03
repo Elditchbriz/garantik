@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
 import App from './App.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import AuthPage from './pages/AuthPage.jsx';
@@ -20,9 +19,9 @@ import ReferralPage from './pages/ReferralPage.jsx';
 import InboxPage from './pages/InboxPage.jsx';
 import BlogListPage from './pages/BlogListPage.jsx';
 import BlogPostPage from './pages/BlogPostPage.jsx';
+import AdminPage from './pages/AdminPage.jsx';
 import IconSprite from './components/IconSprite.jsx';
 import './styles/style.css';
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <IconSprite />
@@ -46,6 +45,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/contract/:id" element={<ContractDetailPage />} />
           <Route path="/invite" element={<ReferralPage />} />
           <Route path="/inbox" element={<InboxPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
