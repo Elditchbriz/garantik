@@ -128,7 +128,7 @@ export async function checkOrgAccess(organizationId) {
 
 export async function checkFreeQuota(organizationId) {
   const { data, error } = await supabase.rpc('check_free_plan_quota', {
-    org_id: organizationId,
+    p_org_id: organizationId,
   });
   if (error) {
     console.error('Erreur vérification quota :', error);
