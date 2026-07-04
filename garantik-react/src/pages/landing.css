@@ -380,17 +380,17 @@
   justify-content: center;
   gap: 10px;
   padding: 14px 16px;
-  border: 1.5px solid var(--navy);
+  border: none;
   border-radius: var(--radius-s);
-  background: var(--white);
+  background: var(--navy);
   font-size: 15px;
   font-weight: 700;
-  color: var(--navy);
-  box-shadow: 0 2px 8px rgba(26,27,75,0.08);
-  transition: box-shadow 0.15s, transform 0.1s;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(26,27,75,0.25);
+  transition: box-shadow 0.15s, transform 0.1s, background 0.15s;
 }
-.btn-social:hover { background: var(--blue-pale-2); box-shadow: 0 4px 14px rgba(26,27,75,0.14); transform: translateY(-1px); }
-.btn-social .icon { font-size: 18px; }
+.btn-social:hover { background: var(--navy-light); box-shadow: 0 6px 18px rgba(26,27,75,0.32); transform: translateY(-1px); }
+.btn-social .icon { font-size: 18px; color: #fff; }
 
 .auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--ink-faint); font-size: 12.5px; }
 .auth-divider .line { flex: 1; height: 1px; background: var(--line); }
