@@ -33,14 +33,16 @@ export default function QuickSearchOverlay({ orgId, onClose }) {
   async function doSearch() {
     setLoading(true);
     const q = query.trim().toLowerCase();
+    // Le champ notes (bloc-notes libre) est désormais inclus, pour les
+    // achats comme pour les contrats — cohérent avec la recherche avancée.
     const [{ data: purchases }, { data: contracts }] = await Promise.all([
       supabase.from('purchases').select('id, object_name, brand, store, warranty_end_date')
         .eq('organization_id', orgId)
-        .or(`object_name.ilike.%${q}%,brand.ilike.%${q}%,store.ilike.%${q}%,ocr_content.ilike.%${q}%`)
+        .or(`object_name.ilike.%${q}%,brand.ilike.%${q}%,store.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%`)
         .limit(6),
       supabase.from('contracts').select('id, name, provider, end_date')
         .eq('organization_id', orgId)
-        .or(`name.ilike.%${q}%,provider.ilike.%${q}%,reference_number.ilike.%${q}%,ocr_content.ilike.%${q}%`)
+        .or(`name.ilike.%${q}%,provider.ilike.%${q}%,reference_number.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%,contract_type.ilike.%${q}%`)
         .limit(6),
     ]);
     setPurchaseResults(purchases || []);
