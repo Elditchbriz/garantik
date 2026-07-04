@@ -106,6 +106,9 @@ export default function ContractScannerModal({ onResult, onClose }) {
               <p style={{ fontWeight: 600, marginTop: 18, minHeight: 22, transition: 'opacity 0.2s' }}>
                 {LOADING_PHRASES[phraseIndex]}
               </p>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginTop: 6 }}>
+                Cela prend généralement moins de 10 secondes
+              </p>
             </div>
           )}
 
