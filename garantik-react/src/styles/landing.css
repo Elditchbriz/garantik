@@ -369,21 +369,28 @@
 .auth-form-box h1 { font-size: 24px; margin-bottom: 8px; }
 .auth-form-box .sub-text { font-size: 14px; color: var(--ink-soft); margin-bottom: 28px; }
 
+/* Bouton Google — rendu volontairement dominant : plus grand, bordure
+   plus marquée et légère ombre, pour qu'il soit le premier choix visuel
+   avant le formulaire e-mail/mot de passe (audit P2 — inscription/connexion,
+   pattern Notion/Linear : Google en premier, grand et visible) */
 .btn-social {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 11px 16px;
-  border: 1px solid var(--line);
+  padding: 14px 16px;
+  border: none;
   border-radius: var(--radius-s);
-  background: var(--white);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--navy);
+  background: var(--navy);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(26,27,75,0.25);
+  transition: box-shadow 0.15s, transform 0.1s, background 0.15s;
 }
-.btn-social:hover { background: var(--blue-pale-2); }
+.btn-social:hover { background: var(--navy-light); box-shadow: 0 6px 18px rgba(26,27,75,0.32); transform: translateY(-1px); }
+.btn-social .icon { font-size: 18px; color: #fff; }
 
 .auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--ink-faint); font-size: 12.5px; }
 .auth-divider .line { flex: 1; height: 1px; background: var(--line); }
