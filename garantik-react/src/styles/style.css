@@ -974,13 +974,21 @@ h1, .display { font-weight: 600; }
   .modal-overlay {
     align-items: flex-end !important;
     padding: 0 !important;
+    overflow-x: hidden !important;
   }
 
   .modal-card {
     border-radius: var(--radius-l) var(--radius-l) 0 0 !important;
-    max-width: 100% !important;
+    max-width: 100vw !important;
     width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .modal-card * {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* Contenu principal sans padding latéral excessif */
@@ -1821,6 +1829,10 @@ h1, .display { font-weight: 600; }
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0;
+  flex-shrink: 0;
 }
 
 @media (max-width: 860px) {
