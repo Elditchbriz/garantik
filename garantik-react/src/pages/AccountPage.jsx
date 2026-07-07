@@ -64,9 +64,10 @@ export default function AccountPage() {
     setCheckoutError('');
     try {
       const { url } = await callEdgeFunction('create-portal-session');
-      window.location.href = url;
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       setCheckoutError(err.message);
+    } finally {
       setCheckoutLoading(null);
     }
   }
