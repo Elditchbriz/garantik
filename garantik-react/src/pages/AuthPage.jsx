@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signUpWithEmail, signInWithEmail, signInWithGoogle } from '../lib/supabaseClient.js';
+import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import '../styles/landing.css';
 
@@ -21,6 +21,22 @@ export default function AuthPage() {
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [confirmedEmail, setConfirmedEmail] = useState('');
   const [rgpdAccepted, setRgpdAccepted] = useState(false);
+  const [rgpdError, setRgpdError] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    setErrorMsg('');
+    setResetLoading(true);
+    const { error } = await requestPasswordReset(email);
+    setResetLoading(false);
+    if (error) {
+      setErrorMsg(error.message);
+      return;
+    }
+    setResetSent(true);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,6 +47,7 @@ export default function AuthPage() {
     if (mode === 'signup') {
       if (!rgpdAccepted) {
         setErrorMsg('Veuillez accepter les conditions d\'utilisation et la politique de confidentialité pour continuer.');
+        setRgpdError(true);
         setLoading(false);
         return;
       }
@@ -114,6 +131,64 @@ export default function AuthPage() {
                 J'ai déjà confirmé mon email → Se connecter
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'forgot') {
+    return (
+      <div className="auth-shell">
+        <div className="auth-panel">
+          <div className="auth-panel-content">
+            <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
+              <div className="mark"></div>
+              <div className="word" style={{ color: '#fff' }}>Garantik</div>
+            </a>
+            <h2>Vos garanties, enfin sous contrôle</h2>
+            <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
+          </div>
+        </div>
+        <div className="auth-form-side">
+          <div className="auth-form-box">
+            {resetSent ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
+                  ✉️
+                </div>
+                <h1 style={{ fontSize: 22, marginBottom: 10 }}>Vérifiez vos emails</h1>
+                <p style={{ fontSize: 14.5, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 24 }}>
+                  Si un compte existe pour <strong style={{ color: 'var(--navy)' }}>{email}</strong>,
+                  un lien de réinitialisation vient de lui être envoyé.
+                </p>
+                <button onClick={() => setMode('login')} style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  ← Retour à la connexion
+                </button>
+              </div>
+            ) : (
+              <>
+                <h1>Mot de passe oublié</h1>
+                <p className="sub-text">Indiquez votre email, nous vous envoyons un lien pour le réinitialiser.</p>
+
+                <form onSubmit={handleForgotPassword} style={{ marginTop: 20 }}>
+                  <div className="auth-field">
+                    <label>Adresse e-mail</label>
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="vous@exemple.fr" required />
+                  </div>
+
+                  {errorMsg && <p style={{ color: 'var(--red-text)', fontSize: 13.5, marginBottom: 14 }}>{errorMsg}</p>}
+
+                  <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 12 }} disabled={resetLoading}>
+                    {resetLoading ? 'Envoi…' : 'Envoyer le lien de réinitialisation'}
+                  </button>
+                </form>
+
+                <div className="auth-switch">
+                  <a onClick={() => setMode('login')}>← Retour à la connexion</a>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -236,6 +311,16 @@ export default function AuthPage() {
                   {showPassword ? '🙈' : '👁️'}
                 </button>
               </div>
+              {mode === 'login' && (
+                <div style={{ textAlign: 'right', marginTop: 6 }}>
+                  <a
+                    onClick={() => { setMode('forgot'); setErrorMsg(''); setResetSent(false); }}
+                    style={{ fontSize: 12.5, color: 'var(--ink-soft)', cursor: 'pointer' }}
+                  >
+                    Mot de passe oublié ?
+                  </a>
+                </div>
+              )}
             </div>
 
             {errorMsg && <p style={{ color: 'var(--red-text)', fontSize: 13.5, marginBottom: 14 }}>{errorMsg}</p>}
@@ -245,13 +330,18 @@ export default function AuthPage() {
               <div style={{ marginBottom: 16 }}>
                 <label style={{
                   display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
-                  fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5,
+                  fontSize: 13, color: rgpdError && !rgpdAccepted ? 'var(--red-text)' : 'var(--ink-soft)', lineHeight: 1.5,
                 }}>
                   <input
                     type="checkbox"
                     checked={rgpdAccepted}
-                    onChange={e => setRgpdAccepted(e.target.checked)}
-                    style={{ marginTop: 2, flexShrink: 0, width: 16, height: 16, cursor: 'pointer' }}
+                    onChange={e => { setRgpdAccepted(e.target.checked); if (e.target.checked) setRgpdError(false); }}
+                    style={{
+                      marginTop: 2, flexShrink: 0, width: 16, height: 16, cursor: 'pointer',
+                      outline: rgpdError && !rgpdAccepted ? '2px solid var(--red)' : 'none',
+                      outlineOffset: 2,
+                      accentColor: rgpdError && !rgpdAccepted ? 'var(--red)' : undefined,
+                    }}
                   />
                   <span>
                     J'accepte les{' '}
