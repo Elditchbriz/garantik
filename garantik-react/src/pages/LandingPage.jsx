@@ -435,7 +435,6 @@ export default function LandingPage() {
             <div className="lp-footer-col">
               <h4>Entreprise</h4>
               <Link to="/blog">Blog</Link>
-              <a href="mailto:contact@garantik.fr">Contact</a>
               <a onClick={() => setContactModalOpen(true)} style={{ cursor: 'pointer' }}>Nous contacter</a>
             </div>
             <div className="lp-footer-col">
