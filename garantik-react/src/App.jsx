@@ -156,7 +156,7 @@ export default function App() {
               <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
             </div>
           )}
-          {!collapsed && <Icon name="chevron-up" className="collapse-hide" style={{ marginLeft: 'auto', color: '#8A9AB8', fontSize: 16 }} />}
+          {!collapsed && <Icon name="chevron-up" className="collapse-hide" style={{ marginLeft: 'auto', color: 'var(--ink-faint)', fontSize: 16 }} />}
 
           {accountMenuOpen && (
             <div style={{
