@@ -8,7 +8,6 @@ import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import AddPurchasePage from './pages/AddPurchasePage.jsx';
 import SearchPage from './pages/SearchPage.jsx';
-import ContractsPage from './pages/ContractsPage.jsx';
 import DocumentsPage from './pages/DocumentsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import AccountPage from './pages/AccountPage.jsx';
@@ -41,7 +40,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/add-purchase" element={<AddPurchasePage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/contracts" element={<ContractsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/account" element={<AccountPage />} />
