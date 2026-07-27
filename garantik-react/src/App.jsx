@@ -7,6 +7,7 @@ import AccountStatusBanner from './components/AccountStatusBanner.jsx';
 import SuspendedScreen from './components/SuspendedScreen.jsx';
 import UpdatesPopup from './components/UpdatesPopup.jsx';
 import FeedbackButton from './components/FeedbackButton.jsx';
+import AddTypeSheet from './components/AddTypeSheet.jsx';
 
 export default function App() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
 
   useEffect(() => {
@@ -96,11 +98,10 @@ export default function App() {
     { section: 'Principal', items: [
       { to: '/dashboard', icon: 'layout-dashboard', label: 'Tableau de bord', dupBottomNav: true },
       { to: '/search', icon: 'search', label: 'Recherche avancée', dupBottomNav: true },
-      { to: '/contracts', icon: 'calendar-check', label: 'Échéances' },
       { to: '/documents', icon: 'folder', label: 'Documents', dupBottomNav: true },
     ]},
     { section: 'Compte', items: [
-      { to: '/inbox', icon: 'mail', label: 'Boîte de réception' },
+      { to: '/inbox', icon: 'mail', label: 'Docs en attente' },
       { to: '/invite', icon: 'heart-handshake', label: 'Inviter des amis' },
       { to: '/faq', icon: 'info-circle', label: 'Aide & FAQ' },
       { to: '/settings', icon: 'settings', label: 'Paramètres' },
@@ -207,11 +208,13 @@ export default function App() {
           <Icon name="menu-2" />
           <span>Plus</span>
         </button>
-        <NavLink to="/add-purchase" className="bottom-nav-item primary">
+        <NavLink to="/add-purchase" className="bottom-nav-item primary" onClick={(e) => { e.preventDefault(); setAddSheetOpen(true); }}>
           <Icon name="scan" />
-          <span>Scanner</span>
+          <span>Ajouter</span>
         </NavLink>
       </nav>
+
+      {addSheetOpen && <AddTypeSheet onClose={() => setAddSheetOpen(false)} />}
 
       {quickSearchOpen && (
         <QuickSearchOverlay orgId={profile?.organization_id} onClose={() => setQuickSearchOpen(false)} />
