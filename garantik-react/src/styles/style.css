@@ -1889,3 +1889,21 @@ h1, .display { font-weight: 600; }
 .chiffre-mini { background: #fff; border-radius: var(--radius-m); padding: 14px 10px; box-shadow: 0 4px 20px rgba(27,36,48,0.06); text-align: center; }
 .chiffre-mini .v { font-size: 16px; font-weight: 800; color: var(--navy); }
 .chiffre-mini .l { font-size: 10.5px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; }
+
+/* ============================================================
+   .item-card — carte de liste autonome (utilisée hors des blocs
+   .dash-list-block, ex: modaux, recherche, associations). Manquait
+   du CSS jusqu'ici malgré son usage dans plusieurs composants.
+   Réutilise les sous-classes .dash-item-* déjà stylées.
+   ============================================================ */
+.item-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: var(--radius-m);
+  padding: 13px 14px;
+  box-shadow: 0 4px 20px rgba(27,36,48,0.06);
+  margin-bottom: 9px;
+}
+.item-card:last-child { margin-bottom: 0; }
