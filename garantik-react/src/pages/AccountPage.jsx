@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom
 import { supabase, signOut } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { FeedbackModal } from '../components/FeedbackButton.jsx';
 
 export default function AccountPage() {
   const { profile, setProfile } = useOutletContext();
@@ -16,6 +17,7 @@ export default function AccountPage() {
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [checkoutError, setCheckoutError] = useState('');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [charities, setCharities] = useState([]);
   const [charityId, setCharityId] = useState(profile?.organizations?.charity_id || '');
@@ -390,7 +392,19 @@ export default function AccountPage() {
           </div>
           <Icon name="chevron-right" style={{ color: 'var(--ink-faint)' }} />
         </div>
+        <div className="item-card" style={{ cursor: 'pointer' }} onClick={() => setFeedbackOpen(true)}>
+          <div className="dash-add-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}>
+            <Icon name="sparkles" />
+          </div>
+          <div className="dash-item-body">
+            <div className="dash-item-name">Remonter une idée</div>
+            <div className="dash-item-meta">Suggestion, bug, retour…</div>
+          </div>
+          <Icon name="chevron-right" style={{ color: 'var(--ink-faint)' }} />
+        </div>
       </div>
+
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
 
       {/* Déconnexion */}
       <div className="panel">
