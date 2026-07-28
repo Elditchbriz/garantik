@@ -147,9 +147,13 @@ export default function DashboardPage() {
   const [loading, setLoading]       = useState(true);
   const [inboxItems, setInboxItems]  = useState([]);
   const [totalDonated, setTotalDonated] = useState(null);
+  const [documentsCount, setDocumentsCount] = useState(0);
+  const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
+  // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
+  // derniers achats), et change pour refléter la carte cliquée juste au-dessus.
+  const [categoryView, setCategoryView] = useState('garanties'); // 'garanties' | 'contrat' | 'abonnement'
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
   const [surveillerIndex, setSurveillerIndex] = useState(0);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const surveillerRef = useRef(null);
@@ -229,10 +233,26 @@ export default function DashboardPage() {
     });
   }, [orgId]);
 
-  const filteredPurchases = activeFilter === 'all' ? purchases
-    : purchases.filter(p => itemStatus(p.warranty_end_date) === activeFilter);
-  const filteredContracts = activeFilter === 'all' ? contracts
-    : contracts.filter(c => itemStatus(c.end_date) === activeFilter);
+  // Comptage des documents — utilisé par la carte "Documents" du tableau
+  // de bord (n'existait pas avant, jamais interrogé sur cette page).
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      const firstOfMonth = new Date();
+      firstOfMonth.setDate(1);
+      firstOfMonth.setHours(0, 0, 0, 0);
+      const [{ count: total }, { count: thisMonth }] = await Promise.all([
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).gte('created_at', firstOfMonth.toISOString()),
+      ]);
+      setDocumentsCount(total || 0);
+      setDocumentsThisMonth(thisMonth || 0);
+    })();
+  }, [orgId]);
+
+  const filteredPurchases = purchases;
+  const filteredContracts = categoryView === 'all' ? contracts
+    : contracts.filter(c => (categoryView === 'abonnement') === (c.contract_type === 'Abonnement'));
 
   const sortedPurchases  = sortItems(filteredPurchases, purchaseSort, 'purchase_date', 'total_amount');
   const sortedContracts  = sortItems(filteredContracts, contractSort, 'start_date', null);
@@ -346,27 +366,65 @@ export default function DashboardPage() {
       {addSheetOpen && <AddTypeSheet onClose={() => setAddSheetOpen(false)} />}
 
       <div className="dash-stats">
-        {[
-          { label: 'Total',    num: stats.all + contracts.length,   icon: 'layout-dashboard', color: 'blue',  filter: 'all' },
-          { label: 'Actifs',   num: stats.active + contracts.filter(c => itemStatus(c.end_date) === 'active').length,   icon: 'circle-check', color: 'green', filter: 'active' },
-          { label: 'Bientôt',  num: expiringSoon,                   icon: 'clock',          color: 'amber', filter: 'expiring' },
-          { label: 'Expirés',  num: stats.expired + contracts.filter(c => itemStatus(c.end_date) === 'expired').length, icon: 'alert-triangle', color: 'red',   filter: 'expired' },
-        ].map(s => (
-          <div key={s.label}
-            className={`dash-stat dash-stat-${s.color}${activeFilter === s.filter ? ' active' : ''}`}
-            style={{ cursor: 'pointer' }}
-            onClick={() => {
-              setActiveFilter(activeFilter === s.filter ? 'all' : s.filter);
-              // Les listes sont plus bas dans la page : sans ce défilement,
-              // l'effet du filtre passait inaperçu (signalé comme "peu visible").
-              setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-            }}>
-            <div className="stat-arrow"><Icon name={activeFilter === s.filter ? 'x' : 'arrow-up-right'} /></div>
-            <div className="stat-icon-circle"><Icon name={s.icon} /></div>
-            <span className="dash-stat-num">{s.num}</span>
-            <span className="dash-stat-label">{s.label}</span>
-          </div>
-        ))}
+        {(() => {
+          const abonnementsCount = contracts.filter(c => c.contract_type === 'Abonnement').length;
+          const contratsCount = contracts.length - abonnementsCount;
+          const expiringPurchases = purchases.filter(p => itemStatus(p.warranty_end_date) === 'expiring').length;
+          const expiringContrats = contracts.filter(c => c.contract_type !== 'Abonnement' && itemStatus(c.end_date) === 'expiring').length;
+          const expiringAbonnements = contracts.filter(c => c.contract_type === 'Abonnement' && itemStatus(c.end_date) === 'expiring').length;
+
+          const cards = [
+            {
+              key: 'garanties', label: 'Garanties', num: purchases.length, icon: 'shield-check', color: 'blue',
+              flag: expiringPurchases > 0 ? `${expiringPurchases} expire${expiringPurchases > 1 ? 'nt' : ''} bientôt` : (purchases.length > 0 ? 'Tout est à jour' : null),
+              flagColor: expiringPurchases > 0 ? 'var(--amber-text)' : 'var(--green-text)',
+              onClick: () => {
+                setCategoryView('garanties');
+                setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              },
+              active: categoryView === 'garanties',
+            },
+            {
+              key: 'contrats', label: 'Contrats', num: contratsCount, icon: 'file-text', color: 'green',
+              flag: expiringContrats > 0 ? `${expiringContrats} à renouveler` : (contratsCount > 0 ? 'Tous actifs' : null),
+              flagColor: expiringContrats > 0 ? 'var(--amber-text)' : 'var(--green-text)',
+              onClick: () => {
+                setCategoryView('contrat');
+                setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              },
+              active: categoryView === 'contrat',
+            },
+            {
+              key: 'abonnements', label: 'Abonnements', num: abonnementsCount, icon: 'repeat', color: 'amber',
+              flag: expiringAbonnements > 0 ? `${expiringAbonnements} à renouveler` : (abonnementsCount > 0 ? 'Tous actifs' : null),
+              flagColor: expiringAbonnements > 0 ? 'var(--amber-text)' : 'var(--green-text)',
+              onClick: () => {
+                setCategoryView('abonnement');
+                setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              },
+              active: categoryView === 'abonnement',
+            },
+            {
+              key: 'documents', label: 'Documents', num: documentsCount, icon: 'folder', color: 'red',
+              flag: documentsThisMonth > 0 ? `+${documentsThisMonth} ce mois-ci` : null,
+              flagColor: 'var(--ink-soft)',
+              onClick: () => navigate('/documents'),
+            },
+          ];
+
+          return cards.map(s => (
+            <div key={s.key}
+              className={`dash-stat dash-stat-${s.color}${s.active ? ' active' : ''}`}
+              style={{ cursor: 'pointer' }}
+              onClick={s.onClick}>
+              <div className="stat-arrow"><Icon name={s.active ? 'x' : 'arrow-up-right'} /></div>
+              <div className="stat-icon-circle"><Icon name={s.icon} /></div>
+              <span className="dash-stat-num">{s.num}</span>
+              <span className="dash-stat-label">{s.label}</span>
+              {s.flag && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.flagColor, marginTop: 4 }}>{s.flag}</span>}
+            </div>
+          ));
+        })()}
       </div>
 
       {!loading && surveillerItems.length > 0 && (
@@ -462,109 +520,116 @@ export default function DashboardPage() {
           désormais ce besoin, sans dupliquer l'information. */}
 
 
-      <div className="two-col-grid" ref={listsRef}>
-
-        <div className="dash-list-block">
-          <div className="dash-list-head">
-            <div className="dash-list-title">
-              <span className="dash-list-dot blue"></span>
-              Garanties <span className="dash-list-count">{purchases.length}</span>
+      <div ref={listsRef}>
+        {categoryView === 'garanties' ? (
+          <div className="dash-list-block">
+            <div className="dash-list-head">
+              <div className="dash-list-title">
+                <span className="dash-list-dot blue"></span>
+                Garanties <span className="dash-list-count">{purchases.length}</span>
+              </div>
+              {purchases.length > 0 && <SortBtn value={purchaseSort} onChange={setPurchaseSort} />}
             </div>
-            {purchases.length > 0 && <SortBtn value={purchaseSort} onChange={setPurchaseSort} />}
-          </div>
 
-          {loading ? (
-            <div className="dash-list-empty">Chargement…</div>
-          ) : purchases.length === 0 ? (
-            <div className="dash-list-empty">
-              <Icon name="package" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
-              Aucune garantie enregistrée
-            </div>
-          ) : (
-            <div className="dash-list-items">
-              {visiblePurchases.map(p => {
-                const s = itemStatus(p.warranty_end_date);
-                const sc = statusConfig[s];
-                return (
-                  <div key={p.id} className="dash-item" onClick={() => navigate(`/purchase/${p.id}`)}>
-                    <div className="dash-item-body">
-                      <div className="dash-item-name">{p.object_name}</div>
-                      <div className="dash-item-meta">
-                        {[p.brand, p.store].filter(Boolean).join(' · ')}
-                        {p.warranty_end_date && <> · fin {formatDate(p.warranty_end_date)}</>}
+            {loading ? (
+              <div className="dash-list-empty">Chargement…</div>
+            ) : purchases.length === 0 ? (
+              <div className="dash-list-empty">
+                <Icon name="package" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
+                Aucune garantie enregistrée
+              </div>
+            ) : (
+              <div className="dash-list-items">
+                {visiblePurchases.map(p => {
+                  const s = itemStatus(p.warranty_end_date);
+                  const sc = statusConfig[s];
+                  return (
+                    <div key={p.id} className="dash-item" onClick={() => navigate(`/purchase/${p.id}`)}>
+                      <div className="dash-item-body">
+                        <div className="dash-item-name">{p.object_name}</div>
+                        <div className="dash-item-meta">
+                          {[p.brand, p.store].filter(Boolean).join(' · ')}
+                          {p.warranty_end_date && <> · fin {formatDate(p.warranty_end_date)}</>}
+                        </div>
+                      </div>
+                      <div className="dash-item-right">
+                        {p.total_amount && (
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>
+                            {Number(p.total_amount).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+                          </span>
+                        )}
+                        <span className={`badge ${sc.badge}`}>{sc.label}</span>
+                        <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/purchase/${p.id}`); }}>
+                          <Icon name="edit" />
+                        </button>
                       </div>
                     </div>
-                    <div className="dash-item-right">
-                      {p.total_amount && (
-                        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>
-                          {Number(p.total_amount).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
-                        </span>
-                      )}
-                      <span className={`badge ${sc.badge}`}>{sc.label}</span>
-                      <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/purchase/${p.id}`); }}>
-                        <Icon name="edit" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {sortedPurchases.length > purchaseLimit && (
-                <button className="dash-show-more" onClick={() => setPurchaseLimit(l => l + PAGE_SIZE)}>
-                  Voir {Math.min(PAGE_SIZE, sortedPurchases.length - purchaseLimit)} de plus
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="dash-list-block">
-          <div className="dash-list-head">
-            <div className="dash-list-title">
-              <span className="dash-list-dot amber"></span>
-              Contrats et abonnements <span className="dash-list-count">{contracts.length}</span>
-            </div>
-            {contracts.length > 0 && <SortBtn value={contractSort} onChange={setContractSort} />}
+                  );
+                })}
+                {sortedPurchases.length > purchaseLimit && (
+                  <button className="dash-show-more" onClick={() => setPurchaseLimit(l => l + PAGE_SIZE)}>
+                    Voir {Math.min(PAGE_SIZE, sortedPurchases.length - purchaseLimit)} de plus
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-
-          {loading ? (
-            <div className="dash-list-empty">Chargement…</div>
-          ) : contracts.length === 0 ? (
-            <div className="dash-list-empty">
-              <Icon name="shield-check" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
-              Aucun contrat enregistré
+        ) : (
+          <div className="dash-list-block">
+            <div className="dash-list-head">
+              <div className="dash-list-title">
+                <span className="dash-list-dot amber"></span>
+                {categoryView === 'contrat' ? 'Contrats' : 'Abonnements'}
+                {' '}<span className="dash-list-count">{filteredContracts.length}</span>
+                <button onClick={() => setCategoryView('garanties')} style={{
+                  marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--blue)', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit',
+                }}>
+                  ← Garanties
+                </button>
+              </div>
+              {filteredContracts.length > 0 && <SortBtn value={contractSort} onChange={setContractSort} />}
             </div>
-          ) : (
-            <div className="dash-list-items">
-              {visibleContracts.map(c => {
-                const s = itemStatus(c.end_date);
-                const sc = statusConfig[s];
-                return (
-                  <div key={c.id} className="dash-item" onClick={() => navigate(`/contract/${c.id}`)}>
-                    <div className="dash-item-body">
-                      <div className="dash-item-name">{c.name}</div>
-                      <div className="dash-item-meta">
-                        {[c.provider, c.contract_type].filter(Boolean).join(' · ')}
-                        {c.end_date && <> · fin {formatDate(c.end_date)}</>}
+
+            {loading ? (
+              <div className="dash-list-empty">Chargement…</div>
+            ) : filteredContracts.length === 0 ? (
+              <div className="dash-list-empty">
+                <Icon name="shield-check" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
+                {categoryView === 'contrat' ? 'Aucun contrat enregistré' : 'Aucun abonnement enregistré'}
+              </div>
+            ) : (
+              <div className="dash-list-items">
+                {visibleContracts.map(c => {
+                  const s = itemStatus(c.end_date);
+                  const sc = statusConfig[s];
+                  return (
+                    <div key={c.id} className="dash-item" onClick={() => navigate(`/contract/${c.id}`)}>
+                      <div className="dash-item-body">
+                        <div className="dash-item-name">{c.name}</div>
+                        <div className="dash-item-meta">
+                          {[c.provider, c.contract_type].filter(Boolean).join(' · ')}
+                          {c.end_date && <> · fin {formatDate(c.end_date)}</>}
+                        </div>
+                      </div>
+                      <div className="dash-item-right">
+                        <span className={`badge ${sc.badge}`}>{sc.label}</span>
+                        <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/contract/${c.id}`); }}>
+                          <Icon name="edit" />
+                        </button>
                       </div>
                     </div>
-                    <div className="dash-item-right">
-                      <span className={`badge ${sc.badge}`}>{sc.label}</span>
-                      <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/contract/${c.id}`); }}>
-                        <Icon name="edit" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {sortedContracts.length > contractLimit && (
-                <button className="dash-show-more" onClick={() => setContractLimit(l => l + PAGE_SIZE)}>
-                  Voir {Math.min(PAGE_SIZE, sortedContracts.length - contractLimit)} de plus
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
+                  );
+                })}
+                {sortedContracts.length > contractLimit && (
+                  <button className="dash-show-more" onClick={() => setContractLimit(l => l + PAGE_SIZE)}>
+                    Voir {Math.min(PAGE_SIZE, sortedContracts.length - contractLimit)} de plus
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
