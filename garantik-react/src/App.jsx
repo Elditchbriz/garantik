@@ -93,6 +93,7 @@ export default function App() {
       { to: '/documents', icon: 'folder', label: 'Documents', dupBottomNav: true },
     ]},
     { section: 'Compte', items: [
+      { to: '/discussions', icon: 'sparkles', label: 'Discuter avec Did' },
       { to: '/inbox', icon: 'mail', label: 'Docs en attente' },
       { to: '/invite', icon: 'heart-handshake', label: 'Inviter des amis' },
       { to: '/faq', icon: 'info-circle', label: 'Aide & FAQ' },
