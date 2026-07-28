@@ -6,7 +6,6 @@ import QuickSearchOverlay from './components/QuickSearchOverlay.jsx';
 import AccountStatusBanner from './components/AccountStatusBanner.jsx';
 import SuspendedScreen from './components/SuspendedScreen.jsx';
 import UpdatesPopup from './components/UpdatesPopup.jsx';
-import FeedbackButton from './components/FeedbackButton.jsx';
 import AddTypeSheet from './components/AddTypeSheet.jsx';
 
 export default function App() {
@@ -178,7 +177,6 @@ export default function App() {
       </main>
 
       <UpdatesPopup profileId={profile?.id} />
-      <FeedbackButton />
 
       <nav className="bottom-nav">
         <NavLink to="/dashboard" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
