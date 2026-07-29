@@ -1896,7 +1896,7 @@ h1, .display { font-weight: 600; }
 
 .carousel { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
 .carousel::-webkit-scrollbar { display: none; }
-.carousel .dash-item { scroll-snap-align: start; flex: 0 0 82%; margin-bottom: 0; }
+.carousel .item-card { scroll-snap-align: start; flex: 0 0 82%; margin-bottom: 0; }
 .carousel-dots { display: flex; gap: 5px; justify-content: center; margin-bottom: 18px; }
 .carousel-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(27,36,48,0.15); transition: background 0.2s, width 0.2s; }
 .carousel-dots .dot.active { background: var(--blue); width: 16px; border-radius: 3px; }
