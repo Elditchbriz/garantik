@@ -14,6 +14,7 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
@@ -113,69 +114,80 @@ export default function App() {
           <div className="word">Garantik</div>
         </div>
 
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+        {/* Zone de navigation : seule cette partie défile si le contenu
+            dépasse la hauteur disponible — le pied de compte, lui, reste
+            toujours à sa place en bas, sans jamais avoir besoin de scroller. */}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+          <button
+            type="button"
+            onClick={() => setQuickSearchOpen(true)}
+            className="nav-item"
+            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
           >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-        <button
-          type="button"
-          onClick={() => setQuickSearchOpen(true)}
-          className="nav-item"
-          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
-        >
-          <Icon name="search" />
-          <span>Rechercher</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setAddSheetOpen(true)}
-          className="nav-item"
-          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
-        >
-          <Icon name="plus" />
-          <span>Ajouter</span>
-        </button>
+            <Icon name="search" />
+            <span>Rechercher</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAddSheetOpen(true)}
+            className="nav-item"
+            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
+          >
+            <Icon name="plus" />
+            <span>Ajouter</span>
+          </button>
+        </div>
 
-        {/* Pied de compte : toujours visible en bas (jamais besoin de
-            scroller), et montre directement les 3 actions possibles
-            plutôt que de les cacher derrière un clic. */}
-        <div className="sidebar-footer" style={{ position: 'sticky', bottom: 0, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="avatar">{initials}</div>
-            {!collapsed && (
-              <div>
-                <div className="name">{profile?.full_name || 'Mon compte'}</div>
-                <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
-              </div>
-            )}
-          </div>
+        {/* Pied de compte : nom visible en permanence, les 3 actions
+            n'apparaissent qu'au clic (comme avant), pour ne pas surcharger
+            visuellement la sidebar en permanence. */}
+        <div
+          className="sidebar-footer"
+          style={{ cursor: 'pointer', position: 'relative', flexShrink: 0 }}
+          onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+        >
+          <div className="avatar">{initials}</div>
           {!collapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <NavLink to="/account" style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
-                fontSize: 12.5, fontWeight: 600, color: '#C9D6EA',
-              }}>
-                <Icon name="user-circle" style={{ fontSize: 14 }} /> Mon compte
-              </NavLink>
-              <NavLink to="/settings" style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
-                fontSize: 12.5, fontWeight: 600, color: '#C9D6EA',
-              }}>
-                <Icon name="settings" style={{ fontSize: 14 }} /> Paramètres
-              </NavLink>
-              <div onClick={handleSignOut} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
-                fontSize: 12.5, fontWeight: 600, color: '#FF9B8A', cursor: 'pointer',
-              }}>
-                <Icon name="logout" style={{ fontSize: 14 }} /> Déconnexion
-              </div>
+            <div>
+              <div className="name">{profile?.full_name || 'Mon compte'}</div>
+              <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
             </div>
+          )}
+          {!collapsed && <Icon name="chevron-up" className="collapse-hide" style={{ marginLeft: 'auto', color: 'var(--ink-faint)', fontSize: 16 }} />}
+
+          {accountMenuOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={(e) => { e.stopPropagation(); setAccountMenuOpen(false); }} />
+              <div style={{
+                position: 'absolute', bottom: 56, left: 0, width: 220,
+                background: 'var(--white)', borderRadius: 'var(--radius-m)',
+                boxShadow: '0 14px 32px rgba(10,11,40,0.3)', overflow: 'hidden', zIndex: 20,
+              }}>
+                <NavLink to="/account" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
+                  <Icon name="user-circle" /> Mon compte
+                </NavLink>
+                <NavLink to="/settings" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', borderTop: '1px solid var(--line)' }}>
+                  <Icon name="settings" /> Paramètres
+                </NavLink>
+                <div onClick={handleSignOut} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+                  fontSize: 13.5, fontWeight: 500, color: 'var(--red-text)',
+                  borderTop: '1px solid var(--line)',
+                }}>
+                  <Icon name="logout" /> Déconnexion
+                </div>
+              </div>
+            </>
           )}
         </div>
       </aside>
