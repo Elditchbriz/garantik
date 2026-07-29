@@ -87,7 +87,9 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   transition: width 0.18s ease, padding 0.18s ease;
   width: 248px;
   flex-shrink: 0;
@@ -166,17 +168,10 @@ button { font-family: inherit; cursor: pointer; }
   .mobile-topbar { display: flex; }
   .sidebar-toggle { display: none; }
 
-  .sidebar {
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    width: 260px;
-    z-index: 70;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    padding: 24px 16px;
-  }
-  .shell.mobile-open .sidebar { transform: translateX(0); }
-  .shell.mobile-open .sidebar-overlay { display: block; }
+  /* La sidebar est entièrement remplacée par la bottom nav en dessous de
+     860px (navigation unifiée) — plus de tiroir à faire glisser, donc
+     plus besoin d'un mécanisme de réouverture. */
+  .sidebar { display: none; }
 
   .main { padding: 18px 16px calc(100px + env(safe-area-inset-bottom, 0px)); max-width: 100%; overflow-x: hidden; }
 
