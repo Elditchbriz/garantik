@@ -174,7 +174,6 @@ export default function DashboardPage() {
   const [categoryView, setCategoryView] = useState('garanties'); // 'garanties' | 'contrat' | 'abonnement'
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
-  const [surveillerIndex, setSurveillerIndex] = useState(0);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const surveillerRef = useRef(null);
   const listsRef = useRef(null);
@@ -304,15 +303,12 @@ export default function DashboardPage() {
     return sum + (c.billing_period === 'annual' ? amount / 12 : amount);
   }, 0);
 
-  function handleSurveillerScroll(e) {
-    const index = Math.round(e.target.scrollLeft / e.target.clientWidth);
-    setSurveillerIndex(index);
-  }
-
   function scrollSurveiller(direction) {
     const el = surveillerRef.current;
     if (!el) return;
-    el.scrollBy({ left: direction * el.clientWidth, behavior: 'smooth' });
+    // Défile d'un "lot" (la largeur visible), quel que soit le nombre de
+    // cartes à taille fixe qui y tiennent selon la largeur d'écran.
+    el.scrollBy({ left: direction * el.clientWidth * 0.9, behavior: 'smooth' });
   }
 
   return (
@@ -322,9 +318,9 @@ export default function DashboardPage() {
           <div>
             <h1 className="ph-title">Bonjour {profile?.full_name?.split(' ')[0] || ''}</h1>
             <p className="ph-sub">
-              {expiringSoon > 0
-                ? `${expiringSoon} échéance${expiringSoon > 1 ? 's' : ''} à surveiller dans les 60 prochains jours`
-                : 'Tout est à jour — aucune échéance imminente'}
+              {purchases.length + contracts.length > 0
+                ? `${purchases.length} garantie${purchases.length > 1 ? 's' : ''} et ${contracts.length} contrat${contracts.length > 1 ? 's' : ''} centralisés ici`
+                : 'Ajoutez votre première garantie pour démarrer'}
             </p>
           </div>
         </div>
@@ -455,7 +451,7 @@ export default function DashboardPage() {
               À surveiller
             </div>
           </div>
-          <div className="carousel" ref={surveillerRef} onScroll={handleSurveillerScroll}>
+          <div className="carousel" ref={surveillerRef}>
             {surveillerItems.map((item) => {
               const s = itemStatus(item.endDate);
               const sc = statusConfig[s];
@@ -479,34 +475,25 @@ export default function DashboardPage() {
               );
             })}
           </div>
-          {surveillerItems.length > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 18 }}>
+          {surveillerItems.length > 2 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 18 }}>
               <button
                 onClick={() => scrollSurveiller(-1)}
-                disabled={surveillerIndex === 0}
                 aria-label="Précédent"
                 style={{
                   width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--line)',
-                  background: '#fff', color: surveillerIndex === 0 ? 'var(--ink-faint)' : 'var(--navy)',
-                  cursor: surveillerIndex === 0 ? 'default' : 'pointer', display: 'flex',
+                  background: '#fff', color: 'var(--navy)', cursor: 'pointer', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
                 <Icon name="chevron-left" style={{ fontSize: 14 }} />
               </button>
-              <div className="carousel-dots" style={{ margin: 0 }}>
-                {surveillerItems.map((_, i) => (
-                  <div key={i} className={`dot ${i === surveillerIndex ? 'active' : ''}`}></div>
-                ))}
-              </div>
               <button
                 onClick={() => scrollSurveiller(1)}
-                disabled={surveillerIndex >= surveillerItems.length - 1}
                 aria-label="Suivant"
                 style={{
                   width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--line)',
-                  background: '#fff', color: surveillerIndex >= surveillerItems.length - 1 ? 'var(--ink-faint)' : 'var(--navy)',
-                  cursor: surveillerIndex >= surveillerItems.length - 1 ? 'default' : 'pointer', display: 'flex',
+                  background: '#fff', color: 'var(--navy)', cursor: 'pointer', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}
               >
