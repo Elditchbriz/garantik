@@ -14,8 +14,6 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
@@ -48,8 +46,6 @@ export default function App() {
       }
     })();
   }, [navigate]);
-
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   // Raccourci clavier Ctrl/Cmd+K pour ouvrir la recherche rapide
   useEffect(() => {
@@ -87,21 +83,19 @@ export default function App() {
   const initials = (profile?.full_name || profile?.email || '?')
     .split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
-  const sidebarItems = [
-    { section: 'Principal', items: [
-      { to: '/dashboard', icon: 'layout-dashboard', label: 'Tableau de bord', dupBottomNav: true },
-      { to: '/documents', icon: 'folder', label: 'Documents', dupBottomNav: true },
-    ]},
-    { section: 'Compte', items: [
-      { to: '/discussions', icon: 'sparkles', label: 'Discuter avec Did' },
-      { to: '/inbox', icon: 'mail', label: 'Docs en attente' },
-      { to: '/invite', icon: 'heart-handshake', label: 'Inviter des amis' },
-      { to: '/faq', icon: 'info-circle', label: 'Aide & FAQ' },
-    ]},
+  // Navigation unifiée : les mêmes 5 destinations, que ce soit dans la
+  // sidebar (desktop) ou la bottom nav (mobile) — plus de contenu
+  // "exclusif" caché dans un tiroir, ce qui a fini par ne plus rien
+  // contenir d'utile une fois Inviter/FAQ/Paramètres déplacés dans
+  // Mon compte et Docs en attente accessible depuis le tableau de bord.
+  const navItems = [
+    { to: '/dashboard', icon: 'layout-dashboard', label: 'Tableau de bord' },
+    { to: '/discussions', icon: 'sparkles', label: 'Discuter avec Did' },
+    { to: '/documents', icon: 'folder', label: 'Documents' },
   ];
 
   return (
-    <div className={`shell ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} id="shell">
+    <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
       <div className="mobile-topbar">
         <div className="mobile-topbar-logo">
@@ -109,8 +103,6 @@ export default function App() {
           <div className="word">Garantik</div>
         </div>
       </div>
-
-      <div className="sidebar-overlay" onClick={() => setMobileOpen(false)}></div>
 
       <aside className="sidebar">
         <div className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}>
@@ -121,51 +113,67 @@ export default function App() {
           <div className="word">Garantik</div>
         </div>
 
-        {sidebarItems.map((section) => (
-          <React.Fragment key={section.section}>
-            {!collapsed && <div className="nav-section-label">{section.section}</div>}
-            {section.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''} ${item.dupBottomNav ? 'nav-item-mobile-hide' : ''}`}
-              >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </React.Fragment>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+          </NavLink>
         ))}
-
-        <div
-          className="sidebar-footer"
-          style={{ cursor: 'pointer', position: 'relative' }}
-          onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+        <button
+          type="button"
+          onClick={() => setQuickSearchOpen(true)}
+          className="nav-item"
+          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
         >
-          <div className="avatar">{initials}</div>
-          {!collapsed && (
-            <div>
-              <div className="name">{profile?.full_name || 'Mon compte'}</div>
-              <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
-            </div>
-          )}
-          {!collapsed && <Icon name="chevron-up" className="collapse-hide" style={{ marginLeft: 'auto', color: 'var(--ink-faint)', fontSize: 16 }} />}
+          <Icon name="search" />
+          <span>Rechercher</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setAddSheetOpen(true)}
+          className="nav-item"
+          style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
+        >
+          <Icon name="plus" />
+          <span>Ajouter</span>
+        </button>
 
-          {accountMenuOpen && (
-            <div style={{
-              position: 'absolute', bottom: 56, left: 0, width: 220,
-              background: 'var(--white)', borderRadius: 'var(--radius-m)',
-              boxShadow: '0 14px 32px rgba(10,11,40,0.3)', overflow: 'hidden', zIndex: 20,
-            }}>
-              <NavLink to="/account" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
-                <Icon name="user-circle" /> Mon compte
+        {/* Pied de compte : toujours visible en bas (jamais besoin de
+            scroller), et montre directement les 3 actions possibles
+            plutôt que de les cacher derrière un clic. */}
+        <div className="sidebar-footer" style={{ position: 'sticky', bottom: 0, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="avatar">{initials}</div>
+            {!collapsed && (
+              <div>
+                <div className="name">{profile?.full_name || 'Mon compte'}</div>
+                <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
+              </div>
+            )}
+          </div>
+          {!collapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <NavLink to="/account" style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
+                fontSize: 12.5, fontWeight: 600, color: '#C9D6EA',
+              }}>
+                <Icon name="user-circle" style={{ fontSize: 14 }} /> Mon compte
+              </NavLink>
+              <NavLink to="/settings" style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
+                fontSize: 12.5, fontWeight: 600, color: '#C9D6EA',
+              }}>
+                <Icon name="settings" style={{ fontSize: 14 }} /> Paramètres
               </NavLink>
               <div onClick={handleSignOut} style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
-                fontSize: 13.5, fontWeight: 500, color: 'var(--red-text)',
-                borderTop: '1px solid var(--line)',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px',
+                fontSize: 12.5, fontWeight: 600, color: '#FF9B8A', cursor: 'pointer',
               }}>
-                <Icon name="logout" /> Déconnexion
+                <Icon name="logout" style={{ fontSize: 14 }} /> Déconnexion
               </div>
             </div>
           )}
@@ -184,24 +192,10 @@ export default function App() {
           <Icon name="layout-dashboard" />
           <span>Accueil</span>
         </NavLink>
-        <button
-          type="button"
-          onClick={() => setQuickSearchOpen(true)}
-          className="bottom-nav-item"
-          style={{ background: 'none', border: 'none', fontFamily: 'inherit' }}
-        >
-          <Icon name="search" />
-          <span>Rechercher</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className={`bottom-nav-item ${mobileOpen ? 'active' : ''}`}
-          style={{ background: 'none', border: 'none', fontFamily: 'inherit' }}
-        >
-          <Icon name="menu-2" />
-          <span>Plus</span>
-        </button>
+        <NavLink to="/discussions" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <Icon name="sparkles" />
+          <span>Discuter</span>
+        </NavLink>
         <NavLink to="/add-purchase" className="bottom-nav-item primary" onClick={(e) => { e.preventDefault(); setAddSheetOpen(true); }}>
           <Icon name="scan" />
           <span>Ajouter</span>
@@ -209,6 +203,10 @@ export default function App() {
         <NavLink to="/documents" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <Icon name="folder" />
           <span>Documents</span>
+        </NavLink>
+        <NavLink to="/account" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <div className="avatar" style={{ width: 20, height: 20, fontSize: 9.5 }}>{initials}</div>
+          <span>Compte</span>
         </NavLink>
       </nav>
 
