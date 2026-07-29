@@ -113,26 +113,46 @@ function QuotaBar({ used, quota }) {
   );
 }
 
-function DidCard({ expiringSoon }) {
+function DidCard({ surveillerItems }) {
   const navigate = useNavigate();
+  const count = surveillerItems.length;
+
+  let title, description;
+  if (count === 0) {
+    title = '✅ Tout est sous contrôle';
+    description = "Aucune garantie ni contrat n'a besoin d'attention pour l'instant.";
+  } else if (count === 1) {
+    title = '⚠️ 1 chose à surveiller';
+    description = `${surveillerItems[0].name} — fin le ${formatDate(surveillerItems[0].endDate)}.`;
+  } else {
+    const names = surveillerItems.slice(0, 2).map((i) => i.name).join(' et ');
+    const rest = count - 2;
+    title = `⚠️ ${count} choses à surveiller`;
+    description = rest > 0
+      ? `${names}, et ${rest} autre${rest > 1 ? 's' : ''}.`
+      : `${names}.`;
+  }
+
   return (
-    <div className="didier-card">
+    <div className="didier-card" style={{ flexWrap: 'wrap' }}>
       <div className="didier-avatar">
         <img src="/didier-headshot.jpg" alt="Did" />
       </div>
-      <div className="didier-card-text">
-        {expiringSoon > 0 ? (
-          <>
-            <div className="t">J'ai l'œil sur {expiringSoon} échéance{expiringSoon > 1 ? 's' : ''}</div>
-            <div className="d">Rien à faire pour l'instant, je vous préviendrai au bon moment.</div>
-          </>
-        ) : (
-          <>
-            <div className="t">Tout est sous contrôle</div>
-            <div className="d">Une question ? <a onClick={() => navigate('/faq')}>Consultez l'aide</a>.</div>
-          </>
-        )}
+      <div className="didier-card-text" style={{ flex: 1, minWidth: 180 }}>
+        <div className="t">{title}</div>
+        <div className="d">{description}</div>
       </div>
+      <button
+        onClick={() => navigate('/discussions')}
+        style={{
+          flexShrink: 0, background: 'var(--blue)', color: '#fff', border: 'none',
+          borderRadius: 'var(--radius-s)', padding: '9px 16px', fontSize: 12.5, fontWeight: 700,
+          cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+          marginTop: 8,
+        }}
+      >
+        <Icon name="sparkles" style={{ fontSize: 13 }} /> Demander à Did
+      </button>
     </div>
   );
 }
@@ -320,7 +340,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {!loading && <DidCard expiringSoon={expiringSoon} />}
+      {!loading && <DidCard surveillerItems={surveillerItems} />}
 
       {!loading && !isPremium && <QuotaBar used={usedItems} quota={quota} />}
 
@@ -442,7 +462,8 @@ export default function DashboardPage() {
               return (
                 <div
                   key={`${item.type}-${item.id}`}
-                  className="dash-item"
+                  className="item-card"
+                  style={{ cursor: 'pointer', marginBottom: 0 }}
                   onClick={() => navigate(item.type === 'purchase' ? `/purchase/${item.id}` : `/contract/${item.id}`)}
                 >
                   <div className="dash-item-body">
