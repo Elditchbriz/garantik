@@ -317,11 +317,7 @@ export default function DashboardPage() {
         <div className="ph-left">
           <div>
             <h1 className="ph-title">Bonjour {profile?.full_name?.split(' ')[0] || ''}</h1>
-            <p className="ph-sub">
-              {purchases.length + contracts.length > 0
-                ? `${purchases.length} garantie${purchases.length > 1 ? 's' : ''} et ${contracts.length} contrat${contracts.length > 1 ? 's' : ''} centralisés ici`
-                : 'Ajoutez votre première garantie pour démarrer'}
-            </p>
+            <p className="ph-sub">Le jour où vous en aurez besoin, Did sera là.</p>
           </div>
         </div>
         <div className="ph-right">
@@ -476,7 +472,7 @@ export default function DashboardPage() {
             })}
           </div>
           {surveillerItems.length > 2 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 18 }}>
               <button
                 onClick={() => scrollSurveiller(-1)}
                 aria-label="Précédent"
