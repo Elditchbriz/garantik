@@ -106,18 +106,20 @@ export default function App() {
     <div className={`shell ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} id="shell">
 
       <div className="mobile-topbar">
-        <div className="mobile-topbar-logo">
-          <div className="mark"></div>
-          <div className="word">Garantik</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Menu"
+            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <Icon name="menu-2" />
+          </button>
+          <div className="mobile-topbar-logo">
+            <div className="mark"></div>
+            <div className="word">Garantik</div>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Menu"
-          style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer' }}
-        >
-          <Icon name="menu-2" />
-        </button>
       </div>
 
       <div className="sidebar-overlay" onClick={() => setMobileOpen(false)}></div>
@@ -226,7 +228,7 @@ export default function App() {
           <span>Discuter</span>
         </NavLink>
         <NavLink to="/add-purchase" className="bottom-nav-item primary" onClick={(e) => { e.preventDefault(); setAddSheetOpen(true); }}>
-          <Icon name="scan" />
+          <Icon name="plus" />
           <span>Ajouter</span>
         </NavLink>
         <NavLink to="/documents" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
