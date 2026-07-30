@@ -142,9 +142,23 @@ export default function SearchPage() {
     }
 
     if (sortMode === 'expiry_asc') {
-      // Échéance la plus proche d'abord ; les éléments sans date de fin
-      // (garanties/contrats sans échéance connue) passent en dernier.
-      merged.sort((a, b) => new Date(a._endDate || '9999-12-31') - new Date(b._endDate || '9999-12-31'));
+      // "Le plus proche" ne veut pas dire "la date la plus ancienne" —
+      // sinon une garantie expirée il y a 3 ans remonterait avant une
+      // qui expire la semaine prochaine. On priorise les échéances à
+      // venir (la plus proche en tête), puis les expirées (la plus
+      // récente en tête), puis celles sans date connue.
+      const now = new Date();
+      merged.sort((a, b) => {
+        const aDate = a._endDate ? new Date(a._endDate) : null;
+        const bDate = b._endDate ? new Date(b._endDate) : null;
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        const aExpired = aDate < now;
+        const bExpired = bDate < now;
+        if (aExpired !== bExpired) return aExpired ? 1 : -1;
+        return aExpired ? bDate - aDate : aDate - bDate;
+      });
     } else {
       merged.sort((a, b) => new Date(b._sortDate || 0) - new Date(a._sortDate || 0));
     }
