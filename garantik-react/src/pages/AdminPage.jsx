@@ -62,7 +62,7 @@ function AccessDenied() {
   return (
     <div style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center', fontFamily: '-apple-system, sans-serif' }}>
       <h2 style={{ color: '#0F172A' }}>Accès non autorisé</h2>
-      <p style={{ color: '#64748B' }}>Cette page est réservée à l'administration de Garantik.</p>
+      <p style={{ color: '#64748B' }}>Cette page est réservée à l'administration de Hey Did.</p>
     </div>
   );
 }
@@ -694,7 +694,7 @@ function UpdatesAdminView() {
 
           {confirmSend && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FFFBEB', color: '#92400E', fontSize: 12.5, marginBottom: 14 }}>
-              Cet email partira à <strong>tous les utilisateurs de Garantik</strong>, sans possibilité d'annulation une fois lancé. Clique à nouveau sur "Publier" pour confirmer.
+              Cet email partira à <strong>tous les utilisateurs de Hey Did</strong>, sans possibilité d'annulation une fois lancé. Clique à nouveau sur "Publier" pour confirmer.
             </div>
           )}
 
