@@ -168,21 +168,10 @@ button { font-family: inherit; cursor: pointer; }
   .mobile-topbar { display: flex; }
   .sidebar-toggle { display: none; }
 
-  /* La bottom nav couvre l'essentiel en dessous de 860px, mais on garde
-     un accès de secours à la sidebar complète via le bouton menu de la
-     barre du haut — pour ne jamais se retrouver sans recours. */
-  .sidebar {
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    width: 260px;
-    z-index: 70;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    padding: 24px 16px;
-    height: 100vh;
-  }
-  .shell.mobile-open .sidebar { transform: translateX(0); }
-  .shell.mobile-open .sidebar-overlay { display: block; }
+  /* Binaire, sans état intermédiaire : sous 860px la bottom nav couvre
+     tout (elle a désormais un onglet Compte équivalent à la sidebar),
+     donc plus besoin d'un tiroir de secours. */
+  .sidebar { display: none; }
 
   .main { padding: 18px 16px calc(100px + env(safe-area-inset-bottom, 0px)); max-width: 100%; overflow-x: hidden; }
 
