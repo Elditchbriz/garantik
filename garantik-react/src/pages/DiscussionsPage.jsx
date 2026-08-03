@@ -26,7 +26,7 @@ export default function DiscussionsPage() {
   }, [orgId]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, sending]);
 
   async function handleSend(e) {
@@ -66,14 +66,14 @@ export default function DiscussionsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 32px)' }}>
+    <div>
       <PageHeader
         title="Discussions"
         subtitle="Posez vos questions à Did, il connaît vos garanties et contrats"
         showHelp={false}
       />
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', paddingBottom: 12 }}>
+      <div style={{ paddingBottom: 12, minHeight: 240 }}>
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 24 }}>Chargement…</p>
         ) : messages.length === 0 ? (
@@ -120,6 +120,7 @@ export default function DiscussionsPage() {
                 </div>
               </div>
             )}
+            <div ref={scrollRef} />
           </div>
         )}
       </div>
@@ -128,7 +129,13 @@ export default function DiscussionsPage() {
         <p style={{ color: 'var(--red-text)', fontSize: 12.5, marginBottom: 8 }}>{error}</p>
       )}
 
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: 8, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+      {/* Collé juste au-dessus de la barre du bas sur mobile (le padding
+          réservé de .main s'en charge), et en bas de la zone de contenu
+          sur desktop — jamais hors-écran, quelle que soit la taille. */}
+      <form onSubmit={handleSend} style={{
+        display: 'flex', gap: 8, padding: '10px 0', borderTop: '1px solid var(--line)',
+        background: 'var(--bg)', position: 'sticky', bottom: 0,
+      }}>
         <input
           type="text"
           value={input}
