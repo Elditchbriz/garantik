@@ -14,7 +14,6 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -52,8 +51,6 @@ export default function App() {
       }
     })();
   }, [navigate]);
-
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   // Raccourci clavier Ctrl/Cmd+K pour ouvrir la recherche rapide
   useEffect(() => {
@@ -103,26 +100,14 @@ export default function App() {
   ];
 
   return (
-    <div className={`shell ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} id="shell">
+    <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
       <div className="mobile-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Menu"
-            style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', cursor: 'pointer', flexShrink: 0 }}
-          >
-            <Icon name="menu-2" />
-          </button>
-          <div className="mobile-topbar-logo">
-            <div className="mark"></div>
-            <div className="word">Hey Did</div>
-          </div>
+        <div className="mobile-topbar-logo">
+          <div className="mark"></div>
+          <div className="word">Hey Did</div>
         </div>
       </div>
-
-      <div className="sidebar-overlay" onClick={() => setMobileOpen(false)}></div>
 
       <aside className="sidebar">
         <div className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}>
