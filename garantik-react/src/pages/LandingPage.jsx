@@ -141,15 +141,11 @@ export default function LandingPage() {
       <section className="lp-hero">
         <div className="lp-hero-inner">
           <div>
-            <div className="lp-eyebrow"><Icon name="sparkles" />10 garanties gratuites, sans carte bancaire</div>
-            <h1>Ne perdez plus jamais un <span className="accent">ticket de caisse</span>, une <span className="accent">garantie</span> ou une <span className="accent">échéance</span> de contrat</h1>
-            <p className="lead">Scannez vos achats, Did retient l'enseigne, la date et la durée de garantie. Vous êtes alerté avant l'échéance, plus jamais après.</p>
-            <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: -6, marginBottom: 20 }}>
-              <Icon name="sparkles" style={{ color: 'var(--amber)', marginRight: 6 }} />
-              Did est votre assistant personnel : il lit, classe et surveille tout à votre place.
-            </p>
+            <div className="lp-eyebrow"><Icon name="sparkles" />10 suivis gratuits, sans carte bancaire</div>
+            <h1>Did s'occupe de votre administratif.<br />Vous gagnez du temps.</h1>
+            <p className="lead">Scannez un ticket, un contrat, une facture — Did comprend, classe, et vous alerte avant chaque échéance de garantie, de contrat ou d'abonnement.</p>
             <div className="lp-hero-ctas">
-              <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Commencer avec Did</Link>
+              <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="sparkles" />Commencer avec Did</Link>
               <a href="#comment-ca-marche" className="btn btn-outline-light btn-lg">Voir comment ça marche</a>
             </div>
             <div className="lp-hero-trust">
@@ -169,12 +165,12 @@ export default function LandingPage() {
 
           <div className="lp-hero-visual">
             <div className="item-card" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
-              <div className="didier-avatar" style={{ width: 48, height: 48 }}>
+              <div className="didier-avatar" style={{ width: 40, height: 40, flexShrink: 0 }}>
                 <img src="/didier-headshot.jpg" alt="Did" />
               </div>
-              <div className="dash-item-body">
-                <div className="dash-item-name">Bonjour ! Je suis Did.</div>
-                <div className="dash-item-meta">Je veille sur vos documents et vous alerte avant chaque échéance.</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>Bonjour ! Je suis Did.</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2, lineHeight: 1.4 }}>Je veille sur vos documents et vous alerte avant chaque échéance.</div>
               </div>
             </div>
             <div className="lp-mock-card">
@@ -207,6 +203,17 @@ export default function LandingPage() {
             <div className="lp-float-badge b2"><Icon name="scan" style={{ color: 'var(--blue)' }} />Ticket scanné en 3s</div>
           </div>
         </div>
+
+        {/* Catégories gérées — juste après le message assistant, avant tout
+            détail fonctionnel (demande explicite : Did d'abord, les
+            catégories ensuite). */}
+        <div className="lp-hero-items">
+          <div className="item"><div className="ic" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div><span>Garanties</span></div>
+          <div className="item"><div className="ic" style={{ background: 'var(--green-pale)', color: 'var(--green-text)' }}><Icon name="file-text" /></div><span>Contrats</span></div>
+          <div className="item"><div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="repeat" /></div><span>Abonnements</span></div>
+          <div className="item"><div className="ic" style={{ background: '#F1EEFF', color: '#6D4AFF' }}><Icon name="folder" /></div><span>Documents</span></div>
+        </div>
+
         <div style={{ height: 64 }}></div>
       </section>
 
