@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
-const CONTACT_EMAIL = 'didiergarantik@gmail.com'; // à remplacer une fois le domaine hey-did.fr opérationnel
+const CONTACT_EMAIL = 'contact@hey-did.fr';
 
 export default function SuspendedScreen({ profile, onSignOut }) {
   const [message, setMessage] = useState('');
