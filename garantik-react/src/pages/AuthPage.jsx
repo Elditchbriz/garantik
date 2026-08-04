@@ -94,7 +94,7 @@ export default function AuthPage() {
               <div className="mark"></div>
               <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
-            <h2>Vos garanties, enfin sous contrôle</h2>
+            <h2>Did s'occupe de votre administratif</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function AuthPage() {
               <div className="mark"></div>
               <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
-            <h2>Vos garanties, enfin sous contrôle</h2>
+            <h2>Did s'occupe de votre administratif</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
           </div>
         </div>
@@ -204,7 +204,10 @@ export default function AuthPage() {
             <div className="mark"></div>
             <div className="word" style={{ color: '#fff' }}>Hey Did</div>
           </a>
-          <h2>Vos garanties, enfin sous contrôle</h2>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', marginBottom: 20, border: '3px solid rgba(255,255,255,0.3)' }}>
+            <img src="/didier-headshot.jpg" alt="Did" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <h2>Did s'occupe de votre administratif</h2>
           <p>Rejoignez des milliers de foyers qui ne perdent plus jamais un ticket de caisse, une garantie ou une échéance de contrat.</p>
           <div className="auth-feature-list">
             <div className="f"><div className="ico"><Icon name="scan" /></div>Scan automatique de vos tickets</div>
@@ -252,7 +255,7 @@ export default function AuthPage() {
           ) : (
             <>
               <h1>Créer votre compte</h1>
-              <p className="sub-text">10 garanties offertes, sans carte bancaire</p>
+              <p className="sub-text">10 suivis offerts, sans carte bancaire</p>
               {referralCode && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
