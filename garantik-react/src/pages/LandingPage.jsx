@@ -117,7 +117,7 @@ export default function LandingPage() {
           </nav>
           <div className="lp-header-actions">
             <Link to="/auth" className="btn btn-ghost lp-btn-login">Se connecter</Link>
-            <Link to="/auth?mode=signup" className="btn btn-primary lp-btn-signup">Essayer gratuitement</Link>
+            <Link to="/auth?mode=signup" className="btn btn-primary lp-btn-signup">Commencer avec Did</Link>
             <button
               className="lp-burger"
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
@@ -134,7 +134,7 @@ export default function LandingPage() {
             <a href="#tarifs" onClick={() => setMobileNavOpen(false)}>Tarifs</a>
             <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
             <Link to="/auth" className="btn btn-ghost" style={{ justifyContent: 'center' }} onClick={() => setMobileNavOpen(false)}>Se connecter</Link>
-            <Link to="/auth?mode=signup" className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={() => setMobileNavOpen(false)}>Essayer gratuitement</Link>
+            <Link to="/auth?mode=signup" className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={() => setMobileNavOpen(false)}>Commencer avec Did</Link>
           </div>
         )}
       </header>
@@ -144,9 +144,13 @@ export default function LandingPage() {
           <div>
             <div className="lp-eyebrow"><Icon name="sparkles" />10 garanties gratuites, sans carte bancaire</div>
             <h1>Ne perdez plus jamais un <span className="accent">ticket de caisse</span>, une <span className="accent">garantie</span> ou une <span className="accent">échéance</span> de contrat</h1>
-            <p className="lead">Scannez vos achats, Hey Did retient l'enseigne, la date et la durée de garantie. Vous êtes alerté avant l'échéance, plus jamais après.</p>
+            <p className="lead">Scannez vos achats, Did retient l'enseigne, la date et la durée de garantie. Vous êtes alerté avant l'échéance, plus jamais après.</p>
+            <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: -6, marginBottom: 20 }}>
+              <Icon name="sparkles" style={{ color: 'var(--amber)', marginRight: 6 }} />
+              Did est votre assistant personnel : il lit, classe et surveille tout à votre place.
+            </p>
             <div className="lp-hero-ctas">
-              <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Essayer gratuitement</Link>
+              <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Commencer avec Did</Link>
               <a href="#comment-ca-marche" className="btn btn-outline-light btn-lg">Voir comment ça marche</a>
             </div>
             <div className="lp-hero-trust">
@@ -165,6 +169,15 @@ export default function LandingPage() {
           </div>
 
           <div className="lp-hero-visual">
+            <div className="item-card" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
+              <div className="didier-avatar" style={{ width: 48, height: 48 }}>
+                <img src="/didier-headshot.jpg" alt="Did" />
+              </div>
+              <div className="dash-item-body">
+                <div className="dash-item-name">Bonjour ! Je suis Did.</div>
+                <div className="dash-item-meta">Je veille sur vos documents et vous alerte avant chaque échéance.</div>
+              </div>
+            </div>
             <div className="lp-mock-card">
               <div className="row">
                 <div className="purchase-icon"><Icon name="wash-machine" /></div>
@@ -208,16 +221,16 @@ export default function LandingPage() {
           <div className="lp-step">
             <div className="num">1</div>
             <h3>Scannez votre ticket</h3>
-            <p>Une photo suffit. L'IA reconnaît l'enseigne, la date d'achat et le montant automatiquement.</p>
+            <p>Une photo suffit. Did reconnaît l'enseigne, la date d'achat et le montant automatiquement.</p>
           </div>
           <div className="lp-step">
             <div className="num">2</div>
-            <h3>Hey Did calcule l'échéance</h3>
+            <h3>Did calcule l'échéance</h3>
             <p>La date de fin de garantie est calculée pour vous, à partir de la durée légale ou personnalisée.</p>
           </div>
           <div className="lp-step">
             <div className="num">3</div>
-            <h3>Recevez l'alerte au bon moment</h3>
+            <h3>Did vous alerte au bon moment</h3>
             <p>Notification et e-mail avant l'expiration, pour faire jouer votre garantie à temps.</p>
           </div>
         </div>
@@ -231,12 +244,12 @@ export default function LandingPage() {
         </div>
         <div className="lp-feature-grid">
           {[
-            { icon: 'scan', bg: 'var(--blue-pale)', color: 'var(--blue-dark)', title: 'Scan intelligent', text: 'Prenez en photo votre ticket ou facture, les informations se remplissent automatiquement.' },
-            { icon: 'bell', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: "Alertes d'échéance", text: "Soyez prévenu avant l'expiration de chaque garantie, dans l'app et par e-mail." },
-            { icon: 'file-text', bg: 'var(--green-pale)', color: 'var(--green-text)', title: 'Contrats & abonnements', text: 'Liez extensions de garantie et contrats à vos achats, suivez toutes vos échéances ensemble.' },
-            { icon: 'search', bg: 'var(--red-pale)', color: 'var(--red-text)', title: 'Recherche instantanée', text: 'Retrouvez un achat ou un contrat par nom, marque, montant, enseigne, ou même un mot écrit sur le ticket ou dans le contrat.' },
-            { icon: 'folder', bg: 'var(--blue-pale)', color: 'var(--blue-dark)', title: 'Coffre documents', text: 'Gardez aussi vos factures et justificatifs au même endroit, classés et faciles à ressortir.' },
-            { icon: 'file-export', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: 'Export en un clic', text: 'Téléchargez un récapitulatif de vos achats au format CSV selon vos critères de recherche.' },
+            { icon: 'scan', bg: 'var(--blue-pale)', color: 'var(--blue-dark)', title: 'Did comprend vos tickets', text: 'Prenez une photo, il retient l\'enseigne, la date et le montant — vous n\'avez rien à saisir.' },
+            { icon: 'bell', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: 'Did vous prévient à temps', text: "Il vous alerte avant l'expiration de chaque garantie, dans l'app et par e-mail." },
+            { icon: 'file-text', bg: 'var(--green-pale)', color: 'var(--green-text)', title: 'Did suit vos contrats', text: 'Extensions de garantie, abonnements, assurances : il relie tout à vos achats et surveille chaque échéance.' },
+            { icon: 'search', bg: 'var(--red-pale)', color: 'var(--red-text)', title: 'Did retrouve tout, en un instant', text: 'Un nom, une marque, un montant, ou même un mot écrit sur le ticket — il le retrouve pour vous.' },
+            { icon: 'folder', bg: 'var(--blue-pale)', color: 'var(--blue-dark)', title: 'Did range vos justificatifs', text: 'Vos factures et documents restent au même endroit, classés, prêts à ressortir quand il faut.' },
+            { icon: 'file-export', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: 'Did prépare votre export', text: 'Téléchargez un récapitulatif de vos achats au format CSV selon vos critères de recherche.' },
           ].map((f) => (
             <div className="lp-feature-card" key={f.title}>
               <div className="ico" style={{ background: f.bg, color: f.color }}><Icon name={f.icon} /></div>
@@ -355,7 +368,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-feature-card" style={{ textAlign: 'center' }}>
             <div className="ico" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)', margin: '0 auto 16px' }}><Icon name="sparkles" /></div>
-            <h3 style={{ fontSize: 15 }}>2. Hey Did reverse</h3>
+            <h3 style={{ fontSize: 15 }}>2. Did reverse</h3>
             <p style={{ fontSize: 13 }}>Une partie de votre abonnement lui est automatiquement reversée — sans aucun coût supplémentaire pour vous.</p>
           </div>
           <div className="lp-feature-card" style={{ textAlign: 'center' }}>
@@ -413,7 +426,7 @@ export default function LandingPage() {
         <div className="lp-cta-band">
           <h2>Vos garanties méritent mieux qu'un tiroir</h2>
           <p>Rejoignez Hey Did en moins de deux minutes, sans carte bancaire.</p>
-          <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Essayer gratuitement</Link>
+          <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Commencer avec Did</Link>
         </div>
       </section>
 
@@ -425,7 +438,7 @@ export default function LandingPage() {
                 <div className="mark"></div>
                 <div className="word">Hey Did</div>
               </div>
-              <p>Gérez vos achats, garanties et contrats en toute simplicité.</p>
+              <p>Did gère vos achats, garanties et contrats à votre place.</p>
             </div>
             <div className="lp-footer-col">
               <h4>Produit</h4>
