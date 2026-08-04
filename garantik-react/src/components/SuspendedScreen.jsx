@@ -12,7 +12,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 
-const CONTACT_EMAIL = 'didiergarantik@gmail.com'; // à remplacer une fois le domaine garantik.fr opérationnel
+const CONTACT_EMAIL = 'didiergarantik@gmail.com'; // à remplacer une fois le domaine hey-did.fr opérationnel
 
 export default function SuspendedScreen({ profile, onSignOut }) {
   const [message, setMessage] = useState('');
@@ -64,7 +64,7 @@ export default function SuspendedScreen({ profile, onSignOut }) {
 
         <h2 style={{ fontSize: 19, color: '#0F172A', margin: '0 0 8px' }}>Compte suspendu</h2>
         <p style={{ fontSize: 13.5, color: '#64748B', lineHeight: 1.6, margin: '0 0 24px' }}>
-          L'accès à votre espace Garantik est actuellement suspendu.
+          L'accès à votre espace Hey Did est actuellement suspendu.
           Contactez-nous si vous pensez qu'il s'agit d'une erreur.
         </p>
 
@@ -96,7 +96,7 @@ export default function SuspendedScreen({ profile, onSignOut }) {
                 opacity: sending || !message.trim() ? 0.6 : 1,
               }}
             >
-              {sending ? 'Envoi...' : 'Contacter Garantik'}
+              {sending ? 'Envoi...' : 'Contacter Hey Did'}
             </button>
           </div>
         )}

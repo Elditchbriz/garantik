@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
         <div className="auth-panel-content">
           <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
             <div className="mark"></div>
-            <div className="word" style={{ color: '#fff' }}>Garantik</div>
+            <div className="word" style={{ color: '#fff' }}>Hey Did</div>
           </a>
           <h2>Vos garanties, enfin sous contrôle</h2>
           <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>

@@ -13,10 +13,13 @@ export default function AddContractPage() {
   const [searchParams] = useSearchParams();
   const orgId = profile?.organization_id;
   const linkedPurchaseId = searchParams.get('purchase_id');
+  // Préselection du type via le tiroir "Ajouter" (Garantie/Contrat/Abonnement) —
+  // ex: /add-contract?type=Abonnement
+  const presetType = searchParams.get('type');
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState('');
-  const [contractType, setContractType] = useState('');
+  const [contractType, setContractType] = useState(presetType || '');
   const [contractTypes, setContractTypes] = useState([]);
   const [providers, setProviders] = useState([]);
   const [startDate, setStartDate] = useState('');
@@ -44,7 +47,11 @@ export default function AddContractPage() {
     if (!orgId) return;
     listContractTypes(orgId).then(({ data }) => {
       setContractTypes(data || []);
-      if (data && data.length > 0) setContractType(data[0].name);
+      // Si un type a été présélectionné depuis le tiroir "Ajouter" (ex: Abonnement),
+      // on le garde tel quel plutôt que d'écraser avec le premier type de la liste.
+      if (!presetType && data && data.length > 0) {
+        setContractType(data[0].name);
+      }
     });
     supabase.from('purchases').select('id, object_name, brand').eq('organization_id', orgId).order('object_name')
       .then(({ data }) => setPurchases(data || []));
@@ -138,9 +145,8 @@ export default function AddContractPage() {
     <>
       <PageHeader
         backTo="/dashboard"
-                title="Nouveau contrat"
+        title={presetType === 'Abonnement' ? 'Nouvel abonnement' : 'Nouveau contrat'}
         subtitle="Extension de garantie, assurance, abonnement ou autre"
-        
       />
 
 

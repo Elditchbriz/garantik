@@ -92,7 +92,7 @@ export default function AuthPage() {
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
               <div className="mark"></div>
-              <div className="word" style={{ color: '#fff' }}>Garantik</div>
+              <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
             <h2>Vos garanties, enfin sous contrôle</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
@@ -110,7 +110,7 @@ export default function AuthPage() {
             </p>
             <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-m)', padding: '16px 20px', marginBottom: 24, textAlign: 'left' }}>
               <div style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.7 }}>
-                <div style={{ marginBottom: 8 }}>📬 Ouvrez l'email de Garantik</div>
+                <div style={{ marginBottom: 8 }}>📬 Ouvrez l'email de Hey Did</div>
                 <div style={{ marginBottom: 8 }}>🔗 Cliquez sur le lien de confirmation</div>
                 <div>✅ Vous serez redirigé automatiquement</div>
               </div>
@@ -144,7 +144,7 @@ export default function AuthPage() {
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
               <div className="mark"></div>
-              <div className="word" style={{ color: '#fff' }}>Garantik</div>
+              <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
             <h2>Vos garanties, enfin sous contrôle</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
@@ -202,7 +202,7 @@ export default function AuthPage() {
         <div className="auth-panel-content">
           <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
             <div className="mark"></div>
-            <div className="word" style={{ color: '#fff' }}>Garantik</div>
+            <div className="word" style={{ color: '#fff' }}>Hey Did</div>
           </a>
           <h2>Vos garanties, enfin sous contrôle</h2>
           <p>Rejoignez des milliers de foyers qui ne perdent plus jamais un ticket de caisse, une garantie ou une échéance de contrat.</p>

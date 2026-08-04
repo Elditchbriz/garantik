@@ -45,6 +45,7 @@ export default function FaqPage() {
         backTo="/dashboard"
         title="Aide & FAQ"
         subtitle="Les réponses aux questions les plus fréquentes"
+        showHelp={false}
       />
 
       {loading ? (
@@ -60,8 +61,8 @@ export default function FaqPage() {
         borderRadius: 'var(--radius-m)', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, textAlign: 'center',
       }}>
         Vous ne trouvez pas votre réponse ?{' '}
-        <a href="mailto:contact@garantik.fr" style={{ color: 'var(--blue)', fontWeight: 600 }}>
-          Écrivez-nous à contact@garantik.fr
+        <a href="mailto:contact@hey-did.fr" style={{ color: 'var(--blue)', fontWeight: 600 }}>
+          Écrivez-nous à contact@hey-did.fr
         </a>
       </div>
     </>

@@ -81,6 +81,17 @@ export default function QuickSearchOverlay({ orgId, onClose }) {
         </div>
 
         <div className="quick-search-results">
+          {/* État d'accueil, avant toute saisie — repris de la maquette */}
+          {!query.trim() && (
+            <div className="empty-state" style={{ padding: '32px 24px' }}>
+              <div className="icon-circle"><Icon name="search" /></div>
+              <div className="title">Recherchez dans tout Hey Did</div>
+              <div className="sub">
+                Nom, marque, montant, enseigne… ou même un mot écrit sur un ticket ou dans un contrat.
+              </div>
+            </div>
+          )}
+
           {loading && <p style={{ padding: 20, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 13 }}>Recherche…</p>}
 
           {!loading && query.trim() && !hasResults && (

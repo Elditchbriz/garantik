@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabaseClient.js';
 import Icon from './Icon.jsx';
 import useFocusTrap from '../hooks/useFocusTrap.js';
 
-function FeedbackModal({ onClose }) {
+export function FeedbackModal({ onClose }) {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);

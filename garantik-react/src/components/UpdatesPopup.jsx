@@ -55,7 +55,7 @@ export default function UpdatesPopup({ profileId }) {
         <div className="modal-top">
           <div className="modal-close" onClick={handleClose}><Icon name="x" /></div>
           <div className="modal-icon"><Icon name="sparkles" /></div>
-          <h3>Quoi de neuf sur Garantik</h3>
+          <h3>Quoi de neuf sur Hey Did</h3>
           <p>{updates.length > 1 ? `${updates.length} nouveautés depuis votre dernière visite` : 'Une nouveauté depuis votre dernière visite'}</p>
         </div>
         <div className="modal-body">

@@ -1,7 +1,7 @@
 // AccountStatusBanner.jsx
 // Affiche un bandeau d'avertissement si l'organisation n'est pas
 // en statut 'active' (read_only ou suspended), avec un bouton qui
-// ouvre un petit formulaire de contact envoyé à l'admin Garantik.
+// ouvre un petit formulaire de contact envoyé à l'admin Hey Did.
 //
 // Usage dans App.jsx :
 //   <AccountStatusBanner profile={profile} />
@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
   },
   suspended: {
     title: 'Compte suspendu',
-    description: "L'accès à votre espace Garantik est actuellement suspendu.",
+    description: "L'accès à votre espace Hey Did est actuellement suspendu.",
     color: '#991B1B',
     bg: '#FEF2F2',
     border: '#FECACA',
@@ -84,7 +84,7 @@ function ContactModal({ config, onClose }) {
           </>
         ) : (
           <>
-            <h3 style={{ margin: '0 0 4px', color: '#0F172A', fontSize: 16 }}>Contacter Garantik</h3>
+            <h3 style={{ margin: '0 0 4px', color: '#0F172A', fontSize: 16 }}>Contacter Hey Did</h3>
             <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 16px' }}>
               {config.title} — décrivez votre demande, nous vous répondrons par email.
             </p>
@@ -156,7 +156,7 @@ export default function AccountStatusBanner({ profile }) {
             padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
           }}
         >
-          Contacter Garantik
+          Contacter Hey Did
         </button>
       </div>
 

@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader.jsx';
 
 // Domaine de réception des emails — à mettre à jour quand le vrai domaine sera configuré
 // Avec Brevo domaine partagé : votre-code@[domaine-brevo-inbound]
-// Avec domaine propre : votre-code@in.garantik.fr
+// Avec domaine propre : votre-code@in.hey-did.fr
 const INBOX_DOMAIN = 'in.brevo.com'; // à ajuster selon ce que Brevo vous donne
 
 function formatDate(d) {
@@ -82,7 +82,7 @@ export default function InboxPage() {
     <>
       <PageHeader
         backTo="/dashboard"
-                title="Boîte de réception"
+        title="Docs en attente"
         subtitle="Transférez vos tickets et contrats par email pour les traiter ici"
       />
 

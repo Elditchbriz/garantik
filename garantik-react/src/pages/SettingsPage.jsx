@@ -173,7 +173,7 @@ function PreferencesTab({ orgId }) {
         </div>
         <div className="setting-row">
           <div className="label-group">
-            <div className="t">Emails Garantik (nouveautés, rappels)</div>
+            <div className="t">Emails Hey Did (nouveautés, rappels)</div>
             <div className="d">Occasionnels : nouveautés de l'application, ou petit rappel si vous n'êtes pas venu depuis longtemps</div>
           </div>
           <div className={`switch ${settings.product_emails_enabled !== false ? 'on' : ''}`}
@@ -398,7 +398,7 @@ function AboutTab() {
           </a>
         ))}
         <div style={{ padding: '16px' }}>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 4 }}>Garantik v1.0</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 4 }}>Hey Did v1.0</div>
           <div style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>Conçu et hébergé en France 🇫🇷</div>
         </div>
       </div>

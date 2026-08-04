@@ -16,9 +16,9 @@
   justify-content: space-between;
 }
 .lp-logo { display: flex; align-items: center; gap: 10px; }
-.lp-logo .mark { width: 36px; height: 36px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+.lp-logo .mark { width: 36px; height: 36px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzI1NjNFQiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMxRTNBOEEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxwYXRoIGQ9IgogICAgTSAxMTYgMTUyCiAgICBDIDExNiAxMjIgMTQwIDk4IDE3MCA5OAogICAgTCAzNDIgOTgKICAgIEMgMzcyIDk4IDM5NiAxMjIgMzk2IDE1MgogICAgTCAzOTYgMjU4CiAgICBDIDM5NiAyODggMzcyIDMxMiAzNDIgMzEyCiAgICBMIDI0NiAzMTIKICAgIEwgMTgwIDM3MgogICAgTCAxOTAgMzEyCiAgICBMIDE3MCAzMTIKICAgIEMgMTQwIDMxMiAxMTYgMjg4IDExNiAyNTgKICAgIFoiCiAgICBmaWxsPSIjRkZGRkZGIi8+CiAgPGNpcmNsZSBjeD0iMTk2IiBjeT0iMTkyIiByPSIxNiIgZmlsbD0iIzI1NjNFQiIvPgogIDxjaXJjbGUgY3g9IjMxNiIgY3k9IjE5MiIgcj0iMTYiIGZpbGw9IiMyNTYzRUIiLz4KICA8cGF0aCBkPSJNIDE4NiAyNDAgQyAyMTAgMjY4IDMwMiAyNjggMzI2IDI0MCIKICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiMyNTYzRUIiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K"); background-size: cover; }
 .lp-logo .mark img { width: 100%; height: 100%; display: block; }
-.lp-logo .word { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; color: var(--navy); }
+.lp-logo .word { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 21px; font-weight: 800; color: var(--navy); }
 
 .lp-nav { display: flex; align-items: center; gap: 32px; }
 .lp-nav a { font-size: 14.5px; font-weight: 500; color: var(--ink-soft); }
@@ -162,7 +162,7 @@
   width: 44px; height: 44px;
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Fraunces', serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 800;
   font-size: 19px;
   font-weight: 600;
   color: #fff;
@@ -248,7 +248,7 @@
   margin-bottom: 22px;
 }
 .lp-price-card .plan-price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
-.lp-price-card .plan-price .amount { font-size: 36px; font-weight: 700; font-family: 'Fraunces', serif; color: var(--navy); }
+.lp-price-card .plan-price .amount { font-size: 36px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 800; color: var(--navy); }
 .lp-price-card .plan-price .period { font-size: 14px; color: var(--ink-soft); }
 .lp-price-card .plan-sub { font-size: 13.5px; color: var(--ink-soft); }
 .lp-price-card .plan-sub strong { color: var(--navy); }

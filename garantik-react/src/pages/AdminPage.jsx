@@ -62,7 +62,7 @@ function AccessDenied() {
   return (
     <div style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center', fontFamily: '-apple-system, sans-serif' }}>
       <h2 style={{ color: '#0F172A' }}>Accès non autorisé</h2>
-      <p style={{ color: '#64748B' }}>Cette page est réservée à l'administration de Garantik.</p>
+      <p style={{ color: '#64748B' }}>Cette page est réservée à l'administration de Hey Did.</p>
     </div>
   );
 }
@@ -694,7 +694,7 @@ function UpdatesAdminView() {
 
           {confirmSend && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FFFBEB', color: '#92400E', fontSize: 12.5, marginBottom: 14 }}>
-              Cet email partira à <strong>tous les utilisateurs de Garantik</strong>, sans possibilité d'annulation une fois lancé. Clique à nouveau sur "Publier" pour confirmer.
+              Cet email partira à <strong>tous les utilisateurs de Hey Did</strong>, sans possibilité d'annulation une fois lancé. Clique à nouveau sur "Publier" pour confirmer.
             </div>
           )}
 
@@ -886,22 +886,29 @@ function CharitiesAdminView() {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newWebsiteUrl, setNewWebsiteUrl] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [news, setNews] = useState([]);
+  const [newsCharityId, setNewsCharityId] = useState('');
+  const [newsHeadline, setNewsHeadline] = useState('');
+  const [addingNews, setAddingNews] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [{ charities }, { summary }, { percentage }] = await Promise.all([
+      const [{ charities }, { summary }, { percentage }, { news }] = await Promise.all([
         callAdminApi('list_charities'),
         callAdminApi('list_donations_summary'),
         callAdminApi('get_donation_settings'),
+        callAdminApi('list_charity_news'),
       ]);
       setCharities(charities);
       setSummary(summary);
       setPercentage(percentage);
       setPercentageInput(String(percentage));
+      setNews(news);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -916,13 +923,14 @@ function CharitiesAdminView() {
     setAdding(true);
     try {
       if (editingId) {
-        await callAdminApi('update_charity', { id: editingId, name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim() });
+        await callAdminApi('update_charity', { id: editingId, name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim(), image_url: newImageUrl.trim() });
       } else {
-        await callAdminApi('create_charity', { name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim() });
+        await callAdminApi('create_charity', { name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim(), image_url: newImageUrl.trim() });
       }
       setNewName('');
       setNewDescription('');
       setNewWebsiteUrl('');
+      setNewImageUrl('');
       setEditingId(null);
       await loadAll();
     } catch (err) {
@@ -937,6 +945,7 @@ function CharitiesAdminView() {
     setNewName(charity.name);
     setNewDescription(charity.description || '');
     setNewWebsiteUrl(charity.website_url || '');
+    setNewImageUrl(charity.image_url || '');
   }
 
   function handleCancelEdit() {
@@ -944,6 +953,7 @@ function CharitiesAdminView() {
     setNewName('');
     setNewDescription('');
     setNewWebsiteUrl('');
+    setNewImageUrl('');
   }
 
   async function handleToggleActive(charity) {
@@ -980,6 +990,30 @@ function CharitiesAdminView() {
     if (!window.confirm(`Confirmer que le virement de ${amount.toFixed(2)}€ à "${charityName}" a bien été effectué ?\n\nCette action marque tous les dons en attente pour cette association comme réglés.`)) return;
     try {
       await callAdminApi('mark_charity_payout_done', { charity_id: charityId });
+      await loadAll();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleAddNews() {
+    if (!newsCharityId || !newsHeadline.trim()) return;
+    setAddingNews(true);
+    try {
+      await callAdminApi('create_charity_news', { charity_id: newsCharityId, headline: newsHeadline.trim() });
+      setNewsHeadline('');
+      await loadAll();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddingNews(false);
+    }
+  }
+
+  async function handleDeleteNews(id) {
+    if (!window.confirm('Supprimer cette actualité ?')) return;
+    try {
+      await callAdminApi('delete_charity_news', { id });
       await loadAll();
     } catch (err) {
       setError(err.message);
@@ -1057,6 +1091,11 @@ function CharitiesAdminView() {
         <input
           type="text" value={newWebsiteUrl} onChange={(e) => setNewWebsiteUrl(e.target.value)}
           placeholder="Lien du site (ex : https://...)"
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8, boxSizing: 'border-box' }}
+        />
+        <input
+          type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
+          placeholder="URL d'une vraie photo (optionnel — sinon dégradé coloré automatique)"
           style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 10, boxSizing: 'border-box' }}
         />
         <button onClick={handleAddCharity} disabled={adding || !newName.trim()} style={btnStyle('#1E3A6E')}>
@@ -1090,6 +1129,46 @@ function CharitiesAdminView() {
                 Supprimer
               </button>
             </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Actualités par association — de vraies infos publiées par toi,
+          affichées sur la page "Mon compte" côté client, sans rien inventer */}
+      <h3 style={{ fontSize: 14, color: '#0F172A', margin: '32px 0 10px' }}>Actualités des associations</h3>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 560 }}>
+        <select
+          value={newsCharityId}
+          onChange={(e) => setNewsCharityId(e.target.value)}
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8 }}
+        >
+          <option value="">— Choisir une association —</option>
+          {charities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <textarea
+          value={newsHeadline} onChange={(e) => setNewsHeadline(e.target.value)}
+          placeholder="Ex : 2 500 enfants ont eu accès à l'eau potable cette semaine grâce à vos dons"
+          rows={2}
+          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
+        />
+        <button onClick={handleAddNews} disabled={addingNews || !newsCharityId || !newsHeadline.trim()} style={btnStyle('#1E3A6E')}>
+          {addingNews ? 'Publication...' : '+ Publier'}
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
+        {news.length === 0 ? (
+          <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune actualité publiée pour l'instant.</p>
+        ) : news.map((n) => (
+          <div key={n.id} style={{ background: '#fff', borderRadius: 10, padding: '12px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#1E3A6E', marginBottom: 2 }}>{n.charities?.name}</div>
+              <div style={{ fontSize: 13, color: '#334155' }}>{n.headline}</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{new Date(n.published_at).toLocaleDateString('fr-FR')}</div>
+            </div>
+            <button onClick={() => handleDeleteNews(n.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, flexShrink: 0 }}>
+              Supprimer
+            </button>
           </div>
         ))}
       </div>

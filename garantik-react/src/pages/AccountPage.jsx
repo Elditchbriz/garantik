@@ -3,6 +3,8 @@ import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom
 import { supabase, signOut } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { FeedbackModal } from '../components/FeedbackButton.jsx';
+import CharityTile from '../components/CharityTile.jsx';
 
 export default function AccountPage() {
   const { profile, setProfile } = useOutletContext();
@@ -16,6 +18,7 @@ export default function AccountPage() {
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [checkoutError, setCheckoutError] = useState('');
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const [charities, setCharities] = useState([]);
   const [charityId, setCharityId] = useState(profile?.organizations?.charity_id || '');
@@ -23,9 +26,10 @@ export default function AccountPage() {
   const [charitySaved, setCharitySaved] = useState(false);
   const [donationPercentage, setDonationPercentage] = useState(10);
   const [totalDonated, setTotalDonated] = useState(null);
+  const [charityNews, setCharityNews] = useState([]);
 
   React.useEffect(() => {
-    supabase.from('charities').select('id, name, description').eq('active', true).order('name')
+    supabase.from('charities').select('id, name, description, website_url, image_url').eq('active', true).order('name')
       .then(({ data }) => setCharities(data || []));
     supabase.rpc('get_donation_percentage').then(({ data }) => {
       if (data != null) setDonationPercentage(data);
@@ -34,6 +38,16 @@ export default function AccountPage() {
       if (data != null) setTotalDonated(Number(data));
     });
   }, []);
+
+  // Actualités réelles de l'association soutenue — publiées depuis la
+  // console admin, jamais inventées. Se recharge si le choix change.
+  React.useEffect(() => {
+    const currentCharityId = profile?.organizations?.charity_id;
+    if (!currentCharityId) { setCharityNews([]); return; }
+    supabase.from('charity_news').select('*').eq('charity_id', currentCharityId).eq('active', true)
+      .order('published_at', { ascending: false }).limit(3)
+      .then(({ data }) => setCharityNews(data || []));
+  }, [profile?.organizations?.charity_id]);
 
   async function handleSaveCharity() {
     setSavingCharity(true);
@@ -45,6 +59,15 @@ export default function AccountPage() {
   }
 
   const checkoutResult = searchParams.get('checkout'); // 'success' | 'cancelled' | null
+
+  // Isolée volontairement : le jour où l'app sera packagée en natif
+  // (Capacitor), il suffira de remplacer le contenu de cette fonction par
+  // Browser.open({ url }) du plugin @capacitor/browser, sans chasser les
+  // appels dans tout le fichier.
+  function openExternalLink(url) {
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 
   async function handleSaveProfile() {
     setSaving(true);
@@ -102,18 +125,35 @@ export default function AccountPage() {
   const plan = profile?.organizations?.plan || 'free';
   const isPremium = plan === 'premium';
   const renewalDate = profile?.organizations?.plan_renewal_date;
+  const initials = (profile?.full_name || profile?.email || '?')
+    .split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
   return (
     <>
       <PageHeader
         backTo="/dashboard"
-                title="Mon compte"
+        title="Mon compte"
         subtitle="Gérez vos coordonnées et votre abonnement"
-        
       />
 
+      {/* Carte de profil — avatar, nom, statut du plan en un coup d'œil */}
+      <div className="item-card" style={{ padding: 18, marginBottom: 16 }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+          background: 'var(--blue)', color: '#fff', fontWeight: 800, fontSize: 18,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {initials}
+        </div>
+        <div className="dash-item-body">
+          <div className="dash-item-name" style={{ fontSize: 15.5 }}>{profile?.full_name || 'Mon compte'}</div>
+          <div className="dash-item-meta">
+            {isPremium ? '⭐ Plan Premium' : '🔒 Plan Gratuit'} · {profile?.organizations?.name || 'Mon foyer'}
+          </div>
+        </div>
+      </div>
 
-            {saved && (
+      {saved && (
         <div style={{
           background: 'var(--green-pale)', color: 'var(--green-text)', borderRadius: 'var(--radius-m)',
           padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 500,
@@ -198,6 +238,28 @@ export default function AccountPage() {
           </div>
 
           {/* Association soutenue */}
+          {totalDonated !== null && totalDonated > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 16, padding: 22, marginBottom: 12,
+              borderRadius: 'var(--radius-m)', background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
+              boxShadow: '0 8px 24px rgba(37,99,235,0.25)',
+            }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                background: 'rgba(255,255,255,0.2)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              }}>
+                <Icon name="heart-handshake" />
+              </div>
+              <div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
+                  {totalDonated.toFixed(2)}€
+                </div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
+              </div>
+            </div>
+          )}
           <div style={{
             padding: '16px 18px', borderRadius: 'var(--radius-m)',
             background: 'var(--blue-pale-2)', marginBottom: 16,
@@ -205,23 +267,41 @@ export default function AccountPage() {
             <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
               🤝 Association soutenue
             </div>
-            <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
               Choisissez une association : <strong>au moins {donationPercentage}%</strong> de votre abonnement
               premium lui est reversé chaque mois, sans frais supplémentaire pour vous.
               {' '}Sur un abonnement annuel à 19,99€, cela représente au minimum{' '}
               <strong>{(19.99 * donationPercentage / 100).toFixed(2)}€/an</strong> (ou{' '}
               <strong>{(1.99 * donationPercentage / 100).toFixed(2)}€/mois</strong> en mensuel).
             </p>
-            <select
-              value={charityId || ''}
-              onChange={(e) => setCharityId(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5, fontFamily: 'inherit', marginBottom: 10 }}
-            >
-              <option value="">Aucune association</option>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
+              <div
+                onClick={() => setCharityId('')}
+                style={{
+                  position: 'relative', height: 120, borderRadius: 'var(--radius-m)',
+                  background: 'var(--gray-pale)', border: charityId === '' ? '3px solid var(--blue)' : '3px solid transparent',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 6, cursor: 'pointer',
+                }}
+              >
+                {charityId === '' && (
+                  <div style={{
+                    position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%',
+                    background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name="check" style={{ fontSize: 14, color: '#fff' }} />
+                  </div>
+                )}
+                <Icon name="x" style={{ fontSize: 22, color: 'var(--ink-soft)' }} />
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy)' }}>Aucune</div>
+              </div>
+
               {charities.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <CharityTile key={c.id} charity={c} selected={charityId === c.id} onSelect={() => setCharityId(c.id)} height={120} />
               ))}
-            </select>
+            </div>
+
             {charitySaved && (
               <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginBottom: 8 }}>
                 ✓ Préférence enregistrée
@@ -236,13 +316,50 @@ export default function AccountPage() {
               {savingCharity ? 'Enregistrement…' : 'Enregistrer mon choix'}
             </button>
 
-            {totalDonated !== null && totalDonated > 0 && (
-              <div style={{
-                marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>Déjà reversé grâce à vous</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--green-text)' }}>{totalDonated.toFixed(2)}€</span>
+            {/* Descriptif + liens de l'association actuellement choisie */}
+            {(() => {
+              const current = charities.find((c) => c.id === profile?.organizations?.charity_id);
+              if (!current) return null;
+              return (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
+                  {current.description && (
+                    <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 10px' }}>
+                      {current.description}
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                    {current.website_url && (
+                      <button
+                        onClick={() => openExternalLink(current.website_url)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
+                      >
+                        Voir le site officiel ↗
+                      </button>
+                    )}
+                    <button
+                      onClick={() => navigate('/associations')}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
+                    >
+                      Voir toutes les associations
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {charityNews.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                  Actualité
+                </div>
+                {charityNews.map((n) => (
+                  <div key={n.id} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 1 }}>
+                      {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -263,7 +380,7 @@ export default function AccountPage() {
                 </div>
               ))}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 14px' }}>
-                <span style={{ fontFamily: 'Fraunces, serif', fontSize: 28, fontWeight: 700, color: 'var(--navy)' }}>1,67€</span>
+                <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>1,67€</span>
                 <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>/ mois, facturé 19,99€ par an</span>
               </div>
               <button
@@ -298,6 +415,43 @@ export default function AccountPage() {
           )}
         </div>
       </div>
+
+      {/* Raccourcis — repris de la maquette : accès direct aux pages
+          annexes du compte, sans dupliquer leur contenu ici */}
+      <div style={{ marginBottom: 16 }}>
+        <div className="item-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/invite')}>
+          <div className="dash-add-icon" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}>
+            <Icon name="heart-handshake" />
+          </div>
+          <div className="dash-item-body">
+            <div className="dash-item-name">Inviter des amis</div>
+            <div className="dash-item-meta">1 mois offert par ami inscrit</div>
+          </div>
+          <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+        </div>
+        <div className="item-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/settings')}>
+          <div className="dash-add-icon" style={{ background: 'var(--gray-pale)', color: 'var(--ink-soft)' }}>
+            <Icon name="settings" />
+          </div>
+          <div className="dash-item-body">
+            <div className="dash-item-name">Paramètres</div>
+            <div className="dash-item-meta">Alertes, préférences</div>
+          </div>
+          <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+        </div>
+        <div className="item-card" style={{ cursor: 'pointer' }} onClick={() => setFeedbackOpen(true)}>
+          <div className="dash-add-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}>
+            <Icon name="sparkles" />
+          </div>
+          <div className="dash-item-body">
+            <div className="dash-item-name">Remonter une idée</div>
+            <div className="dash-item-meta">Suggestion, bug, retour…</div>
+          </div>
+          <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+        </div>
+      </div>
+
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
 
       {/* Déconnexion */}
       <div className="panel">

@@ -20,15 +20,15 @@ const LEGAL_CONTENT = {
 
 • Plan gratuit, sans stockage personnel connecté : les fichiers que vous scannez (tickets, factures, contrats) sont analysés puis conservés 30 jours, avant suppression automatique et définitive. Les informations qui en ont été extraites (nom du produit, montant, date, durée de garantie) restent, elles, disponibles indéfiniment dans votre compte — seul le fichier original disparaît.
 
-• Stockage personnel connecté (Google Drive ou Dropbox) : dès que vous connectez votre propre espace, vos fichiers y sont enregistrés directement. Garantik n'en conserve aucune copie sur ses propres serveurs, et la suppression automatique après 30 jours ne s'applique plus — c'est votre espace personnel qui fait foi, avec ses propres règles de conservation.
+• Stockage personnel connecté (Google Drive ou Dropbox) : dès que vous connectez votre propre espace, vos fichiers y sont enregistrés directement. Hey Did n'en conserve aucune copie sur ses propres serveurs, et la suppression automatique après 30 jours ne s'applique plus — c'est votre espace personnel qui fait foi, avec ses propres règles de conservation.
 
-• Plan premium sans stockage personnel connecté : vos fichiers sont conservés sur l'hébergement sécurisé de Garantik pendant toute la durée de votre abonnement actif, sans limite de 30 jours.
+• Plan premium sans stockage personnel connecté : vos fichiers sont conservés sur l'hébergement sécurisé de Hey Did pendant toute la durée de votre abonnement actif, sans limite de 30 jours.
 
 Vous pouvez changer d'option de stockage à tout moment depuis les paramètres de votre compte.`
       },
       {
         heading: "Pour aller plus loin",
-        content: `Le détail complet de nos engagements est disponible dans notre politique de confidentialité et nos mentions légales. Pour toute question, contactez-nous à privacy@garantik.fr.`
+        content: `Le détail complet de nos engagements est disponible dans notre politique de confidentialité et nos mentions légales. Pour toute question, contactez-nous à privacy@hey-did.fr.`
       },
     ]
   },
@@ -37,15 +37,15 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
     sections: [
       {
         heading: "1. Présentation du service",
-        content: `Garantik est un service de gestion de garanties et de documents, édité par [Nom de l'éditeur], dont le siège social est situé à Antibes (06600), France. Le service est accessible à l'adresse garantik.fr et permet aux utilisateurs de stocker, suivre et gérer leurs garanties produits, tickets de caisse et documents associés.`
+        content: `Hey Did est un service de gestion de garanties et de documents, édité par [Nom de l'éditeur], dont le siège social est situé à Antibes (06600), France. Le service est accessible à l'adresse hey-did.fr et permet aux utilisateurs de stocker, suivre et gérer leurs garanties produits, tickets de caisse et documents associés.`
       },
       {
         heading: "2. Acceptation des conditions",
-        content: `L'utilisation du service Garantik implique l'acceptation pleine et entière des présentes conditions générales d'utilisation. Ces conditions peuvent être modifiées à tout moment ; les utilisateurs sont invités à les consulter régulièrement. Toute utilisation du service après modification vaut acceptation des nouvelles conditions.`
+        content: `L'utilisation du service Hey Did implique l'acceptation pleine et entière des présentes conditions générales d'utilisation. Ces conditions peuvent être modifiées à tout moment ; les utilisateurs sont invités à les consulter régulièrement. Toute utilisation du service après modification vaut acceptation des nouvelles conditions.`
       },
       {
         heading: "3. Inscription et compte utilisateur",
-        content: `L'accès au service nécessite la création d'un compte. L'utilisateur s'engage à fournir des informations exactes et à maintenir leur exactitude. Il est responsable de la confidentialité de ses identifiants de connexion. Garantik décline toute responsabilité en cas d'utilisation frauduleuse du compte résultant d'une négligence de l'utilisateur.`
+        content: `L'accès au service nécessite la création d'un compte. L'utilisateur s'engage à fournir des informations exactes et à maintenir leur exactitude. Il est responsable de la confidentialité de ses identifiants de connexion. Hey Did décline toute responsabilité en cas d'utilisation frauduleuse du compte résultant d'une négligence de l'utilisateur.`
       },
       {
         heading: "4. Plan gratuit et plan premium",
@@ -53,15 +53,15 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
       },
       {
         heading: "5. Données et contenus utilisateurs",
-        content: `L'utilisateur reste propriétaire de l'ensemble des données et documents qu'il dépose sur Garantik. Il accorde à Garantik une licence d'utilisation limitée et strictement nécessaire à la fourniture du service. Garantik ne commercialise pas les données personnelles de ses utilisateurs.`
+        content: `L'utilisateur reste propriétaire de l'ensemble des données et documents qu'il dépose sur Hey Did. Il accorde à Hey Did une licence d'utilisation limitée et strictement nécessaire à la fourniture du service. Hey Did ne commercialise pas les données personnelles de ses utilisateurs.`
       },
       {
         heading: "6. Disponibilité du service",
-        content: `Garantik s'efforce d'assurer une disponibilité optimale du service, mais ne garantit pas une disponibilité sans interruption. Des maintenances planifiées peuvent temporairement rendre le service inaccessible. Garantik ne saurait être tenu responsable des interruptions de service résultant de causes extérieures.`
+        content: `Hey Did s'efforce d'assurer une disponibilité optimale du service, mais ne garantit pas une disponibilité sans interruption. Des maintenances planifiées peuvent temporairement rendre le service inaccessible. Hey Did ne saurait être tenu responsable des interruptions de service résultant de causes extérieures.`
       },
       {
         heading: "7. Limitation de responsabilité",
-        content: `Garantik fournit un service d'assistance à la gestion personnelle. Les informations extraites automatiquement des tickets de caisse par intelligence artificielle sont fournies à titre indicatif et ne sauraient constituer un acte juridique. L'utilisateur est seul responsable de la vérification des informations saisies et du respect des délais légaux de garantie.`
+        content: `Hey Did fournit un service d'assistance à la gestion personnelle. Les informations extraites automatiquement des tickets de caisse par intelligence artificielle sont fournies à titre indicatif et ne sauraient constituer un acte juridique. L'utilisateur est seul responsable de la vérification des informations saisies et du respect des délais légaux de garantie.`
       },
       {
         heading: "8. Résiliation",
@@ -73,13 +73,13 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
       },
       {
         heading: "10. Don aux associations partenaires (abonnement premium)",
-        content: `Les abonnés au plan premium peuvent choisir, parmi une liste d'associations proposée dans l'application, une association à laquelle ils souhaitent apporter leur soutien. Un pourcentage de leur redevance d'abonnement (mensuelle ou annuelle), déterminé librement par Garantik et pouvant évoluer, est alors mis de côté à cet effet.
+        content: `Les abonnés au plan premium peuvent choisir, parmi une liste d'associations proposée dans l'application, une association à laquelle ils souhaitent apporter leur soutien. Un pourcentage de leur redevance d'abonnement (mensuelle ou annuelle), déterminé librement par Hey Did et pouvant évoluer, est alors mis de côté à cet effet.
 
-Ce don n'est pas effectué directement par l'utilisateur : c'est Garantik qui collecte l'ensemble des montants ainsi affectés et se charge de les reverser périodiquement à l'association concernée, par virement bancaire. Garantik reste seul responsable vis-à-vis de l'association du bon versement des sommes collectées en son nom.
+Ce don n'est pas effectué directement par l'utilisateur : c'est Hey Did qui collecte l'ensemble des montants ainsi affectés et se charge de les reverser périodiquement à l'association concernée, par virement bancaire. Hey Did reste seul responsable vis-à-vis de l'association du bon versement des sommes collectées en son nom.
 
 Ce mécanisme ne constitue pas un don direct de l'utilisateur à l'association au sens fiscal du terme : il n'ouvre donc droit à aucun reçu fiscal ni à aucune réduction ou crédit d'impôt pour l'utilisateur. Le choix d'association peut être modifié à tout moment depuis la page de gestion de l'abonnement, sans incidence sur le prix de l'abonnement.
 
-Garantik se réserve le droit de modifier la liste des associations proposées, notamment en cas de fin de partenariat avec l'une d'entre elles.`
+Hey Did se réserve le droit de modifier la liste des associations proposées, notamment en cas de fin de partenariat avec l'une d'entre elles.`
       },
     ]
   },
@@ -88,7 +88,7 @@ Garantik se réserve le droit de modifier la liste des associations proposées, 
     sections: [
       {
         heading: "1. Responsable du traitement",
-        content: `Le responsable du traitement des données personnelles est [Nom de l'éditeur], domicilié à Antibes (06600), France. Pour toute question relative à vos données, vous pouvez contacter : privacy@garantik.fr`
+        content: `Le responsable du traitement des données personnelles est [Nom de l'éditeur], domicilié à Antibes (06600), France. Pour toute question relative à vos données, vous pouvez contacter : privacy@hey-did.fr`
       },
       {
         heading: "2. Données collectées",
@@ -112,18 +112,18 @@ Garantik se réserve le droit de modifier la liste des associations proposées, 
 
 Concernant les fichiers numérisés (tickets de caisse, contrats, photos) :
 - Plan gratuit : les fichiers sont conservés 30 jours après leur dépôt, puis supprimés automatiquement et définitivement. Les données extraites (texte, montants, dates) restent accessibles dans votre compte.
-- Plan premium avec stockage Garantik : les fichiers sont conservés pendant toute la durée de votre abonnement actif.
-- Stockage personnel connecté (Google Drive) : les fichiers sont stockés directement dans votre espace personnel. Garantik n'en conserve pas de copie.
+- Plan premium avec stockage Hey Did : les fichiers sont conservés pendant toute la durée de votre abonnement actif.
+- Stockage personnel connecté (Google Drive) : les fichiers sont stockés directement dans votre espace personnel. Hey Did n'en conserve pas de copie.
 
-Vous pouvez à tout moment demander la suppression anticipée de vos fichiers depuis la page Documents ou en contactant privacy@garantik.fr.`
+Vous pouvez à tout moment demander la suppression anticipée de vos fichiers depuis la page Documents ou en contactant privacy@hey-did.fr.`
       },
       {
         heading: "7. Vos droits",
-        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@garantik.fr. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
+        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@hey-did.fr. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
       },
       {
         heading: "8. Cookies",
-        content: `Garantik utilise uniquement des cookies techniques strictement nécessaires au fonctionnement du service (session d'authentification). Aucun cookie publicitaire ni cookie de tracking tiers n'est utilisé.`
+        content: `Hey Did utilise uniquement des cookies techniques strictement nécessaires au fonctionnement du service (session d'authentification). Aucun cookie publicitaire ni cookie de tracking tiers n'est utilisé.`
       },
     ]
   },
@@ -132,10 +132,10 @@ Vous pouvez à tout moment demander la suppression anticipée de vos fichiers de
     sections: [
       {
         heading: "Éditeur du site",
-        content: `Garantik est édité par [Nom / Raison sociale]
+        content: `Hey Did est édité par [Nom / Raison sociale]
 Forme juridique : [à compléter]
 Siège social : Antibes (06600), France
-E-mail : contact@garantik.fr
+E-mail : contact@hey-did.fr
 Directeur de la publication : [Nom du directeur]`
       },
       {
@@ -148,19 +148,19 @@ Les données des utilisateurs sont stockées exclusivement sur des serveurs situ
       },
       {
         heading: "Propriété intellectuelle",
-        content: `L'ensemble des éléments constituant le service Garantik (logo, interface, code source, textes, icônes) est la propriété exclusive de l'éditeur et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle. Toute reproduction ou représentation, même partielle, est interdite sans autorisation préalable.`
+        content: `L'ensemble des éléments constituant le service Hey Did (logo, interface, code source, textes, icônes) est la propriété exclusive de l'éditeur et est protégé par les lois françaises et internationales relatives à la propriété intellectuelle. Toute reproduction ou représentation, même partielle, est interdite sans autorisation préalable.`
       },
       {
         heading: "Traitement des données personnelles",
-        content: `Les traitements de données personnelles mis en œuvre dans le cadre du service sont conformes au Règlement Général sur la Protection des Données (RGPD - Règlement UE 2016/679) et à la loi Informatique et Libertés modifiée. Pour toute question, contactez : privacy@garantik.fr`
+        content: `Les traitements de données personnelles mis en œuvre dans le cadre du service sont conformes au Règlement Général sur la Protection des Données (RGPD - Règlement UE 2016/679) et à la loi Informatique et Libertés modifiée. Pour toute question, contactez : privacy@hey-did.fr`
       },
       {
         heading: "Limitation de responsabilité",
-        content: `Les informations présentes dans l'application sont fournies à titre indicatif. Garantik ne saurait être tenu responsable des erreurs d'extraction automatique des tickets de caisse ni des conséquences résultant de la non-vérification par l'utilisateur des informations affichées. La garantie légale de conformité de 2 ans prévue par le Code de la consommation (articles L.217-4 et suivants) s'applique indépendamment du bon fonctionnement de l'application.`
+        content: `Les informations présentes dans l'application sont fournies à titre indicatif. Hey Did ne saurait être tenu responsable des erreurs d'extraction automatique des tickets de caisse ni des conséquences résultant de la non-vérification par l'utilisateur des informations affichées. La garantie légale de conformité de 2 ans prévue par le Code de la consommation (articles L.217-4 et suivants) s'applique indépendamment du bon fonctionnement de l'application.`
       },
       {
         heading: "Médiation",
-        content: `En cas de litige avec Garantik, vous pouvez recourir gratuitement à la médiation de la consommation conformément à la directive 2013/11/UE. Le médiateur compétent est : [Médiateur à désigner]. La plateforme européenne de règlement en ligne des litiges est également accessible à : ec.europa.eu/consumers/odr`
+        content: `En cas de litige avec Hey Did, vous pouvez recourir gratuitement à la médiation de la consommation conformément à la directive 2013/11/UE. Le médiateur compétent est : [Médiateur à désigner]. La plateforme européenne de règlement en ligne des litiges est également accessible à : ec.europa.eu/consumers/odr`
       },
     ]
   }
@@ -192,7 +192,7 @@ export default function LegalPage() {
         <div style={{ width: 34, height: 34, borderRadius: 10, overflow: 'hidden' }}>
           <div className="mark" style={{ width: 34, height: 34 }}></div>
         </div>
-        <span style={{ fontFamily: 'Fraunces, serif', fontSize: 19, fontWeight: 600, color: 'var(--navy)' }}>Garantik</span>
+        <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 19, fontWeight: 800, color: 'var(--navy)' }}>Hey Did</span>
       </div>
 
       <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)', marginBottom: 8 }}>{content.title}</h1>
@@ -216,8 +216,8 @@ export default function LegalPage() {
         borderRadius: 'var(--radius-m)', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6,
       }}>
         Pour toute question concernant ce document, contactez-nous à{' '}
-        <a href="mailto:contact@garantik.fr" style={{ color: 'var(--blue)', fontWeight: 500 }}>
-          contact@garantik.fr
+        <a href="mailto:contact@hey-did.fr" style={{ color: 'var(--blue)', fontWeight: 500 }}>
+          contact@hey-did.fr
         </a>
       </div>
     </div>

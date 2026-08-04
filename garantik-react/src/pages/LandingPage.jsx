@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
+import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
 import '../styles/landing.css';
 
@@ -80,7 +81,7 @@ function PublicContactModal({ onClose }) {
             </div>
             <p style={{ fontSize: 11.5, color: 'var(--ink-faint)', textAlign: 'center', margin: 0 }}>
               Ou écrivez directement à{' '}
-              <a href="mailto:contact@garantik.fr" style={{ color: 'var(--blue)' }}>contact@garantik.fr</a>
+              <a href="mailto:contact@hey-did.fr" style={{ color: 'var(--blue)' }}>contact@hey-did.fr</a>
             </p>
           </>
         )}
@@ -96,7 +97,7 @@ export default function LandingPage() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
 
   useEffect(() => {
-    supabase.from('charities').select('name').eq('active', true).order('name').limit(6)
+    supabase.from('charities').select('name, description, image_url').eq('active', true).order('name').limit(6)
       .then(({ data }) => setCharities(data || []));
   }, []);
 
@@ -106,7 +107,7 @@ export default function LandingPage() {
         <div className="lp-header-inner">
           <div className="lp-logo">
             <div className="mark"></div>
-            <div className="word">Garantik</div>
+            <div className="word">Hey Did</div>
           </div>
           <nav className="lp-nav">
             <a href="#fonctionnalites">Fonctionnalités</a>
@@ -143,7 +144,7 @@ export default function LandingPage() {
           <div>
             <div className="lp-eyebrow"><Icon name="sparkles" />10 garanties gratuites, sans carte bancaire</div>
             <h1>Ne perdez plus jamais un <span className="accent">ticket de caisse</span>, une <span className="accent">garantie</span> ou une <span className="accent">échéance</span> de contrat</h1>
-            <p className="lead">Scannez vos achats, Garantik retient l'enseigne, la date et la durée de garantie. Vous êtes alerté avant l'échéance, plus jamais après.</p>
+            <p className="lead">Scannez vos achats, Hey Did retient l'enseigne, la date et la durée de garantie. Vous êtes alerté avant l'échéance, plus jamais après.</p>
             <div className="lp-hero-ctas">
               <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Essayer gratuitement</Link>
               <a href="#comment-ca-marche" className="btn btn-outline-light btn-lg">Voir comment ça marche</a>
@@ -201,7 +202,7 @@ export default function LandingPage() {
         <div className="lp-section-head">
           <div className="eyebrow-sm">Comment ça marche</div>
           <h2>Trois étapes, zéro paperasse</h2>
-          <p>Garantik s'occupe de tout à votre place.</p>
+          <p>Hey Did s'occupe de tout à votre place.</p>
         </div>
         <div className="lp-steps">
           <div className="lp-step">
@@ -211,7 +212,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-step">
             <div className="num">2</div>
-            <h3>Garantik calcule l'échéance</h3>
+            <h3>Hey Did calcule l'échéance</h3>
             <p>La date de fin de garantie est calculée pour vous, à partir de la durée légale ou personnalisée.</p>
           </div>
           <div className="lp-step">
@@ -354,7 +355,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-feature-card" style={{ textAlign: 'center' }}>
             <div className="ico" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)', margin: '0 auto 16px' }}><Icon name="sparkles" /></div>
-            <h3 style={{ fontSize: 15 }}>2. Garantik reverse</h3>
+            <h3 style={{ fontSize: 15 }}>2. Hey Did reverse</h3>
             <p style={{ fontSize: 13 }}>Une partie de votre abonnement lui est automatiquement reversée — sans aucun coût supplémentaire pour vous.</p>
           </div>
           <div className="lp-feature-card" style={{ textAlign: 'center' }}>
@@ -365,20 +366,21 @@ export default function LandingPage() {
         </div>
 
         {charities.length > 0 && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 14 }}>
-              Associations actuellement proposées — cliquez pour en savoir plus
+          <div>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 16, textAlign: 'center' }}>
+              Associations actuellement proposées
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, maxWidth: 760, margin: '0 auto' }}>
               {charities.map((c) => (
-                <Link key={c.name} to="/associations" style={{
-                  padding: '8px 16px', borderRadius: 999, background: '#fff',
-                  border: '1px solid var(--line)', fontSize: 13, fontWeight: 600, color: 'var(--navy)',
-                  textDecoration: 'none', cursor: 'pointer',
-                }}>
-                  {c.name}
+                <Link key={c.name} to="/associations" style={{ textDecoration: 'none', display: 'block' }}>
+                  <CharityTile charity={c} height={130} />
                 </Link>
               ))}
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <Link to="/associations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)' }}>
+                Découvrir toutes les associations →
+              </Link>
             </div>
           </div>
         )}
@@ -386,7 +388,7 @@ export default function LandingPage() {
 
       <section className="lp-section tight lp-bg-soft" style={{ borderRadius: 'var(--radius-l)', maxWidth: 1200 }}>
         <div className="lp-section-head">
-          <div className="eyebrow-sm">Ils utilisent Garantik</div>
+          <div className="eyebrow-sm">Ils utilisent Hey Did</div>
           <h2>Toute la famille, tous les âges</h2>
         </div>
         <div className="lp-testimonial-grid">
@@ -410,7 +412,7 @@ export default function LandingPage() {
       <section className="lp-section">
         <div className="lp-cta-band">
           <h2>Vos garanties méritent mieux qu'un tiroir</h2>
-          <p>Rejoignez Garantik en moins de deux minutes, sans carte bancaire.</p>
+          <p>Rejoignez Hey Did en moins de deux minutes, sans carte bancaire.</p>
           <Link to="/auth?mode=signup" className="btn btn-amber btn-lg"><Icon name="rocket" />Essayer gratuitement</Link>
         </div>
       </section>
@@ -421,7 +423,7 @@ export default function LandingPage() {
             <div className="lp-footer-brand">
               <div className="lp-logo">
                 <div className="mark"></div>
-                <div className="word">Garantik</div>
+                <div className="word">Hey Did</div>
               </div>
               <p>Gérez vos achats, garanties et contrats en toute simplicité.</p>
             </div>
@@ -445,7 +447,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="lp-footer-bottom">
-            <span>© 2026 Garantik. Tous droits réservés.</span>
+            <span>© 2026 Hey Did. Tous droits réservés.</span>
             <span><Icon name="home" style={{ verticalAlign: '-2px', marginRight: 6 }} />Conçu et hébergé en France</span>
           </div>
         </div>

@@ -53,6 +53,11 @@ export default function SearchPage() {
   const orgId = profile?.organization_id;
 
   const [query, setQuery] = useState(urlParams.get('q') || '');
+  // Tri par échéance proche d'abord, déclenché depuis le lien "Voir toutes
+  // les échéances" du tableau de bord (/search?sort=expiry_asc), mais
+  // modifiable ensuite directement depuis cette page.
+  const [sortMode, setSortMode] = useState(urlParams.get('sort') || 'date_desc');
+  const [sortOpen, setSortOpen] = useState(false);
   const [results, setResults] = useState([]); // résultats fusionnés achats + contrats
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -67,11 +72,17 @@ export default function SearchPage() {
   // la recherche se limite aux achats pour ne pas mélanger des résultats
   // filtrés de façon incohérente.
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState(''); // '' | 'purchase' | 'contrat' | 'abonnement'
   const [filterBrand, setFilterBrand] = useState('');
   const [filterStore, setFilterStore] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+
+  const SORT_OPTIONS = [
+    { id: 'date_desc', label: 'Date (récent)' },
+    { id: 'expiry_asc', label: 'Échéance (proche)' },
+  ];
 
   const hasPurchaseOnlyFilter = !!(filterBrand || filterStore || filterCategory || filterDateFrom || filterDateTo);
 
@@ -91,7 +102,7 @@ export default function SearchPage() {
   useEffect(() => {
     const timer = setTimeout(doSearch, 350);
     return () => clearTimeout(timer);
-  }, [query, filterStatus, filterBrand, filterStore, filterCategory, filterDateFrom, filterDateTo, orgId]);
+  }, [query, filterStatus, filterType, filterBrand, filterStore, filterCategory, filterDateFrom, filterDateTo, sortMode, orgId]);
 
   async function doSearch() {
     if (!orgId) return;
@@ -138,7 +149,35 @@ export default function SearchPage() {
       merged = merged.filter(item => itemStatus(item._endDate) === filterStatus);
     }
 
-    merged.sort((a, b) => new Date(b._sortDate || 0) - new Date(a._sortDate || 0));
+    if (filterType === 'purchase') {
+      merged = merged.filter(item => item._type === 'purchase');
+    } else if (filterType === 'contrat') {
+      merged = merged.filter(item => item._type === 'contract' && item.contract_type !== 'Abonnement');
+    } else if (filterType === 'abonnement') {
+      merged = merged.filter(item => item._type === 'contract' && item.contract_type === 'Abonnement');
+    }
+
+    if (sortMode === 'expiry_asc') {
+      // "Le plus proche" ne veut pas dire "la date la plus ancienne" —
+      // sinon une garantie expirée il y a 3 ans remonterait avant une
+      // qui expire la semaine prochaine. On priorise les échéances à
+      // venir (la plus proche en tête), puis les expirées (la plus
+      // récente en tête), puis celles sans date connue.
+      const now = new Date();
+      merged.sort((a, b) => {
+        const aDate = a._endDate ? new Date(a._endDate) : null;
+        const bDate = b._endDate ? new Date(b._endDate) : null;
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        const aExpired = aDate < now;
+        const bExpired = bDate < now;
+        if (aExpired !== bExpired) return aExpired ? 1 : -1;
+        return aExpired ? bDate - aDate : aDate - bDate;
+      });
+    } else {
+      merged.sort((a, b) => new Date(b._sortDate || 0) - new Date(a._sortDate || 0));
+    }
 
     setResults(merged);
     setSearched(true);
@@ -148,6 +187,7 @@ export default function SearchPage() {
   function resetFilters() {
     setQuery('');
     setFilterStatus('');
+    setFilterType('');
     setFilterBrand('');
     setFilterStore('');
     setFilterCategory('');
@@ -155,7 +195,7 @@ export default function SearchPage() {
     setFilterDateTo('');
   }
 
-  const hasActiveFilters = query || filterStatus || filterBrand || filterStore || filterCategory || filterDateFrom || filterDateTo;
+  const hasActiveFilters = query || filterStatus || filterType || filterBrand || filterStore || filterCategory || filterDateFrom || filterDateTo;
   const purchaseResults = results.filter(r => r._type === 'purchase');
 
   return (
@@ -195,6 +235,15 @@ export default function SearchPage() {
                 <option value="active">Active</option>
                 <option value="expiring">Bientôt expirée</option>
                 <option value="expired">Expirée</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Type</label>
+              <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="">Tous les types</option>
+                <option value="purchase">Garanties</option>
+                <option value="contrat">Contrats</option>
+                <option value="abonnement">Abonnements</option>
               </select>
             </div>
             <div className="field">
@@ -262,6 +311,28 @@ export default function SearchPage() {
               <div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="list-search" /></div>
               {results.length} résultat{results.length > 1 ? 's' : ''}
             </h3>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setSortOpen(!sortOpen)} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px',
+                background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 'var(--radius-s)',
+                fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <Icon name="arrows-sort" style={{ fontSize: 13 }} /> {SORT_OPTIONS.find(o => o.id === sortMode)?.label}
+              </button>
+              {sortOpen && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setSortOpen(false)} />
+                  <div className="sort-dropdown">
+                    {SORT_OPTIONS.map(o => (
+                      <div key={o.id} className={`sort-dropdown-item ${sortMode === o.id ? 'active' : ''}`}
+                        onClick={() => { setSortMode(o.id); setSortOpen(false); }}>
+                        {o.label} {sortMode === o.id && <Icon name="check" style={{ fontSize: 12 }} />}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
           <div className="panel-body">
             {results.map((item) => {
