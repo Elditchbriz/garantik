@@ -10,7 +10,7 @@ const STEPS = [
   {
     icon: 'scan',
     title: 'Scannez votre premier ticket',
-    description: 'Prenez en photo un ticket de caisse ou une facture. Notre IA extrait automatiquement le produit, la date et la durée de garantie.',
+    description: 'Prenez en photo un ticket de caisse ou une facture. Did extrait automatiquement le produit, la date et la durée de garantie.',
     cta: 'Scanner un ticket',
     route: '/add-purchase',
     completedWhen: (purchases, contracts) => purchases > 0,
@@ -18,7 +18,7 @@ const STEPS = [
   {
     icon: 'shield-check',
     title: 'Ajoutez un contrat ou abonnement',
-    description: 'Assurance, téléphonie, salle de sport… Garantik vous alerte avant chaque échéance pour ne jamais rater une résiliation.',
+    description: 'Assurance, téléphonie, salle de sport… Did vous alerte avant chaque échéance pour ne jamais rater une résiliation.',
     cta: 'Ajouter un contrat',
     route: '/add-contract',
     completedWhen: (purchases, contracts) => contracts > 0,
@@ -102,7 +102,7 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
           Vous êtes prêt !
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, lineHeight: 1.6, marginBottom: 24, maxWidth: 380, margin: '0 auto 24px' }}>
-          Votre espace Garantik est configuré. Fini les garanties perdues et les contrats oubliés — on s'occupe de tout.
+          Votre espace Hey Did est configuré. Fini les garanties perdues et les contrats oubliés — Did s'occupe de tout.
         </p>
 
         <div style={{
@@ -147,7 +147,7 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>
-            Bienvenue sur Garantik 🎉
+            Bienvenue sur Hey Did 🎉
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
             3 étapes pour démarrer
