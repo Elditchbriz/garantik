@@ -7,7 +7,10 @@ import PageHeader from '../components/PageHeader.jsx';
 // Domaine de réception des emails — à mettre à jour quand le vrai domaine sera configuré
 // Avec Brevo domaine partagé : votre-code@[domaine-brevo-inbound]
 // Avec domaine propre : votre-code@in.hey-did.fr
-const INBOX_DOMAIN = 'in.brevo.com'; // à ajuster selon ce que Brevo vous donne
+// Sous-domaine DÉDIÉ à la réception — volontairement différent du domaine
+// principal (hey-did.fr, utilisé pour l'envoi), comme recommandé par Brevo
+// pour ne jamais mélanger les enregistrements DNS d'envoi et de réception.
+const INBOX_DOMAIN = 'in.hey-did.fr';
 
 function formatDate(d) {
   if (!d) return '';
