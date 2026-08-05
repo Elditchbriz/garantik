@@ -4,7 +4,6 @@ import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox } from '
 import Icon from '../components/Icon.jsx';
 import OnboardingWizard from '../components/OnboardingWizard.jsx';
 import AddTypeSheet from '../components/AddTypeSheet.jsx';
-import HelpMenu from '../components/HelpMenu.jsx';
 
 const PAGE_SIZE = 5;
 
@@ -173,7 +172,7 @@ function DidBrief({ surveillerItems, documentsThisMonth, inboxCount }) {
 }
 
 export default function DashboardPage() {
-  const { profile, openQuickSearch, alertCount } = useOutletContext();
+  const { profile, alertCount } = useOutletContext();
   const navigate = useNavigate();
 
   const [purchases, setPurchases]   = useState([]);
@@ -190,7 +189,6 @@ export default function DashboardPage() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const surveillerRef = useRef(null);
   const listsRef = useRef(null);
 
@@ -332,61 +330,7 @@ export default function DashboardPage() {
       <div className="ph">
         <div className="ph-left">
           <div>
-            <h1 className="ph-title" style={{ fontSize: 22 }}>Bonjour {profile?.full_name?.split(' ')[0] || ''} 👋</h1>
-            <p className="ph-sub">Voici où en sont vos garanties et contrats aujourd'hui.</p>
-          </div>
-        </div>
-        <div className="ph-right">
-          <button className="ph-icon-btn" onClick={openQuickSearch} aria-label="Recherche rapide">
-            <Icon name="search" />
-          </button>
-          <HelpMenu />
-          <div style={{ position: 'relative' }}>
-            <button className="ph-icon-btn ph-bell" onClick={() => setNotifOpen(!notifOpen)} aria-label="Alertes">
-              <Icon name="bell" />
-              {alertCount > 0 && <span className="ph-badge">{alertCount > 9 ? '9+' : alertCount}</span>}
-            </button>
-            {notifOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setNotifOpen(false)} />
-                <div className="sort-dropdown" style={{ minWidth: 280, right: 0 }}>
-                  <div style={{ padding: '12px 14px 8px', fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', borderBottom: '1px solid var(--line)' }}>
-                    Échéances
-                  </div>
-                  {surveillerItems.length === 0 ? (
-                    <div style={{ padding: '16px 14px', fontSize: 12.5, color: 'var(--ink-faint)', textAlign: 'center' }}>
-                      Rien à signaler pour l'instant.
-                    </div>
-                  ) : (
-                    surveillerItems.slice(0, 5).map((item) => {
-                      const s = itemStatus(item.endDate);
-                      const sc = statusConfig[s];
-                      return (
-                        <div
-                          key={`${item.type}-${item.id}`}
-                          className="sort-dropdown-item"
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer' }}
-                          onClick={() => { setNotifOpen(false); navigate(item.type === 'purchase' ? `/purchase/${item.id}` : `/contract/${item.id}`); }}
-                        >
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>fin {formatDate(item.endDate)}</div>
-                          </div>
-                          <span className={`badge ${sc.badge}`} style={{ flexShrink: 0 }}>{sc.label}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                  <div
-                    className="sort-dropdown-item"
-                    style={{ textAlign: 'center', fontWeight: 700, color: 'var(--blue)', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
-                    onClick={() => { setNotifOpen(false); navigate('/search?sort=expiry_asc'); }}
-                  >
-                    Voir toutes les échéances
-                  </div>
-                </div>
-              </>
-            )}
+            <h1 className="ph-title" style={{ fontSize: 19 }}>Bonjour {profile?.full_name?.split(' ')[0] || ''} 👋</h1>
           </div>
         </div>
       </div>
