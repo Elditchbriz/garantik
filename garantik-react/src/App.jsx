@@ -103,9 +103,21 @@ export default function App() {
     <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
       <div className="mobile-topbar">
-        <div className="mobile-topbar-logo">
+        <Link to="/dashboard" className="mobile-topbar-logo">
           <div className="mark"></div>
           <div className="word">Hey Did</div>
+        </Link>
+        <div className="mobile-topbar-icons">
+          <button className="ph-icon-btn" onClick={() => setQuickSearchOpen(true)} aria-label="Recherche rapide">
+            <Icon name="search" />
+          </button>
+          <button className="ph-icon-btn" onClick={() => navigate('/faq')} aria-label="Aide">
+            <Icon name="info-circle" />
+          </button>
+          <button className="ph-icon-btn ph-bell" onClick={() => navigate('/search?sort=expiry_asc')} aria-label="Échéances">
+            <Icon name="bell" />
+            {alertCount > 0 && <span className="ph-badge">{alertCount > 9 ? '9+' : alertCount}</span>}
+          </button>
         </div>
       </div>
 
