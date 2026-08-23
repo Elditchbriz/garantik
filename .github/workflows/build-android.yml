@@ -20,9 +20,10 @@ jobs:
 
       - name: Installer Java (requis par Gradle/Android)
         uses: actions/setup-java@v5
+        id: setup-java
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Installer les dépendances du projet
         run: npm install
@@ -45,9 +46,14 @@ jobs:
       - name: Synchroniser Capacitor
         run: npx cap sync android
 
+      - name: Vérifier la version Java active
+        run: java -version
+
       - name: Compiler l'APK Android (debug, non signé)
         working-directory: garantik-react/android
-        run: chmod +x ./gradlew && ./gradlew assembleDebug
+        env:
+          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+        run: chmod +x ./gradlew && ./gradlew assembleDebug -Dorg.gradle.java.home="${{ steps.setup-java.outputs.path }}"
 
       - name: Récupérer l'APK généré
         uses: actions/upload-artifact@v4
