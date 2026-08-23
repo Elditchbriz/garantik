@@ -27,8 +27,20 @@ jobs:
       - name: Installer les dépendances du projet
         run: npm install
 
+      - name: Installer Capacitor
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Installer l'outil de génération d'icônes
+        run: npm install @capacitor/assets --save-dev
+
       - name: Construire l'app web
         run: npm run build
+
+      - name: Ajouter la plateforme Android (crée le dossier android/)
+        run: npx cap add android
+
+      - name: Générer les icônes et le splash screen
+        run: npx capacitor-assets generate --android
 
       - name: Synchroniser Capacitor
         run: npx cap sync android
