@@ -40,6 +40,19 @@ jobs:
       - name: Ajouter la plateforme Android (crée le dossier android/)
         run: npx cap add android
 
+      - name: Corriger le conflit connu de versions kotlin-stdlib
+        run: |
+          echo "
+          allprojects {
+              configurations.all {
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+                  exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+              }
+          }" >> android/build.gradle
+
+      - name: Vérifier que le correctif est bien en place
+        run: tail -10 android/build.gradle
+
       - name: Générer les icônes et le splash screen
         run: npx capacitor-assets generate --android
 
