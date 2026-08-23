@@ -1,0 +1,44 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: # se lance manuellement depuis l'onglet "Actions" de GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: garantik-react
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer Java (requis par Gradle/Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Installer les dépendances du projet
+        run: npm install
+
+      - name: Construire l'app web
+        run: npm run build
+
+      - name: Synchroniser Capacitor
+        run: npx cap sync android
+
+      - name: Compiler l'APK Android (debug, non signé)
+        working-directory: garantik-react/android
+        run: chmod +x ./gradlew && ./gradlew assembleDebug
+
+      - name: Récupérer l'APK généré
+        uses: actions/upload-artifact@v4
+        with:
+          name: hey-did-debug-apk
+          path: garantik-react/android/app/build/outputs/apk/debug/app-debug.apk
