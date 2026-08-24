@@ -175,12 +175,22 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       });
 
       if (fnError) throw new Error(fnError.message);
-      if (!data?.data) throw new Error('Réponse inattendue de l\'IA');
+      if (!data) throw new Error('Réponse inattendue de l\'IA');
 
-      // Verrou de sécurité : on n'accepte un document comme ticket/facture
-      // que s'il contient au moins une date d'achat ET un montant sur au
-      // moins un article. Sans ça, n'importe quelle photo (vacances,
-      // documents non liés...) pourrait être enregistrée comme garantie.
+      // Le serveur renvoie un 200 normal avec rejected:true (pas un code
+      // d'erreur HTTP) — sinon le client Supabase perd le vrai message et
+      // affiche juste "Edge Function returned a non-2xx status code".
+      if (data.rejected) {
+        clearInterval(phraseTimer);
+        setError(data.error);
+        setStep(STEPS.PREVIEW);
+        return;
+      }
+      if (!data.data) throw new Error('Réponse inattendue de l\'IA');
+
+      // Verrou de sécurité côté client également (défense en profondeur) :
+      // on n'accepte un document comme ticket/facture que s'il contient au
+      // moins une date d'achat ET un montant sur au moins un article.
       const hasDate = !!data.data.purchase_date;
       const hasAmount = (data.data.items || []).some((item) => item.total_amount != null);
       if (!hasDate || !hasAmount) {
