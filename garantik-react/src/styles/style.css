@@ -870,9 +870,13 @@ h1, .display { font-weight: 600; }
     font-size: 10px;
   }
 
-  /* Décalage du contenu principal pour la bottom nav */
+  /* Décalage du contenu principal pour la bottom nav — c'est CETTE règle
+     (avec !important) qui l'emporte réellement sur toutes les autres
+     déclarations de .main, y compris celles qui l'auraient déjà changée
+     par ailleurs. Marge volontairement généreuse (au-delà des 64px réels
+     de la bottom nav) pour ne plus jamais masquer le bas d'une liste. */
   .main {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Topbar plus compact sur mobile */
