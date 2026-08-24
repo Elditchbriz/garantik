@@ -34,6 +34,13 @@ jobs:
       - name: Installer l'outil de génération d'icônes
         run: npm install @capacitor/assets --save-dev
 
+      - name: Préparer le dossier assets/ attendu par l'outil
+        run: |
+          mkdir -p assets
+          cp icon.png assets/icon.png
+          cp splash.png assets/splash.png
+          ls -la assets/
+
       - name: Construire l'app web
         run: npm run build
 
