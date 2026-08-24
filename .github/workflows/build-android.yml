@@ -37,7 +37,8 @@ jobs:
       - name: Préparer le dossier assets/ attendu par l'outil
         run: |
           mkdir -p assets
-          cp icon.png assets/icon.png
+          cp icon-foreground.png assets/icon-foreground.png
+          cp icon-background.png assets/icon-background.png
           cp splash.png assets/splash.png
           ls -la assets/
 
