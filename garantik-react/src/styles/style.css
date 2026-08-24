@@ -135,7 +135,9 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 40;
 }
 .mobile-topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.mobile-topbar-logo .word { color: var(--navy); font-size: 17px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 700; }
+.mobile-topbar-logo .word { font-size: 17px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 800; }
+.mobile-topbar-logo .word-hey { color: var(--navy); }
+.mobile-topbar-logo .word-did { color: var(--blue); }
 .mobile-topbar-icons { display: flex; align-items: center; gap: 6px; }
 .mobile-burger {
   width: 40px; height: 40px;
@@ -375,6 +377,8 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .panel-header h3 { font-size: 16.5px; display: flex; align-items: center; gap: 10px; }
