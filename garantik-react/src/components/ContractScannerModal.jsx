@@ -53,10 +53,16 @@ export default function ContractScannerModal({ onResult, onClose }) {
 
       clearInterval(phraseTimer);
       if (fnError) throw new Error(fnError.message);
-      if (!data?.data) throw new Error('Réponse inattendue de l\'IA');
+      if (!data) throw new Error('Réponse inattendue de l\'IA');
 
-      // Même verrou de sécurité que pour les tickets : un contrat doit au
-      // moins comporter une date de fin ET un montant pour être accepté.
+      if (data.rejected) {
+        setError(data.error);
+        setStep(STEPS.CHOOSE);
+        return;
+      }
+      if (!data.data) throw new Error('Réponse inattendue de l\'IA');
+
+      // Même verrou côté client, en défense en profondeur.
       if (!data.data.end_date || data.data.amount == null) {
         setError("Ce document ne semble pas être un contrat valide : impossible d'y trouver à la fois une date de fin et un montant. Réessayez avec une photo plus nette, ou saisissez les informations manuellement.");
         setStep(STEPS.CHOOSE);
