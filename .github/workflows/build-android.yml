@@ -29,7 +29,7 @@ jobs:
         run: npm install
 
       - name: Installer Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/browser @capacitor/app
 
       - name: Installer l'outil de génération d'icônes
         run: npm install @capacitor/assets --save-dev
@@ -52,6 +52,33 @@ jobs:
 
       - name: Vérifier que le correctif est bien en place
         run: tail -10 android/build.gradle
+
+      - name: Ajouter le schéma de retour pour l'authentification (Google, email)
+        run: |
+          python3 << 'PYEOF'
+          path = "android/app/src/main/AndroidManifest.xml"
+          with open(path, "r") as f:
+              content = f.read()
+
+          intent_filter = '''        <intent-filter>
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="fr.heydid.app" android:host="callback" />
+              </intent-filter>
+          </activity>'''
+
+          if "</activity>" in content:
+              content = content.replace("</activity>", intent_filter, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              print("Schéma d'URL ajouté avec succès")
+          else:
+              print("ATTENTION : balise </activity> non trouvée, rien d'inséré")
+          PYEOF
+
+      - name: Vérifier le manifeste corrigé
+        run: cat android/app/src/main/AndroidManifest.xml
 
       - name: Générer les icônes et le splash screen
         run: npx capacitor-assets generate --android
