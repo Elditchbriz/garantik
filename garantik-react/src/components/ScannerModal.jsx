@@ -199,7 +199,10 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
     } catch (err) {
       clearInterval(phraseTimer);
       console.error('Erreur scan :', err);
-      setError('Échec de l\'extraction : ' + err.message);
+      // Message de refus de sécurité (date/montant manquants) affiché tel
+      // quel — pas besoin du préfixe générique "Échec de l'extraction".
+      const isSecurityRejection = err.message.includes('ne semble pas être');
+      setError(isSecurityRejection ? err.message : 'Échec de l\'extraction : ' + err.message);
       setStep(STEPS.PREVIEW);
     }
   }
