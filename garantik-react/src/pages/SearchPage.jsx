@@ -211,7 +211,7 @@ export default function SearchPage() {
           {purchaseResults.length > 0 && (
             <button className="btn btn-primary" style={{ fontSize: 12.5, padding: '7px 12px', gap: 6, flexShrink: 0 }}
               onClick={() => exportToCsv(purchaseResults)} title="L'export CSV couvre les garanties, pas les contrats">
-              <Icon name="file-export" style={{ fontSize: 14 }} /> CSV
+              <Icon name="file-export" style={{ fontSize: 14 }} /> Export
             </button>
           )}
         </div>
