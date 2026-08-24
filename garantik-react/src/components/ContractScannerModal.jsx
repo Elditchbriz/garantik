@@ -68,7 +68,8 @@ export default function ContractScannerModal({ onResult, onClose }) {
     } catch (err) {
       clearInterval(phraseTimer);
       console.error('Erreur scan contrat :', err);
-      setError("Échec de l'extraction : " + err.message);
+      const isSecurityRejection = err.message.includes('ne semble pas être');
+      setError(isSecurityRejection ? err.message : "Échec de l'extraction : " + err.message);
       setStep(STEPS.CHOOSE);
     }
   }
