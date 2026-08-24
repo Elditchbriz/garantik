@@ -383,7 +383,7 @@ export default function PurchaseDetailPage() {
             <div className="panel" style={{ marginBottom: 16 }}>
               <div className="panel-header">
                 <h3><div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="package" /></div>Informations</h3>
-                <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setEditing(true)}>
+                <button className="btn btn-primary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setEditing(true)}>
                   <Icon name="edit" /> Modifier
                 </button>
               </div>
