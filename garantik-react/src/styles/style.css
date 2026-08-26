@@ -1069,7 +1069,34 @@ h1, .display { font-weight: 600; }
   padding-top: max(14px, env(safe-area-inset-top, 14px));
 }
 
-/* ---------- Transition de page douce ---------- */
+/* ---------- Barre de saisie du chat Did ---------- */
+/* Sur desktop, sticky suffit (assez d'espace, pas de barre du bas fixe).
+   Sur mobile, sticky ne colle réellement en bas QUE si le contenu remplit
+   déjà tout l'écran — avec peu de messages, elle reste au milieu. Il faut
+   du position:fixed, ancré juste au-dessus de la bottom nav. */
+.chat-input-bar {
+  position: sticky;
+  bottom: 0;
+}
+@media (max-width: 860px) {
+  .chat-input-bar {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    background: #fff !important;
+    border-top: none !important;
+    border-radius: var(--radius-l);
+    box-shadow: 0 6px 24px rgba(27,36,48,0.12);
+    padding: 8px !important;
+  }
+  /* Réserve la place en bas des messages pour ne pas les cacher derrière
+     la barre de saisie désormais fixe. */
+  .chat-messages-area {
+    padding-bottom: 70px;
+  }
+}
 .main {
   animation: fadeIn 0.18s ease;
 }
