@@ -4,6 +4,7 @@ import { supabase, getSession, getCurrentUserProfile, signOut, applyPendingRefer
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 import Icon from './components/Icon.jsx';
 import HelpMenu from './components/HelpMenu.jsx';
 import QuickSearchOverlay from './components/QuickSearchOverlay.jsx';
@@ -35,6 +36,14 @@ export default function App() {
     if (mainEl) mainEl.scrollTop = 0;
   }, [location.pathname]);
 
+  // Initialise le SDK Google Sign-In natif une seule fois au démarrage.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    SocialLogin.initialize({
+      google: { webClientId: '344108886736-6motnp9e2453s1039fci88s0jmunep7t.apps.googleusercontent.com' },
+    });
+  }, []);
+
   // Intercepte le retour vers l'app après une authentification externe
   // (Google via Chrome Custom Tabs, ou lien de confirmation d'email) —
   // sans ça, Google/Supabase renvoient l'utilisateur vers hey-did.fr dans
@@ -43,11 +52,6 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return;
 
     const sub = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
-      // DIAGNOSTIC TEMPORAIRE — à retirer une fois le problème résolu.
-      // Confirme visuellement, sans USB ni DevTools, que ce retour est
-      // bien intercepté par l'app (et montre l'URL exacte reçue).
-      alert('appUrlOpen déclenché !\nURL reçue : ' + url);
-
       await Browser.close().catch(() => {});
       try {
         const parsed = new URL(url.replace('fr.heydid.app://', 'https://placeholder/'));
@@ -70,7 +74,6 @@ export default function App() {
         window.location.reload(); // s'assure que le profil se recharge avec la nouvelle session
       } catch (err) {
         console.error('Erreur lors du retour d\'authentification :', err);
-        alert('Erreur lors du retour d\'authentification :\n' + err.message); // DIAGNOSTIC TEMPORAIRE
       }
     });
 
