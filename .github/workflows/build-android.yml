@@ -88,6 +88,29 @@ jobs:
       - name: Vérifier le manifeste corrigé
         run: cat android/app/src/main/AndroidManifest.xml
 
+      - name: Préparer la clé de signature de release
+        working-directory: garantik-react/android/app
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > heydid-release.keystore
+
+      - name: Configurer la signature de release dans Gradle
+        run: |
+          echo '
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("heydid-release.keystore")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                  }
+              }
+          }' >> android/app/build.gradle
+
       - name: Générer les icônes et le splash screen
         run: npx capacitor-assets generate --android
 
@@ -97,14 +120,25 @@ jobs:
       - name: Vérifier la version Java active
         run: java -version
 
-      - name: Compiler l'APK Android (debug, non signé)
+      - name: Compiler l'APK et l'AAB signés (release)
         working-directory: garantik-react/android
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
-        run: chmod +x ./gradlew && ./gradlew assembleDebug -Dorg.gradle.java.home="${{ steps.setup-java.outputs.path }}"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease bundleRelease -Dorg.gradle.java.home="${{ steps.setup-java.outputs.path }}"
 
-      - name: Récupérer l'APK généré
+      - name: Récupérer l'APK signé (pour tester sur un téléphone)
         uses: actions/upload-artifact@v4
         with:
-          name: hey-did-debug-apk
-          path: garantik-react/android/app/build/outputs/apk/debug/app-debug.apk
+          name: hey-did-release-apk
+          path: garantik-react/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Récupérer l'AAB signé (pour le Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: hey-did-release-aab
+          path: garantik-react/android/app/build/outputs/bundle/release/app-release.aab
