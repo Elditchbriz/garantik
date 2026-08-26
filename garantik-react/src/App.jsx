@@ -4,7 +4,6 @@ import { supabase, getSession, getCurrentUserProfile, signOut, applyPendingRefer
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
-import { SocialLogin } from '@capgo/capacitor-social-login';
 import Icon from './components/Icon.jsx';
 import HelpMenu from './components/HelpMenu.jsx';
 import QuickSearchOverlay from './components/QuickSearchOverlay.jsx';
@@ -35,14 +34,6 @@ export default function App() {
     const mainEl = document.querySelector('.main');
     if (mainEl) mainEl.scrollTop = 0;
   }, [location.pathname]);
-
-  // Initialise le SDK Google Sign-In natif une seule fois au démarrage.
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    SocialLogin.initialize({
-      google: { webClientId: '344108886736-6motnp9e2453s1039fci88s0jmunep7t.apps.googleusercontent.com' },
-    });
-  }, []);
 
   // Intercepte le retour vers l'app après une authentification externe
   // (Google via Chrome Custom Tabs, ou lien de confirmation d'email) —
