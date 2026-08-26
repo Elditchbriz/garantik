@@ -9,7 +9,11 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    flowType: 'pkce',
+  },
+});
 
 // ============================================================
 // Authentification
@@ -59,7 +63,7 @@ export async function signInWithGoogle(referralCode = null) {
     // (voir le listener 'appUrlOpen' dans App.jsx).
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: NATIVE_AUTH_CALLBACK, skipBrowserRedirect: true },
+      options: { redirectTo: 'https://www.hey-did.fr/auth-callback.html', skipBrowserRedirect: true },
     });
     if (error) return { error };
     await Browser.open({ url: data.url });
