@@ -39,13 +39,20 @@ export async function signInWithEmail(email, password) {
 }
 
 import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 
-// Schéma d'URL personnalisé utilisé pour ramener l'utilisateur dans l'app
-// après une authentification externe (Google, confirmation d'email) —
-// doit correspondre à ce qui est déclaré dans AndroidManifest.xml et
-// autorisé dans Supabase (Authentication > URL Configuration > Redirect URLs).
-const NATIVE_AUTH_CALLBACK = 'fr.heydid.app://callback';
+// Nonce de sécurité requis par Google/Supabase pour la connexion native :
+// on envoie sa version hachée (SHA-256) à Google, et sa version brute à
+// Supabase, qui vérifie que les deux correspondent — protège contre la
+// réutilisation d'un jeton intercepté.
+async function generateNonce() {
+  const rawNonce = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawNonce));
+  const hashedNonce = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { rawNonce, hashedNonce };
+}
 
 export async function signInWithGoogle(referralCode = null) {
   // Le code de parrainage ne peut pas être transmis directement dans les
@@ -56,18 +63,27 @@ export async function signInWithGoogle(referralCode = null) {
   }
 
   if (Capacitor.isNativePlatform()) {
-    // Google interdit volontairement l'authentification OAuth à l'intérieur
-    // d'une WebView embarquée (mesure anti-phishing de leur part) — il faut
-    // ouvrir un vrai onglet navigateur sécurisé (Chrome Custom Tabs), et
-    // intercepter le retour vers l'app via un schéma d'URL personnalisé
-    // (voir le listener 'appUrlOpen' dans App.jsx).
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: 'https://www.hey-did.fr/auth-callback.html', skipBrowserRedirect: true },
-    });
-    if (error) return { error };
-    await Browser.open({ url: data.url });
-    return { error: null };
+    // Connexion Google NATIVE (boîte de dialogue du téléphone, pas un
+    // navigateur) — évite complètement le problème de redirection qu'on
+    // n'arrivait pas à fiabiliser via Chrome Custom Tabs.
+    try {
+      const { rawNonce, hashedNonce } = await generateNonce();
+      const result = await SocialLogin.login({
+        provider: 'google',
+        options: { nonce: hashedNonce },
+      });
+      const idToken = result?.result?.idToken;
+      if (!idToken) return { error: new Error('Connexion Google annulée ou échouée') };
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+        nonce: rawNonce,
+      });
+      return { error };
+    } catch (err) {
+      return { error: err };
+    }
   }
 
   return supabase.auth.signInWithOAuth({
