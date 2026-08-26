@@ -100,6 +100,7 @@ export default function PurchaseDetailPage() {
   // Document upload
   const [uploading, setUploading] = useState(false);
   const [viewer, setViewer] = useState(null); // { url, type }
+  const [openDocMenu, setOpenDocMenu] = useState(null);
 
   // Confirm delete
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -501,6 +502,7 @@ export default function PurchaseDetailPage() {
                 {documents.map(doc => {
                   const isPrimary = doc.document_category === 'garantie';
                   const isImage = doc.file_type?.startsWith('image/');
+                  const menuOpen = openDocMenu === doc.id;
                   return (
                     <div key={doc.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,
@@ -523,21 +525,43 @@ export default function PurchaseDetailPage() {
                           {catLabels[doc.document_category] || 'Autre'} · {doc.file_size_bytes ? Math.round(doc.file_size_bytes / 1024) + ' Ko' : ''}
                         </div>
                       </div>
-                      {/* Actions — zones tactiles 44px */}
-                      <button onClick={() => openViewer(doc)} title="Visualiser" style={{ ...DOC_BTN, color: 'var(--blue)' }}>
-                        <Icon name="eye" />
-                      </button>
-                      <button onClick={() => downloadFile(doc)} title="Télécharger" style={{ ...DOC_BTN, color: 'var(--ink-soft)' }}>
-                        <Icon name="download" />
-                      </button>
-                      {!isPrimary && (
-                        <button onClick={() => handleSetPrimary(doc.id)} style={{ ...DOC_BTN, color: 'var(--ink-faint)', fontSize: 12 }} title="Définir comme principal">
-                          <Icon name="star-filled" style={{ fontSize: 14 }} />
+                      {/* Un seul bouton ⋮ à la place de 4 icônes en ligne —
+                          libère la place pour lire le nom du fichier en
+                          entier, façon Digiposte. */}
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <button
+                          onClick={() => setOpenDocMenu(menuOpen ? null : doc.id)}
+                          style={{ ...DOC_BTN, color: 'var(--ink-soft)' }}
+                          aria-label="Actions"
+                        >
+                          <Icon name="dots-vertical" />
                         </button>
-                      )}
-                      <button onClick={() => handleDeleteDoc(doc.id, doc.file_path)} title="Supprimer" style={{ ...DOC_BTN, color: 'var(--red-text)' }}>
-                        <Icon name="x" />
-                      </button>
+                        {menuOpen && (
+                          <>
+                            <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setOpenDocMenu(null)} />
+                            <div className="sort-dropdown" style={{ minWidth: 200, right: 0 }}>
+                              <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                onClick={() => { setOpenDocMenu(null); openViewer(doc); }}>
+                                <Icon name="eye" style={{ fontSize: 14, color: 'var(--blue)' }} /> Visualiser
+                              </div>
+                              <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                onClick={() => { setOpenDocMenu(null); downloadFile(doc); }}>
+                                <Icon name="download" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Télécharger
+                              </div>
+                              {!isPrimary && (
+                                <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                  onClick={() => { setOpenDocMenu(null); handleSetPrimary(doc.id); }}>
+                                  <Icon name="star-filled" style={{ fontSize: 14, color: 'var(--ink-faint)' }} /> Définir comme principal
+                                </div>
+                              )}
+                              <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: 'var(--red-text)' }}
+                                onClick={() => { setOpenDocMenu(null); handleDeleteDoc(doc.id, doc.file_path); }}>
+                                <Icon name="x" style={{ fontSize: 14 }} /> Supprimer
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
