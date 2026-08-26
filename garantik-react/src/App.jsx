@@ -43,6 +43,11 @@ export default function App() {
     if (!Capacitor.isNativePlatform()) return;
 
     const sub = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+      // DIAGNOSTIC TEMPORAIRE — à retirer une fois le problème résolu.
+      // Confirme visuellement, sans USB ni DevTools, que ce retour est
+      // bien intercepté par l'app (et montre l'URL exacte reçue).
+      alert('appUrlOpen déclenché !\nURL reçue : ' + url);
+
       await Browser.close().catch(() => {});
       try {
         const parsed = new URL(url.replace('fr.heydid.app://', 'https://placeholder/'));
@@ -65,6 +70,7 @@ export default function App() {
         window.location.reload(); // s'assure que le profil se recharge avec la nouvelle session
       } catch (err) {
         console.error('Erreur lors du retour d\'authentification :', err);
+        alert('Erreur lors du retour d\'authentification :\n' + err.message); // DIAGNOSTIC TEMPORAIRE
       }
     });
 
