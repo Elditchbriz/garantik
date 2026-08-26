@@ -41,6 +41,21 @@ export async function signInWithEmail(email, password) {
 import { Capacitor } from '@capacitor/core';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 
+// Initialisation du SDK Google natif — mémorisée pour n'être lancée
+// qu'une seule fois, mais surtout ATTENDUE avant toute tentative de
+// connexion. Sans ça, cliquer sur "Continuer avec Google" juste après
+// l'ouverture de l'app peut arriver avant la fin de l'initialisation
+// (erreur "Provider was not initialized").
+let socialLoginInitPromise = null;
+function ensureSocialLoginInitialized() {
+  if (!socialLoginInitPromise) {
+    socialLoginInitPromise = SocialLogin.initialize({
+      google: { webClientId: '344108886736-6motnp9e2453s1039fci88s0jmunep7t.apps.googleusercontent.com' },
+    });
+  }
+  return socialLoginInitPromise;
+}
+
 // Nonce de sécurité requis par Google/Supabase pour la connexion native :
 // on envoie sa version hachée (SHA-256) à Google, et sa version brute à
 // Supabase, qui vérifie que les deux correspondent — protège contre la
@@ -67,6 +82,7 @@ export async function signInWithGoogle(referralCode = null) {
     // navigateur) — évite complètement le problème de redirection qu'on
     // n'arrivait pas à fiabiliser via Chrome Custom Tabs.
     try {
+      await ensureSocialLoginInitialized();
       const { rawNonce, hashedNonce } = await generateNonce();
       const result = await SocialLogin.login({
         provider: 'google',
