@@ -88,15 +88,18 @@ export async function signInWithGoogle(referralCode = null) {
         provider: 'google',
         options: { nonce: hashedNonce },
       });
-      alert('DIAGNOSTIC — résultat SocialLogin.login :\n' + JSON.stringify(result, null, 2)); // TEMPORAIRE
       const idToken = result?.result?.idToken;
-      if (!idToken) return { error: new Error('Connexion Google annulée ou échouée') };
+      if (!idToken) {
+        alert('DIAGNOSTIC — pas de idToken. Clés : ' + Object.keys(result?.result || {}).join(', ')); // TEMPORAIRE
+        return { error: new Error('Connexion Google annulée ou échouée') };
+      }
 
       const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: idToken,
         nonce: rawNonce,
       });
+      alert('DIAGNOSTIC — résultat signInWithIdToken : ' + (error ? 'ERREUR : ' + error.message : 'SUCCÈS, pas d\'erreur')); // TEMPORAIRE
       return { error };
     } catch (err) {
       alert('DIAGNOSTIC — erreur attrapée :\n' + (err?.message || JSON.stringify(err))); // TEMPORAIRE
