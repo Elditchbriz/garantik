@@ -73,7 +73,7 @@ export default function DiscussionsPage() {
         showHelp={false}
       />
 
-      <div style={{ paddingBottom: 12, minHeight: 240 }}>
+      <div className="chat-messages-area" style={{ paddingBottom: 12, minHeight: 240 }}>
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 24 }}>Chargement…</p>
         ) : messages.length === 0 ? (
@@ -129,12 +129,11 @@ export default function DiscussionsPage() {
         <p style={{ color: 'var(--red-text)', fontSize: 12.5, marginBottom: 8 }}>{error}</p>
       )}
 
-      {/* Collé juste au-dessus de la barre du bas sur mobile (le padding
-          réservé de .main s'en charge), et en bas de la zone de contenu
-          sur desktop — jamais hors-écran, quelle que soit la taille. */}
-      <form onSubmit={handleSend} style={{
+      {/* Fixe au-dessus de la bottom nav sur mobile, sticky sur desktop
+          — voir .chat-input-bar dans style.css. */}
+      <form onSubmit={handleSend} className="chat-input-bar" style={{
         display: 'flex', gap: 8, padding: '10px 0', borderTop: '1px solid var(--line)',
-        background: 'var(--bg)', position: 'sticky', bottom: 0,
+        background: 'var(--bg)',
       }}>
         <input
           type="text"
