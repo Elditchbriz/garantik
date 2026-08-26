@@ -80,8 +80,10 @@ export default function AuthPage() {
   async function handleGoogle() {
     setErrorMsg('');
     const { error } = await signInWithGoogle(referralCode);
-    if (error) setErrorMsg(error.message);
-    // En cas de succès, le navigateur est redirigé vers Google puis vers /dashboard
+    if (error) { setErrorMsg(error.message); return; }
+    // Avec la connexion native, il n'y a plus de redirection de navigateur
+    // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
+    navigate('/dashboard');
   }
 
   // Écran de confirmation post-inscription
