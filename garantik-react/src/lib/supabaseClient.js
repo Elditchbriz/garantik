@@ -88,6 +88,7 @@ export async function signInWithGoogle(referralCode = null) {
         provider: 'google',
         options: { nonce: hashedNonce },
       });
+      alert('DIAGNOSTIC — résultat SocialLogin.login :\n' + JSON.stringify(result, null, 2)); // TEMPORAIRE
       const idToken = result?.result?.idToken;
       if (!idToken) return { error: new Error('Connexion Google annulée ou échouée') };
 
@@ -98,6 +99,7 @@ export async function signInWithGoogle(referralCode = null) {
       });
       return { error };
     } catch (err) {
+      alert('DIAGNOSTIC — erreur attrapée :\n' + (err?.message || JSON.stringify(err))); // TEMPORAIRE
       return { error: err };
     }
   }
