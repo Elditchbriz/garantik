@@ -21,6 +21,16 @@ function itemStatus(endDate) {
 const statusLabelFr = { active: 'Active', expiring: 'Bientôt expirée', expired: 'Expirée' };
 const badgeClassFor = { active: 'green', expiring: 'amber', expired: 'red' };
 
+// Le même statut technique (avant/bientôt/après la date de fin) se dit
+// différemment selon le type : une garantie "expire", un contrat ou
+// abonnement plutôt "se termine" ou "arrive à échéance".
+function statusLabelFor(status, type) {
+  if (type === 'contract') {
+    return { active: 'En cours', expiring: 'Échéance proche', expired: 'Terminé' }[status];
+  }
+  return statusLabelFr[status];
+}
+
 function exportToCsv(purchases) {
   const headers = ['Objet', 'Marque', 'Enseigne', 'Catégorie', 'Montant (€)', "Date d'achat", 'Fin de garantie', 'Statut', 'Notes'];
   const escapeCsv = (val) => {
@@ -268,9 +278,19 @@ export default function SearchPage() {
               <label>Statut</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                 <option value="">Tous les statuts</option>
-                <option value="active">Active</option>
-                <option value="expiring">Bientôt expirée</option>
-                <option value="expired">Expirée</option>
+                {scope === 'contract' ? (
+                  <>
+                    <option value="active">En cours</option>
+                    <option value="expiring">Échéance proche</option>
+                    <option value="expired">Terminé</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="active">Active</option>
+                    <option value="expiring">Bientôt expirée</option>
+                    <option value="expired">Expirée</option>
+                  </>
+                )}
               </select>
             </div>
 
@@ -425,7 +445,7 @@ export default function SearchPage() {
                       {item._endDate && <> · Fin le {formatDate(item._endDate)}</>}
                     </div>
                   </div>
-                  <span className={`badge ${badgeClassFor[s]}`}>{statusLabelFr[s]}</span>
+                  <span className={`badge ${badgeClassFor[s]}`}>{statusLabelFor(s, item._type)}</span>
                 </div>
               );
             })}
