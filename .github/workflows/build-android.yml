@@ -31,6 +31,13 @@ jobs:
       - name: Installer Capacitor
         run: npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/browser @capacitor/app @capgo/capacitor-social-login @capgo/capacitor-document-scanner
 
+      - name: Vérifier que le scanner est bien présent après installation
+        run: |
+          echo "=== Contenu de node_modules/@capgo/ ==="
+          ls -la node_modules/@capgo/ || echo "DOSSIER @capgo INTROUVABLE"
+          echo "=== npm ls ciblé ==="
+          npm ls @capgo/capacitor-document-scanner || echo "NON LISTÉ PAR NPM"
+
       - name: Installer l'outil de génération d'icônes
         run: npm install @capacitor/assets --save-dev
 
