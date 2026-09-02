@@ -46,6 +46,17 @@ function exportToCsv(purchases) {
   URL.revokeObjectURL(url);
 }
 
+// ============================================================
+// Filtre principal : Tous / Garanties / Contrats & abonnements
+// Détermine ensuite QUELS champs de filtre secondaires s'affichent —
+// plus de mélange de critères qui ne s'appliquent qu'à l'un des deux.
+// ============================================================
+const SCOPE_OPTIONS = [
+  { id: 'all', label: 'Tous' },
+  { id: 'purchase', label: 'Garanties' },
+  { id: 'contract', label: 'Contrats & abonnements' },
+];
+
 export default function SearchPage() {
   const { profile } = useOutletContext();
   const navigate = useNavigate();
@@ -53,38 +64,42 @@ export default function SearchPage() {
   const orgId = profile?.organization_id;
 
   const [query, setQuery] = useState(urlParams.get('q') || '');
-  // Tri par échéance proche d'abord, déclenché depuis le lien "Voir toutes
-  // les échéances" du tableau de bord (/search?sort=expiry_asc), mais
-  // modifiable ensuite directement depuis cette page.
   const [sortMode, setSortMode] = useState(urlParams.get('sort') || 'date_desc');
   const [sortOpen, setSortOpen] = useState(false);
-  const [results, setResults] = useState([]); // résultats fusionnés achats + contrats
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  // Listes pour les filtres
+  // Listes pour les filtres — garanties
   const [brands, setBrands] = useState([]);
   const [stores, setStores] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Listes pour les filtres — contrats & abonnements
+  const [providers, setProviders] = useState([]);
+  const [contractTypes, setContractTypes] = useState([]);
 
-  // Filtres — brand/store/category/dates ne s'appliquent qu'aux achats
-  // (les contrats n'ont pas ces notions). Quand l'un d'eux est actif,
-  // la recherche se limite aux achats pour ne pas mélanger des résultats
-  // filtrés de façon incohérente.
+  // Filtre principal : quel type d'élément on cherche
+  const [scope, setScope] = useState('all'); // 'all' | 'purchase' | 'contract'
+
   const [filterStatus, setFilterStatus] = useState('');
-  const [filterType, setFilterType] = useState(''); // '' | 'purchase' | 'contrat' | 'abonnement'
+
+  // Filtres spécifiques aux garanties
   const [filterBrand, setFilterBrand] = useState('');
   const [filterStore, setFilterStore] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
+  // Filtres spécifiques aux contrats & abonnements
+  const [filterProvider, setFilterProvider] = useState('');
+  const [filterContractType, setFilterContractType] = useState('');
+  const [filterEndDateFrom, setFilterEndDateFrom] = useState('');
+  const [filterEndDateTo, setFilterEndDateTo] = useState('');
+
   const SORT_OPTIONS = [
     { id: 'date_desc', label: 'Date (récent)' },
     { id: 'expiry_asc', label: 'Échéance (proche)' },
   ];
-
-  const hasPurchaseOnlyFilter = !!(filterBrand || filterStore || filterCategory || filterDateFrom || filterDateTo);
 
   useEffect(() => {
     if (!orgId) return;
@@ -92,17 +107,22 @@ export default function SearchPage() {
       supabase.from('brands').select('name').eq('organization_id', orgId).order('name'),
       supabase.from('stores').select('name').eq('organization_id', orgId).order('name'),
       supabase.from('categories').select('name').eq('organization_id', orgId).order('name'),
-    ]).then(([{ data: b }, { data: s }, { data: c }]) => {
+      supabase.from('providers').select('name').eq('organization_id', orgId).order('name'),
+      supabase.from('contract_types').select('name').eq('organization_id', orgId).order('name'),
+    ]).then(([{ data: b }, { data: s }, { data: c }, { data: p }, { data: ct }]) => {
       setBrands(b || []);
       setStores(s || []);
       setCategories(c || []);
+      setProviders(p || []);
+      setContractTypes(ct || []);
     });
   }, [orgId]);
 
   useEffect(() => {
     const timer = setTimeout(doSearch, 350);
     return () => clearTimeout(timer);
-  }, [query, filterStatus, filterType, filterBrand, filterStore, filterCategory, filterDateFrom, filterDateTo, sortMode, orgId]);
+  }, [query, filterStatus, scope, filterBrand, filterStore, filterCategory, filterDateFrom, filterDateTo,
+      filterProvider, filterContractType, filterEndDateFrom, filterEndDateTo, sortMode, orgId]);
 
   async function doSearch() {
     if (!orgId) return;
@@ -110,31 +130,36 @@ export default function SearchPage() {
 
     const qLower = query.trim().toLowerCase();
 
-    // ---------- Achats ----------
-    let purchaseQuery = supabase.from('purchases').select('*').eq('organization_id', orgId);
-    if (qLower) {
-      purchaseQuery = purchaseQuery.or(
-        `object_name.ilike.%${qLower}%,brand.ilike.%${qLower}%,store.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`
-      );
+    // ---------- Achats — ignorés si le périmètre est "Contrats" ----------
+    let purchasePromise = Promise.resolve({ data: [] });
+    if (scope !== 'contract') {
+      let purchaseQuery = supabase.from('purchases').select('*').eq('organization_id', orgId);
+      if (qLower) {
+        purchaseQuery = purchaseQuery.or(
+          `object_name.ilike.%${qLower}%,brand.ilike.%${qLower}%,store.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`
+        );
+      }
+      if (filterBrand) purchaseQuery = purchaseQuery.eq('brand', filterBrand);
+      if (filterStore) purchaseQuery = purchaseQuery.eq('store', filterStore);
+      if (filterCategory) purchaseQuery = purchaseQuery.eq('category', filterCategory);
+      if (filterDateFrom) purchaseQuery = purchaseQuery.gte('purchase_date', filterDateFrom);
+      if (filterDateTo) purchaseQuery = purchaseQuery.lte('purchase_date', filterDateTo);
+      purchasePromise = purchaseQuery.order('purchase_date', { ascending: false }).limit(100);
     }
-    if (filterBrand) purchaseQuery = purchaseQuery.eq('brand', filterBrand);
-    if (filterStore) purchaseQuery = purchaseQuery.eq('store', filterStore);
-    if (filterCategory) purchaseQuery = purchaseQuery.eq('category', filterCategory);
-    if (filterDateFrom) purchaseQuery = purchaseQuery.gte('purchase_date', filterDateFrom);
-    if (filterDateTo) purchaseQuery = purchaseQuery.lte('purchase_date', filterDateTo);
 
-    const purchasePromise = purchaseQuery.order('purchase_date', { ascending: false }).limit(100);
-
-    // ---------- Contrats ----------
-    // Ignorés si un filtre spécifique aux achats est actif (voir note plus haut)
+    // ---------- Contrats & abonnements — ignorés si le périmètre est "Garanties" ----------
     let contractPromise = Promise.resolve({ data: [] });
-    if (!hasPurchaseOnlyFilter) {
+    if (scope !== 'purchase') {
       let contractQuery = supabase.from('contracts').select('*').eq('organization_id', orgId).is('cancelled_at', null);
       if (qLower) {
         contractQuery = contractQuery.or(
           `name.ilike.%${qLower}%,provider.ilike.%${qLower}%,contract_type.ilike.%${qLower}%,reference_number.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`
         );
       }
+      if (filterProvider) contractQuery = contractQuery.eq('provider', filterProvider);
+      if (filterContractType) contractQuery = contractQuery.eq('contract_type', filterContractType);
+      if (filterEndDateFrom) contractQuery = contractQuery.gte('end_date', filterEndDateFrom);
+      if (filterEndDateTo) contractQuery = contractQuery.lte('end_date', filterEndDateTo);
       contractPromise = contractQuery.order('end_date', { ascending: false }).limit(100);
     }
 
@@ -147,14 +172,6 @@ export default function SearchPage() {
 
     if (filterStatus) {
       merged = merged.filter(item => itemStatus(item._endDate) === filterStatus);
-    }
-
-    if (filterType === 'purchase') {
-      merged = merged.filter(item => item._type === 'purchase');
-    } else if (filterType === 'contrat') {
-      merged = merged.filter(item => item._type === 'contract' && item.contract_type !== 'Abonnement');
-    } else if (filterType === 'abonnement') {
-      merged = merged.filter(item => item._type === 'contract' && item.contract_type === 'Abonnement');
     }
 
     if (sortMode === 'expiry_asc') {
@@ -187,22 +204,27 @@ export default function SearchPage() {
   function resetFilters() {
     setQuery('');
     setFilterStatus('');
-    setFilterType('');
+    setScope('all');
     setFilterBrand('');
     setFilterStore('');
     setFilterCategory('');
     setFilterDateFrom('');
     setFilterDateTo('');
+    setFilterProvider('');
+    setFilterContractType('');
+    setFilterEndDateFrom('');
+    setFilterEndDateTo('');
   }
 
-  const hasActiveFilters = query || filterStatus || filterType || filterBrand || filterStore || filterCategory || filterDateFrom || filterDateTo;
+  const hasActiveFilters = query || filterStatus || scope !== 'all' || filterBrand || filterStore || filterCategory
+    || filterDateFrom || filterDateTo || filterProvider || filterContractType || filterEndDateFrom || filterEndDateTo;
   const purchaseResults = results.filter(r => r._type === 'purchase');
 
   return (
     <>
       <PageHeader
         title="Recherche avancée"
-        subtitle="Recherchez par nom, marque, enseigne, prestataire, date ou contenu de votre achat ou contrat"
+        subtitle="Recherchez par nom, marque, enseigne, prestataire, date ou contenu"
       />
 
       <div className="panel" style={{ marginBottom: 20 }}>
@@ -226,8 +248,22 @@ export default function SearchPage() {
           </div>
         </div>
 
+        {/* Filtre principal — détermine quels critères secondaires s'affichent
+            en dessous. Plus de champs "garanties" visibles quand on cherche
+            un contrat, et inversement. */}
+        <div style={{ padding: '16px 20px 0' }}>
+          <div className="pill-group">
+            {SCOPE_OPTIONS.map(o => (
+              <div key={o.id} className={`pill ${scope === o.id ? 'active' : ''}`}
+                style={{ cursor: 'pointer' }} onClick={() => setScope(o.id)}>
+                {o.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: scope === 'all' ? 0 : 12 }}>
             <div className="field">
               <label>Statut</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
@@ -237,52 +273,81 @@ export default function SearchPage() {
                 <option value="expired">Expirée</option>
               </select>
             </div>
-            <div className="field">
-              <label>Type</label>
-              <select value={filterType} onChange={e => setFilterType(e.target.value)}>
-                <option value="">Tous les types</option>
-                <option value="purchase">Garanties</option>
-                <option value="contrat">Contrats</option>
-                <option value="abonnement">Abonnements</option>
-              </select>
-            </div>
-            <div className="field">
-              <label>Marque <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(garanties)</span></label>
-              <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}>
-                <option value="">Toutes les marques</option>
-                {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label>Enseigne <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(garanties)</span></label>
-              <select value={filterStore} onChange={e => setFilterStore(e.target.value)}>
-                <option value="">Toutes les enseignes</option>
-                {stores.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label>Catégorie <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(garanties)</span></label>
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
-                <option value="">Toutes les catégories</option>
-                {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-              </select>
-            </div>
+
+            {/* ---------- Critères spécifiques aux garanties ---------- */}
+            {scope === 'purchase' && (
+              <>
+                <div className="field">
+                  <label>Marque</label>
+                  <select value={filterBrand} onChange={e => setFilterBrand(e.target.value)}>
+                    <option value="">Toutes les marques</option>
+                    {brands.map(b => <option key={b.name} value={b.name}>{b.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Enseigne</label>
+                  <select value={filterStore} onChange={e => setFilterStore(e.target.value)}>
+                    <option value="">Toutes les enseignes</option>
+                    {stores.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Catégorie</label>
+                  <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                    <option value="">Toutes les catégories</option>
+                    {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* ---------- Critères spécifiques aux contrats & abonnements ---------- */}
+            {scope === 'contract' && (
+              <>
+                <div className="field">
+                  <label>Prestataire</label>
+                  <select value={filterProvider} onChange={e => setFilterProvider(e.target.value)}>
+                    <option value="">Tous les prestataires</option>
+                    {providers.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Type de contrat</label>
+                  <select value={filterContractType} onChange={e => setFilterContractType(e.target.value)}>
+                    <option value="">Tous les types</option>
+                    {contractTypes.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="field">
-              <label>Date d'achat — de <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(garanties)</span></label>
-              <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+
+          {scope === 'purchase' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label>Date d'achat — de</label>
+                <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Date d'achat — à</label>
+                <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+              </div>
             </div>
-            <div className="field">
-              <label>Date d'achat — à <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(garanties)</span></label>
-              <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            </div>
-          </div>
-          {hasPurchaseOnlyFilter && (
-            <p style={{ fontSize: 11.5, color: 'var(--amber-text)', marginTop: 10 }}>
-              Un filtre spécifique aux garanties est actif — les contrats sont temporairement exclus des résultats.
-            </p>
           )}
+
+          {scope === 'contract' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label>Date de fin — de</label>
+                <input type="date" value={filterEndDateFrom} onChange={e => setFilterEndDateFrom(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Date de fin — à</label>
+                <input type="date" value={filterEndDateTo} onChange={e => setFilterEndDateTo(e.target.value)} />
+              </div>
+            </div>
+          )}
+
           {hasActiveFilters && (
             <button onClick={resetFilters} style={{
               marginTop: 12, background: 'none', border: 'none', cursor: 'pointer',
