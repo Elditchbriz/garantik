@@ -128,7 +128,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
 
       if (fnError) throw new Error(fnError.message);
       if (!data) throw new Error('Réponse inattendue de l\'IA');
-      alert('DIAGNOSTIC — data reçu : ' + JSON.stringify(data).slice(0, 500)); // TEMPORAIRE
 
       // Le serveur renvoie un 200 normal avec rejected:true (pas un code
       // d'erreur HTTP) — sinon le client Supabase perd le vrai message et
@@ -162,7 +161,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
     } catch (err) {
       clearInterval(phraseTimer);
       console.error('Erreur scan :', err);
-      alert('DIAGNOSTIC — erreur catch sendToAI : ' + err.message); // TEMPORAIRE
       const isSecurityRejection = err.message.includes('ne semble pas être');
       setError(isSecurityRejection ? err.message : 'Échec de l\'extraction : ' + err.message);
       setStep(fallbackStep);
@@ -203,7 +201,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       await sendToAI(base64data, 'image/jpeg', phraseTimer, STEPS.CHOOSE);
     } catch (err) {
       console.error('Erreur scanner natif :', err);
-      alert('DIAGNOSTIC — erreur handleNativeScan : ' + err.message); // TEMPORAIRE
       setError("Impossible d'utiliser le scanner : " + err.message);
     }
   }
