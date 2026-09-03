@@ -225,6 +225,15 @@ export default function PurchaseDetailPage() {
     if (!doc.file_path) return;
     const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
     if (!data?.signedUrl) return;
+
+    // Sur mobile natif, le téléchargement automatique via lien invisible
+    // échoue silencieusement dans la WebView — on ouvre via le navigateur
+    // système à la place, qui gère correctement le téléchargement.
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+
     try {
       const response = await fetch(data.signedUrl);
       const blob = await response.blob();
