@@ -181,6 +181,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       });
 
       if (scanResult.status !== 'success' || !scanResult.scannedImages?.[0]) {
+        alert('DIAGNOSTIC — statut scanner natif : ' + scanResult.status + ' | images : ' + (scanResult.scannedImages?.length || 0)); // TEMPORAIRE
         return; // Annulé par l'utilisateur — on reste sur l'écran de choix
       }
 
