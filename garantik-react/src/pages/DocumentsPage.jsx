@@ -119,6 +119,12 @@ export default function DocumentsPage() {
     if (!doc.file_path) return;
     const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
     if (!data?.signedUrl) return;
+
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+
     try {
       const response = await fetch(data.signedUrl);
       const blob = await response.blob();
