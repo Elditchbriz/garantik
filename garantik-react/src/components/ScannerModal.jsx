@@ -332,6 +332,8 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
               <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
                 style={{ display: 'none' }} onChange={handleFileChange} />
 
+              {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 0 }}>{error}</p>}
+
               {!isPremium && !hasStorageConnected && (
                 <div style={{
                   padding: '10px 14px', borderRadius: 8,
