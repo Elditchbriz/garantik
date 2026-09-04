@@ -262,8 +262,10 @@ export default function PurchaseDetailPage() {
   // document proche du bas de l'écran, le menu se faisait couper par la
   // barre de navigation du bas.
   function openDocActionMenu(e, docId) {
+    alert('DIAGNOSTIC — clic détecté sur ⋯'); // TEMPORAIRE
     if (openDocMenu?.docId === docId) { setOpenDocMenu(null); return; }
     const rect = e.currentTarget.getBoundingClientRect();
+    alert('DIAGNOSTIC — rect calculé : ' + JSON.stringify(rect)); // TEMPORAIRE
     const estimatedMenuHeight = 220;
     const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
     setOpenDocMenu({
