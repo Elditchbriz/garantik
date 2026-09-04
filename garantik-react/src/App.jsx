@@ -38,15 +38,24 @@ export default function App() {
   }, [location.pathname]);
 
   // Verrouillage biométrique — vérifié à l'ouverture de l'app ET chaque
-  // fois qu'elle revient au premier plan (pas juste au montage initial,
-  // sinon quelqu'un pourrait rouvrir l'app depuis le multitâche sans
-  // jamais repasser par la vérification).
+  // fois qu'elle revient au premier plan. Un "verifyingRef" évite un piège
+  // classique : l'affichage de la boîte de dialogue biométrique fait
+  // passer l'app brièvement en arrière-plan puis revenir au premier plan,
+  // ce qui redéclencherait le verrou juste après l'avoir levé avec succès.
+  const biometricVerifyingRef = React.useRef(false);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    if (isBiometricLockEnabled()) setBiometricLocked(true);
+    if (isBiometricLockEnabled()) {
+      biometricVerifyingRef.current = true;
+      setBiometricLocked(true);
+    }
 
     const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive && isBiometricLockEnabled()) setBiometricLocked(true);
+      if (biometricVerifyingRef.current) return; // ignore le va-et-vient de la boîte de dialogue elle-même
+      if (isActive && isBiometricLockEnabled()) {
+        biometricVerifyingRef.current = true;
+        setBiometricLocked(true);
+      }
     });
     return () => { sub.then((s) => s.remove()); };
   }, []);
@@ -174,7 +183,7 @@ export default function App() {
   return (
     <>
       {biometricLocked && (
-        <BiometricLockScreen onUnlock={() => setBiometricLocked(false)} />
+        <BiometricLockScreen onUnlock={() => { biometricVerifyingRef.current = false; setBiometricLocked(false); }} />
       )}
     <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
