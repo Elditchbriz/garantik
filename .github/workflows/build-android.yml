@@ -29,7 +29,7 @@ jobs:
         run: npm install
 
       - name: Installer Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/browser @capacitor/app @capgo/capacitor-social-login @capgo/capacitor-document-scanner
+        run: npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/browser @capacitor/app @capgo/capacitor-social-login @capgo/capacitor-document-scanner @capgo/capacitor-native-biometric
 
       - name: Vérifier que le scanner est bien présent après installation
         run: |
@@ -85,11 +85,21 @@ jobs:
 
           if "</activity>" in content:
               content = content.replace("</activity>", intent_filter, 1)
-              with open(path, "w") as f:
-                  f.write(content)
-              print("Schéma d'URL ajouté avec succès")
           else:
               print("ATTENTION : balise </activity> non trouvée, rien d'inséré")
+
+          # <uses-permission> doit être un enfant direct de <manifest>, PAS de
+          # <application> — on l'ajoute donc juste avant la fermeture finale
+          # du manifeste, au même niveau que la permission Internet existante.
+          if "</manifest>" in content:
+              content = content.replace(
+                  "</manifest>",
+                  '    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n</manifest>'
+              )
+
+          with open(path, "w") as f:
+              f.write(content)
+          print("Schéma d'URL et permission biométrique ajoutés avec succès")
           PYEOF
 
       - name: Vérifier le manifeste corrigé
