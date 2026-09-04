@@ -343,7 +343,7 @@ export default function SearchPage() {
           </div>
 
           {scope === 'purchase' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
               <div className="field">
                 <label>Date d'achat — de</label>
                 <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
@@ -356,7 +356,7 @@ export default function SearchPage() {
           )}
 
           {scope === 'contract' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
               <div className="field">
                 <label>Date de fin — de</label>
                 <input type="date" value={filterEndDateFrom} onChange={e => setFilterEndDateFrom(e.target.value)} />
