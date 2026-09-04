@@ -4,6 +4,8 @@ import { supabase, listContractTypes, findSimilarListItems } from '../lib/supaba
 import Icon from '../components/Icon.jsx';
 import StorageConnector from '../components/StorageConnector.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { Capacitor } from '@capacitor/core';
+import { isBiometricLockEnabled, setBiometricLockEnabled, isBiometricAvailable } from '../components/BiometricLockScreen.jsx';
 
 const TABS = [
   { id: 'preferences', label: 'Préférences', icon: 'bell' },
@@ -77,6 +79,21 @@ function PreferencesTab({ orgId }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Verrouillage biométrique : réglage propre à CET appareil, pas au
+  // compte — stocké localement, pas dans la table "settings" Supabase.
+  const [biometricEnabled, setBiometricEnabledState] = useState(isBiometricLockEnabled());
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+
+  useEffect(() => {
+    isBiometricAvailable().then(setBiometricAvailable);
+  }, []);
+
+  function toggleBiometric() {
+    const next = !biometricEnabled;
+    setBiometricLockEnabled(next);
+    setBiometricEnabledState(next);
+  }
 
   useEffect(() => {
     if (!orgId) return;
@@ -190,6 +207,23 @@ function PreferencesTab({ orgId }) {
           </div>
         </div>
       </div>
+
+      {Capacitor.isNativePlatform() && biometricAvailable && (
+        <div className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel-header">
+            <h3><div className="panel-header-icon" style={{ background: 'var(--green-pale)', color: 'var(--green-text)' }}><Icon name="lock" /></div>Sécurité</h3>
+          </div>
+          <div className="setting-row">
+            <div className="label-group">
+              <div className="t">Verrouillage biométrique</div>
+              <div className="d">Empreinte ou reconnaissance faciale demandée à chaque ouverture de l'app (code de l'appareil accepté en secours)</div>
+            </div>
+            <div className={`switch ${biometricEnabled ? 'on' : ''}`} onClick={toggleBiometric}>
+              <div className="knob"></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ width: '100%', justifyContent: 'center' }}>
         <Icon name="check" /> {saving ? 'Enregistrement…' : 'Enregistrer les préférences'}
