@@ -202,7 +202,15 @@ export default function DocumentsPage() {
                     onClick={(e) => {
                       if (openDocMenu?.docId === doc.id) { setOpenDocMenu(null); return; }
                       const rect = e.currentTarget.getBoundingClientRect();
-                      setOpenDocMenu({ docId: doc.id, top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                      const estimatedMenuHeight = 160; // 3 options ici (pas de "Définir comme principal")
+                      const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+                      setOpenDocMenu({
+                        docId: doc.id,
+                        right: window.innerWidth - rect.right,
+                        ...(notEnoughRoomBelow
+                          ? { bottom: window.innerHeight - rect.top + 4 }
+                          : { top: rect.bottom + 4 }),
+                      });
                     }}
                     style={{ ...BTN, color: 'var(--ink-soft)', fontSize: 20, fontWeight: 700, lineHeight: 1, flexShrink: 0 }}
                     aria-label="Actions"
@@ -224,7 +232,7 @@ export default function DocumentsPage() {
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
               <div className="sort-dropdown" style={{
-                position: 'fixed', top: openDocMenu.top, right: openDocMenu.right,
+                position: 'fixed', top: openDocMenu.top, bottom: openDocMenu.bottom, right: openDocMenu.right,
                 minWidth: 200, zIndex: 2001,
               }}>
                 <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
