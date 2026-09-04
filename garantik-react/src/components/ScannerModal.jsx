@@ -133,7 +133,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       // d'erreur HTTP) — sinon le client Supabase perd le vrai message et
       // affiche juste "Edge Function returned a non-2xx status code".
       if (data.rejected) {
-        alert('DIAGNOSTIC — refus SERVEUR : ' + data.error + ' | fallbackStep=' + fallbackStep); // TEMPORAIRE
         clearInterval(phraseTimer);
         setError(data.error);
         setStep(fallbackStep);
@@ -147,7 +146,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       const hasDate = !!data.data.purchase_date;
       const hasAmount = (data.data.items || []).some((item) => item.total_amount != null);
       if (!hasDate || !hasAmount) {
-        alert('DIAGNOSTIC — refus : hasDate=' + hasDate + ' hasAmount=' + hasAmount + ' | fallbackStep=' + fallbackStep + ' | data=' + JSON.stringify(data.data).slice(0, 300)); // TEMPORAIRE
         clearInterval(phraseTimer);
         setError("Ce document ne semble pas être un ticket ou une facture valide : impossible d'y trouver à la fois une date et un montant. Réessayez avec une photo plus nette, ou saisissez les informations manuellement.");
         setStep(fallbackStep);
