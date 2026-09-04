@@ -11,6 +11,7 @@ import AccountStatusBanner from './components/AccountStatusBanner.jsx';
 import SuspendedScreen from './components/SuspendedScreen.jsx';
 import UpdatesPopup from './components/UpdatesPopup.jsx';
 import AddTypeSheet from './components/AddTypeSheet.jsx';
+import BiometricLockScreen, { isBiometricLockEnabled } from './components/BiometricLockScreen.jsx';
 
 export default function App() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function App() {
   const [alertCount, setAlertCount] = useState(0);
   const [alertItems, setAlertItems] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [biometricLocked, setBiometricLocked] = useState(false);
 
   // Remet le défilement à zéro à chaque changement de page. Sans ça,
   // comme c'est .main qui défile (pas la fenêtre), React Router ne le
@@ -34,6 +36,20 @@ export default function App() {
     const mainEl = document.querySelector('.main');
     if (mainEl) mainEl.scrollTop = 0;
   }, [location.pathname]);
+
+  // Verrouillage biométrique — vérifié à l'ouverture de l'app ET chaque
+  // fois qu'elle revient au premier plan (pas juste au montage initial,
+  // sinon quelqu'un pourrait rouvrir l'app depuis le multitâche sans
+  // jamais repasser par la vérification).
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (isBiometricLockEnabled()) setBiometricLocked(true);
+
+    const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive && isBiometricLockEnabled()) setBiometricLocked(true);
+    });
+    return () => { sub.then((s) => s.remove()); };
+  }, []);
 
   // Intercepte le retour vers l'app après une authentification externe
   // (Google via Chrome Custom Tabs, ou lien de confirmation d'email) —
@@ -156,6 +172,10 @@ export default function App() {
   ];
 
   return (
+    <>
+      {biometricLocked && (
+        <BiometricLockScreen onUnlock={() => setBiometricLocked(false)} />
+      )}
     <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
       <div className="mobile-topbar">
@@ -344,5 +364,6 @@ export default function App() {
       )}
 
     </div>
+    </>
   );
 }
