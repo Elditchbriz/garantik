@@ -257,6 +257,24 @@ export default function PurchaseDetailPage() {
     await loadAll();
   }
 
+  // Ouvre le menu d'actions d'un document, en choisissant d'afficher vers
+  // le bas ou vers le HAUT selon la place disponible — sinon, pour un
+  // document proche du bas de l'écran, le menu se faisait couper par la
+  // barre de navigation du bas.
+  function openDocActionMenu(e, docId) {
+    if (openDocMenu?.docId === docId) { setOpenDocMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const estimatedMenuHeight = 220;
+    const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+    setOpenDocMenu({
+      docId,
+      right: window.innerWidth - rect.right,
+      ...(notEnoughRoomBelow
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+    });
+  }
+
   if (loading) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-faint)' }}>Chargement…</div>;
 
   const days = daysUntil(purchase.warranty_end_date);
@@ -550,11 +568,7 @@ export default function PurchaseDetailPage() {
                       {/* Un seul bouton ⋯, menu rendu via portail (voir plus
                           bas) pour ne pas être coupé par overflow:hidden. */}
                       <button
-                        onClick={(e) => {
-                          if (menuOpen) { setOpenDocMenu(null); return; }
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setOpenDocMenu({ docId: doc.id, top: rect.bottom + 4, right: window.innerWidth - rect.right });
-                        }}
+                        onClick={(e) => openDocActionMenu(e, doc.id)}
                         style={{ ...DOC_BTN, color: 'var(--ink-soft)', fontSize: 20, fontWeight: 700, lineHeight: 1, flexShrink: 0 }}
                         aria-label="Actions"
                       >
@@ -565,49 +579,6 @@ export default function PurchaseDetailPage() {
                 })}
               </div>
             </div>
-          )}
-
-          {/* Menu d'actions document, rendu hors de .panel via un portail —
-              sinon coupé par son overflow:hidden (coins arrondis). */}
-          {openDocMenu && createPortal(
-            (() => {
-              const doc = documents.find(d => d.id === openDocMenu.docId);
-              if (!doc) return null;
-              const isPrimary = doc.document_category === 'garantie';
-              return (
-                <>
-                  <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
-                  <div className="sort-dropdown" style={{
-                    position: 'fixed', top: openDocMenu.top, right: openDocMenu.right,
-                    minWidth: 200, zIndex: 2001,
-                  }}>
-                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                      onClick={() => { setOpenDocMenu(null); openViewer(doc); }}>
-                      <Icon name="eye" style={{ fontSize: 14, color: 'var(--blue)' }} /> Visualiser
-                    </div>
-                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                      onClick={() => { setOpenDocMenu(null); downloadFile(doc); }}>
-                      <Icon name="download" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Télécharger
-                    </div>
-                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                      onClick={() => { setOpenDocMenu(null); setRenamingDoc({ id: doc.id, name: doc.file_name }); }}>
-                      <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
-                    </div>
-                    {!isPrimary && (
-                      <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
-                        onClick={() => { setOpenDocMenu(null); handleSetPrimary(doc.id); }}>
-                        <Icon name="star-filled" style={{ fontSize: 14, color: 'var(--ink-faint)' }} /> Définir comme principal
-                      </div>
-                    )}
-                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: 'var(--red-text)' }}
-                      onClick={() => { setOpenDocMenu(null); handleDeleteDoc(doc.id, doc.file_path); }}>
-                      <Icon name="x" style={{ fontSize: 14 }} /> Supprimer
-                    </div>
-                  </div>
-                </>
-              );
-            })(),
-            document.body
           )}
         </>
       )}
@@ -664,9 +635,11 @@ export default function PurchaseDetailPage() {
                 {documents.map(doc => (
                   <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
                     <Icon name={typeIcons[doc.file_type] || 'file-text'} style={{ color: 'var(--blue)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, color: 'var(--navy)', flex: 1 }}>{doc.file_name}</span>
-                    <button onClick={() => openViewer(doc)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', fontSize: 12, fontWeight: 600 }}>
-                      Voir
+                    <span style={{ fontSize: 13, color: 'var(--navy)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.file_name}</span>
+                    <button onClick={(e) => openDocActionMenu(e, doc.id)}
+                      style={{ ...DOC_BTN, width: 36, height: 36, minWidth: 36, minHeight: 36, color: 'var(--ink-soft)', fontSize: 18, fontWeight: 700, lineHeight: 1, flexShrink: 0 }}
+                      aria-label="Actions">
+                      ⋯
                     </button>
                   </div>
                 ))}
@@ -674,6 +647,52 @@ export default function PurchaseDetailPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Menu d'actions document — placé au niveau global (pas dans un
+          onglet précis) car déclenchable depuis "Documents" ET "Récap".
+          Rendu via un portail car .panel a overflow:hidden (coins arrondis)
+          qui le couperait sinon. */}
+      {openDocMenu && createPortal(
+        (() => {
+          const doc = documents.find(d => d.id === openDocMenu.docId);
+          if (!doc) return null;
+          const isPrimary = doc.document_category === 'garantie';
+          const { docId, ...position } = openDocMenu;
+          return (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
+              <div className="sort-dropdown" style={{
+                position: 'fixed', ...position,
+                minWidth: 200, zIndex: 2001,
+              }}>
+                <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                  onClick={() => { setOpenDocMenu(null); openViewer(doc); }}>
+                  <Icon name="eye" style={{ fontSize: 14, color: 'var(--blue)' }} /> Visualiser
+                </div>
+                <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                  onClick={() => { setOpenDocMenu(null); downloadFile(doc); }}>
+                  <Icon name="download" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Télécharger
+                </div>
+                <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                  onClick={() => { setOpenDocMenu(null); setRenamingDoc({ id: doc.id, name: doc.file_name }); }}>
+                  <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
+                </div>
+                {!isPrimary && (
+                  <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                    onClick={() => { setOpenDocMenu(null); handleSetPrimary(doc.id); }}>
+                    <Icon name="star-filled" style={{ fontSize: 14, color: 'var(--ink-faint)' }} /> Définir comme principal
+                  </div>
+                )}
+                <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: 'var(--red-text)' }}
+                  onClick={() => { setOpenDocMenu(null); handleDeleteDoc(doc.id, doc.file_path); }}>
+                  <Icon name="x" style={{ fontSize: 14 }} /> Supprimer
+                </div>
+              </div>
+            </>
+          );
+        })(),
+        document.body
       )}
 
       {/* ===== RENOMMER UN DOCUMENT ===== */}
