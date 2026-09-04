@@ -200,6 +200,7 @@ export default function DocumentsPage() {
                   </div>
                   <button
                     onClick={(e) => {
+                      alert('DIAGNOSTIC — clic détecté sur ⋯ (DocumentsPage)'); // TEMPORAIRE
                       if (openDocMenu?.docId === doc.id) { setOpenDocMenu(null); return; }
                       const rect = e.currentTarget.getBoundingClientRect();
                       const estimatedMenuHeight = 160; // 3 options ici (pas de "Définir comme principal")
