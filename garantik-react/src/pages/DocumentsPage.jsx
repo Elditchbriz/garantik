@@ -200,17 +200,17 @@ export default function DocumentsPage() {
                   </div>
                   <button
                     onClick={(e) => {
-                      alert('DIAGNOSTIC — clic détecté sur ⋯ (DocumentsPage)'); // TEMPORAIRE
                       if (openDocMenu?.docId === doc.id) { setOpenDocMenu(null); return; }
                       const rect = e.currentTarget.getBoundingClientRect();
                       const estimatedMenuHeight = 160; // 3 options ici (pas de "Définir comme principal")
                       const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+                      const top = notEnoughRoomBelow
+                        ? Math.max(8, rect.top - estimatedMenuHeight - 4)
+                        : rect.bottom + 4;
                       setOpenDocMenu({
                         docId: doc.id,
+                        top,
                         right: window.innerWidth - rect.right,
-                        ...(notEnoughRoomBelow
-                          ? { bottom: window.innerHeight - rect.top + 4 }
-                          : { top: rect.bottom + 4 }),
                       });
                     }}
                     style={{ ...BTN, color: 'var(--ink-soft)', fontSize: 20, fontWeight: 700, lineHeight: 1, flexShrink: 0 }}
@@ -233,7 +233,7 @@ export default function DocumentsPage() {
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
               <div className="sort-dropdown" style={{
-                position: 'fixed', top: openDocMenu.top, bottom: openDocMenu.bottom, right: openDocMenu.right,
+                position: 'fixed', top: openDocMenu.top, right: openDocMenu.right,
                 minWidth: 200, zIndex: 2001,
               }}>
                 <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
