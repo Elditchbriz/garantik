@@ -505,6 +505,9 @@ button { font-family: inherit; cursor: pointer; }
   font-family: inherit;
   color: var(--ink);
   background: var(--white);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: none;
