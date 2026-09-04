@@ -35,7 +35,6 @@ export default function BiometricLockScreen({ onUnlock }) {
     setStatus('checking');
     setErrorMsg('');
     try {
-      alert('DIAGNOSTIC — appel verifyIdentity...'); // TEMPORAIRE
       await NativeBiometric.verifyIdentity({
         reason: 'Déverrouillez Hey Did pour accéder à vos documents',
         title: 'Hey Did verrouillé',
@@ -43,10 +42,8 @@ export default function BiometricLockScreen({ onUnlock }) {
         useFallback: true, // autorise le code/schéma de l'appareil en secours
         maxAttempts: 3,
       });
-      alert('DIAGNOSTIC — verifyIdentity a réussi !'); // TEMPORAIRE
       onUnlock();
     } catch (err) {
-      alert('DIAGNOSTIC — verifyIdentity a échoué : ' + (err?.message || JSON.stringify(err))); // TEMPORAIRE
       console.error('Échec de la vérification biométrique :', err);
       setStatus('locked');
       setErrorMsg("Vérification impossible. Réessayez, ou utilisez le code de votre appareil.");
