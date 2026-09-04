@@ -262,18 +262,20 @@ export default function PurchaseDetailPage() {
   // document proche du bas de l'écran, le menu se faisait couper par la
   // barre de navigation du bas.
   function openDocActionMenu(e, docId) {
-    alert('DIAGNOSTIC — clic détecté sur ⋯'); // TEMPORAIRE
     if (openDocMenu?.docId === docId) { setOpenDocMenu(null); return; }
     const rect = e.currentTarget.getBoundingClientRect();
-    alert('DIAGNOSTIC — rect calculé : ' + JSON.stringify(rect)); // TEMPORAIRE
     const estimatedMenuHeight = 220;
     const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+    // On évite la propriété CSS "bottom" (bloquait cette WebView Android) —
+    // on calcule directement un "top" qui place le menu au-dessus du
+    // bouton à la place, en clampant pour ne jamais sortir de l'écran.
+    const top = notEnoughRoomBelow
+      ? Math.max(8, rect.top - estimatedMenuHeight - 4)
+      : rect.bottom + 4;
     setOpenDocMenu({
       docId,
+      top,
       right: window.innerWidth - rect.right,
-      ...(notEnoughRoomBelow
-        ? { bottom: window.innerHeight - rect.top + 4 }
-        : { top: rect.bottom + 4 }),
     });
   }
 
@@ -665,7 +667,7 @@ export default function PurchaseDetailPage() {
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
               <div className="sort-dropdown" style={{
-                position: 'fixed', ...position,
+                position: 'fixed', top: position.top, right: position.right,
                 minWidth: 200, zIndex: 2001,
               }}>
                 <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
