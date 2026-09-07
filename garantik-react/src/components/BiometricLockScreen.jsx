@@ -30,8 +30,11 @@ export async function isBiometricAvailable() {
 export default function BiometricLockScreen({ onUnlock }) {
   const [status, setStatus] = useState('checking'); // 'checking' | 'locked' | 'error'
   const [errorMsg, setErrorMsg] = useState('');
+  const inProgressRef = React.useRef(false);
 
   const attemptUnlock = useCallback(async () => {
+    if (inProgressRef.current) return; // évite un second appel concurrent
+    inProgressRef.current = true;
     setStatus('checking');
     setErrorMsg('');
     try {
@@ -47,6 +50,8 @@ export default function BiometricLockScreen({ onUnlock }) {
       console.error('Échec de la vérification biométrique :', err);
       setStatus('locked');
       setErrorMsg("Vérification impossible. Réessayez, ou utilisez le code de votre appareil.");
+    } finally {
+      inProgressRef.current = false;
     }
   }, [onUnlock]);
 
