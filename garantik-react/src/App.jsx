@@ -43,6 +43,14 @@ export default function App() {
   // passer l'app brièvement en arrière-plan puis revenir au premier plan,
   // ce qui redéclencherait le verrou juste après l'avoir levé avec succès.
   const biometricVerifyingRef = React.useRef(false);
+  // Stabilisée avec useCallback — sans ça, une NOUVELLE fonction est créée
+  // à chaque rendu de App.jsx (il y en a beaucoup : alertes, profil...),
+  // ce qui redéclenchait l'effet de vérification biométrique en boucle
+  // dans BiometricLockScreen (son useEffect dépend de cette fonction).
+  const handleBiometricUnlock = React.useCallback(() => {
+    biometricVerifyingRef.current = false;
+    setBiometricLocked(false);
+  }, []);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     if (isBiometricLockEnabled()) {
@@ -183,7 +191,7 @@ export default function App() {
   return (
     <>
       {biometricLocked && (
-        <BiometricLockScreen onUnlock={() => { biometricVerifyingRef.current = false; setBiometricLocked(false); }} />
+        <BiometricLockScreen onUnlock={handleBiometricUnlock} />
       )}
     <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
 
