@@ -18,14 +18,17 @@
 .lp-logo { display: flex; align-items: center; gap: 10px; }
 .lp-logo .mark { width: 36px; height: 36px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzI1NjNFQiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMxRTNBOEEiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIiBmaWxsPSJ1cmwoI2JnKSIvPgogIDxwYXRoIGQ9IgogICAgTSAxMTYgMTUyCiAgICBDIDExNiAxMjIgMTQwIDk4IDE3MCA5OAogICAgTCAzNDIgOTgKICAgIEMgMzcyIDk4IDM5NiAxMjIgMzk2IDE1MgogICAgTCAzOTYgMjU4CiAgICBDIDM5NiAyODggMzcyIDMxMiAzNDIgMzEyCiAgICBMIDI0NiAzMTIKICAgIEwgMTgwIDM3MgogICAgTCAxOTAgMzEyCiAgICBMIDE3MCAzMTIKICAgIEMgMTQwIDMxMiAxMTYgMjg4IDExNiAyNTgKICAgIFoiCiAgICBmaWxsPSIjRkZGRkZGIi8+CiAgPGNpcmNsZSBjeD0iMTk2IiBjeT0iMTkyIiByPSIxNiIgZmlsbD0iIzI1NjNFQiIvPgogIDxjaXJjbGUgY3g9IjMxNiIgY3k9IjE5MiIgcj0iMTYiIGZpbGw9IiMyNTYzRUIiLz4KICA8cGF0aCBkPSJNIDE4NiAyNDAgQyAyMTAgMjY4IDMwMiAyNjggMzI2IDI0MCIKICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiMyNTYzRUIiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K"); background-size: cover; }
 .lp-logo .mark img { width: 100%; height: 100%; display: block; }
-.lp-logo .word { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 21px; font-weight: 800; color: var(--navy); }
+.lp-logo .word { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 18px; font-weight: 800; color: var(--navy); }
 
-/* Logo sur fond bleu foncé (panneaux de connexion) — le duo marine/bleu
-   habituel serait invisible ici, donc blanc + ambre à la place (déjà la
-   couleur d'accent utilisée sur ce même fond ailleurs dans l'app). */
-.auth-panel-content .lp-logo .word { font-size: 30px; }
-.auth-panel-content .lp-logo .word-hey { color: #fff; }
-.auth-panel-content .lp-logo .word-did { color: var(--amber); }
+/* Logo sur fond bleu foncé (panneaux de connexion, footer) — "Hey" passe
+   au blanc pour rester lisible, "Did" reste bleu mais dans une teinte
+   plus claire (le bleu de marque pur se fondrait dans le dégradé). */
+.auth-panel-content .lp-logo .word,
+.lp-footer-brand .lp-logo .word { font-size: 26px; }
+.auth-panel-content .lp-logo .word-hey,
+.lp-footer-brand .lp-logo .word-hey { color: #fff; }
+.auth-panel-content .lp-logo .word-did,
+.lp-footer-brand .lp-logo .word-did { color: #8FB8FF; }
 
 .lp-nav { display: flex; align-items: center; gap: 32px; }
 .lp-nav a { font-size: 14.5px; font-weight: 500; color: var(--ink-soft); }
@@ -344,7 +347,6 @@
 .lp-footer { background: var(--navy); padding: 56px 32px 28px; }
 .lp-footer-inner { max-width: 1200px; margin: 0 auto; }
 .lp-footer-top { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px; padding-bottom: 36px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.lp-footer-brand .lp-logo .word { color: #fff; }
 .lp-footer-brand p { font-size: 13.5px; color: rgba(255,255,255,0.55); margin-top: 14px; max-width: 240px; line-height: 1.6; }
 .lp-footer-col h4 { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 16px; }
 .lp-footer-col a { display: block; font-size: 13.5px; color: rgba(255,255,255,0.6); margin-bottom: 11px; }
