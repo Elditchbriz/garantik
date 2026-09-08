@@ -40,7 +40,7 @@ export default function AssociationsPage() {
       <header className="lp-header">
         <div className="lp-header-inner">
           <Link to={isLoggedIn ? '/dashboard' : '/'} className="lp-logo">
-            <img src="/logo-wordmark.png" alt="Hey Did" style={{ height: 32 }} />
+            <span className="word-hey">Hey</span> <span className="word-did">Did</span>
           </Link>
           <Link to={isLoggedIn ? '/account#abonnement' : '/'} className="btn btn-ghost">
             {isLoggedIn ? '← Retour à mon compte' : "← Retour à l'accueil"}
