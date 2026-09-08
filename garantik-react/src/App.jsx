@@ -18,7 +18,6 @@ export default function App() {
   const location = useLocation();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -195,7 +194,7 @@ export default function App() {
       {biometricLocked && (
         <BiometricLockScreen onUnlock={handleBiometricUnlock} />
       )}
-    <div className={`shell ${collapsed ? 'collapsed' : ''}`} id="shell">
+    <div className="shell" id="shell">
 
       <div className="mobile-topbar">
         <Link to="/dashboard" className="mobile-topbar-logo">
@@ -259,24 +258,17 @@ export default function App() {
         </div>
       </div>
 
-      <aside className="sidebar">
-        <div className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}>
-          <Icon name="chevron-left" />
-        </div>
-        <div className="sidebar-logo">
-          <div className="mark"></div>
-          <div className="word">Hey Did</div>
+      <header className="topbar-desktop">
+        <div className="topbar-desktop-logo">
+          <span className="word-hey">Hey</span> <span className="word-did">Did</span>
         </div>
 
-        {/* Zone de navigation : seule cette partie défile si le contenu
-            dépasse la hauteur disponible — le pied de compte, lui, reste
-            toujours à sa place en bas, sans jamais avoir besoin de scroller. */}
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <nav className="topbar-desktop-nav">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              className={({ isActive }) => `topbar-nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
@@ -285,8 +277,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setQuickSearchOpen(true)}
-            className="nav-item"
-            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
+            className="topbar-nav-item"
           >
             <Icon name="search" />
             <span>Rechercher</span>
@@ -294,38 +285,35 @@ export default function App() {
           <button
             type="button"
             onClick={() => setAddSheetOpen(true)}
-            className="nav-item"
-            style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer' }}
+            className="topbar-nav-item primary"
           >
             <Icon name="plus" />
             <span>Scanner</span>
           </button>
-        </div>
+        </nav>
 
-        {/* Pied de compte : nom visible en permanence, les 3 actions
-            n'apparaissent qu'au clic (comme avant), pour ne pas surcharger
-            visuellement la sidebar en permanence. */}
+        {/* Compte : initiales visibles en permanence, les 3 actions
+            n'apparaissent qu'au clic — le menu s'ouvre vers le BAS
+            maintenant, puisqu'on est en haut de l'écran, pas en bas. */}
         <div
-          className="sidebar-footer"
-          style={{ cursor: 'pointer', position: 'relative', flexShrink: 0 }}
+          className="topbar-desktop-account"
+          style={{ cursor: 'pointer', position: 'relative' }}
           onClick={() => setAccountMenuOpen(!accountMenuOpen)}
         >
           <div className="avatar">{initials}</div>
-          {!collapsed && (
-            <div>
-              <div className="name">{profile?.full_name || 'Mon compte'}</div>
-              <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
-            </div>
-          )}
-          {!collapsed && <Icon name="chevron-up" className="collapse-hide" style={{ marginLeft: 'auto', color: 'var(--ink-faint)', fontSize: 16 }} />}
+          <div>
+            <div className="name">{profile?.full_name || 'Mon compte'}</div>
+            <div className="role">{profile?.organizations?.name || 'Mon foyer'}</div>
+          </div>
+          <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', fontSize: 16 }} />
 
           {accountMenuOpen && (
             <>
               <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={(e) => { e.stopPropagation(); setAccountMenuOpen(false); }} />
               <div style={{
-                position: 'absolute', bottom: 56, left: 0, width: 220,
+                position: 'absolute', top: 56, right: 0, width: 220,
                 background: 'var(--white)', borderRadius: 'var(--radius-m)',
-                boxShadow: '0 14px 32px rgba(10,11,40,0.3)', overflow: 'hidden', zIndex: 20,
+                boxShadow: '0 14px 32px rgba(10,11,40,0.18)', overflow: 'hidden', zIndex: 20,
               }}>
                 <NavLink to="/account" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>
                   <Icon name="user-circle" /> Mon compte
@@ -344,7 +332,7 @@ export default function App() {
             </>
           )}
         </div>
-      </aside>
+      </header>
 
       <main className="main">
         <AccountStatusBanner profile={profile} />
