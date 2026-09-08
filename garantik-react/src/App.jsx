@@ -48,6 +48,7 @@ export default function App() {
   // ce qui redéclenchait l'effet de vérification biométrique en boucle
   // dans BiometricLockScreen (son useEffect dépend de cette fonction).
   const handleBiometricUnlock = React.useCallback(() => {
+    alert('DIAGNOSTIC — handleBiometricUnlock appelé, biometricLocked va passer à false'); // TEMPORAIRE
     biometricVerifyingRef.current = false;
     setBiometricLocked(false);
   }, []);
@@ -187,6 +188,8 @@ export default function App() {
     { to: '/discussions', icon: 'sparkles', label: 'Did' },
     { to: '/documents', icon: 'folder', label: 'Documents' },
   ];
+
+  console.log("DIAGNOSTIC RENDU — biometricLocked =", biometricLocked); // TEMPORAIRE
 
   return (
     <>
