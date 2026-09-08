@@ -182,11 +182,13 @@ export default function App() {
         const [{ data: pd }, { data: cd }] = await Promise.all([
           supabase.from('purchases').select('id, object_name, warranty_end_date')
             .eq('organization_id', p.organization_id)
+            .eq('alert_dismissed', false)
             .not('warranty_end_date', 'is', null)
             .lte('warranty_end_date', in60),
           supabase.from('contracts').select('id, name, end_date')
             .eq('organization_id', p.organization_id)
             .is('cancelled_at', null)
+            .eq('alert_dismissed', false)
             .not('end_date', 'is', null)
             .lte('end_date', in60),
         ]);
