@@ -76,52 +76,68 @@ button { font-family: inherit; cursor: pointer; }
 /* ---------- App shell ---------- */
 .shell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
-.shell .main { flex: 1; min-width: 0; overflow-y: auto; height: 100%; }
+.shell .main { flex: 1; min-width: 0; overflow-y: auto; }
 
-.sidebar {
-  background: var(--navy);
-  color: #C9D6EA;
-  padding: 28px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  position: relative;
-  height: 100%;
-  transition: width 0.18s ease, padding 0.18s ease;
-  width: 248px;
+/* ---------- Barre horizontale desktop (remplace l'ancienne barre
+   latérale) — même 5 destinations que le bas de l'écran sur mobile,
+   juste repositionnées en haut. Fond clair, cohérent avec le reste
+   de l'app et avec le nouveau logo en deux tons. ---------- */
+.topbar-desktop {
+  display: none; /* activé uniquement au-delà de 860px, voir plus bas */
+  align-items: center;
+  gap: 28px;
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 32px;
   flex-shrink: 0;
 }
-
-.shell.collapsed .sidebar { width: 76px; padding: 28px 14px; }
-.shell.collapsed .sidebar-logo .word,
-.shell.collapsed .nav-item span,
-.shell.collapsed .nav-section-label,
-.shell.collapsed .sidebar-footer .name,
-.shell.collapsed .sidebar-footer .role,
-.shell.collapsed .sidebar-footer .collapse-hide { display: none; }
-.shell.collapsed .nav-item { justify-content: center; }
-.shell.collapsed .nav-item .icon { width: 18px; }
-.shell.collapsed .sidebar-logo { justify-content: center; padding: 0 0 28px; }
-.shell.collapsed .sidebar-footer { justify-content: center; padding-left: 0; }
-
-.sidebar-toggle {
-  position: absolute;
-  top: 30px;
-  right: -12px;
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  background: var(--blue);
-  color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
-  cursor: pointer;
-  border: 2px solid var(--bg);
-  z-index: 5;
+.topbar-desktop-logo {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
-.shell.collapsed .sidebar-toggle .icon { transform: rotate(180deg); }
+.topbar-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.topbar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: var(--radius-m);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.topbar-nav-item:hover { background: var(--bg); color: var(--navy); }
+.topbar-nav-item.active { background: var(--blue-pale); color: var(--blue-dark); }
+.topbar-nav-item.primary { background: var(--blue); color: #fff; margin-left: 8px; }
+.topbar-nav-item.primary:hover { background: var(--blue-dark); color: #fff; }
+.topbar-desktop-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border-radius: var(--radius-m);
+  flex-shrink: 0;
+}
+.topbar-desktop-account:hover { background: var(--bg); }
+.topbar-desktop-account .name { font-size: 13.5px; font-weight: 700; color: var(--navy); line-height: 1.3; }
+.topbar-desktop-account .role { font-size: 11.5px; color: var(--ink-faint); line-height: 1.3; }
 
 .mobile-topbar {
   display: none;
@@ -172,12 +188,6 @@ button { font-family: inherit; cursor: pointer; }
 @media (max-width: 860px) {
   .shell { display: block; }
   .mobile-topbar { display: flex; }
-  .sidebar-toggle { display: none; }
-
-  /* Binaire, sans état intermédiaire : sous 860px la bottom nav couvre
-     tout (elle a désormais un onglet Compte équivalent à la sidebar),
-     donc plus besoin d'un tiroir de secours. */
-  .sidebar { display: none; }
 
   .main { padding: 18px 16px calc(140px + env(safe-area-inset-bottom, 0px)); max-width: 100%; overflow-x: hidden; }
 
@@ -277,6 +287,11 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Main area ---------- */
 .main { padding: 32px 40px 60px; max-width: 1180px; }
+
+@media (min-width: 861px) {
+  .topbar-desktop { display: flex; }
+  .shell .main { margin: 0 auto; width: 100%; }
+}
 
 .topbar {
   display: flex;
