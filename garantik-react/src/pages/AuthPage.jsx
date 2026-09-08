@@ -93,7 +93,7 @@ export default function AuthPage() {
         <div className="auth-panel">
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-              <div className="word" style={{ color: '#fff' }}>Hey Did</div>
+              <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
             </a>
             <h2>Did s'occupe de votre administratif</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
@@ -144,7 +144,7 @@ export default function AuthPage() {
         <div className="auth-panel">
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-              <div className="word" style={{ color: '#fff' }}>Hey Did</div>
+              <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
             </a>
             <h2>Did s'occupe de votre administratif</h2>
             <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
@@ -201,7 +201,7 @@ export default function AuthPage() {
       <div className="auth-panel">
         <div className="auth-panel-content">
           <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-            <div className="word" style={{ color: '#fff' }}>Hey Did</div>
+            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
           </a>
           <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', marginBottom: 20, border: '3px solid rgba(255,255,255,0.3)' }}>
             <img src="/didier-headshot.jpg" alt="Did" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
