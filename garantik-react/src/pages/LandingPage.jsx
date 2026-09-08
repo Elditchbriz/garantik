@@ -106,7 +106,7 @@ export default function LandingPage() {
       <header className="lp-header">
         <div className="lp-header-inner">
           <div className="lp-logo">
-            <img src="/logo-wordmark.png" alt="Hey Did" style={{ height: 32 }} />
+            <span className="word-hey">Hey</span> <span className="word-did">Did</span>
           </div>
           <nav className="lp-nav">
             <a href="#fonctionnalites">Fonctionnalités</a>
@@ -159,7 +159,7 @@ export default function LandingPage() {
               fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)',
             }}>
               <span style={{ color: 'var(--amber)' }}>★★★★★</span>
-              Rejoignez les milliers de foyers qui ne perdent plus du temps et de l'argent à cause de leurs informations non gérées 
+              Rejoignez les milliers de foyers qui ne ratent plus jamais une échéance de garantie ou de contrat
             </div>
           </div>
 
@@ -170,7 +170,7 @@ export default function LandingPage() {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>Bonjour ! Je suis Did.</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2, lineHeight: 1.4 }}>Je veille sur vos documents et vous alerte quand c'est utile.</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2, lineHeight: 1.4 }}>Je veille sur vos documents et vous alerte avant chaque échéance.</div>
               </div>
             </div>
             <div className="lp-mock-card">
@@ -193,10 +193,10 @@ export default function LandingPage() {
               <div className="row">
                 <div className="purchase-icon"><Icon name="device-laptop" /></div>
                 <div className="purchase-main">
-                  <div className="purchase-title">Assurance habitation"</div>
-                  <div className="purchase-meta">Assur 3000</div>
+                  <div className="purchase-title">MacBook Air 13"</div>
+                  <div className="purchase-meta">Apple · Fnac</div>
                 </div>
-                <span className="badge amber">A étudier</span>
+                <span className="badge green">Active</span>
               </div>
             </div>
             <div className="lp-float-badge b1"><Icon name="bell-ringing" style={{ color: 'var(--amber)' }} />Alerte envoyée</div>
@@ -232,12 +232,12 @@ export default function LandingPage() {
           <div className="lp-step">
             <div className="num">2</div>
             <h3>Did calcule l'échéance</h3>
-            <p>La date de fin de garantie ou de contrat est calculée pour vous, à partir de la durée légale ou personnalisée.</p>
+            <p>La date de fin de garantie est calculée pour vous, à partir de la durée légale ou personnalisée.</p>
           </div>
           <div className="lp-step">
             <div className="num">3</div>
             <h3>Did vous alerte au bon moment</h3>
-            <p>Notification et e-mail avant l'expiration, pour faire jouer votre garantie à temps ou renégocier votre contrat.</p>
+            <p>Notification et e-mail avant l'expiration, pour faire jouer votre garantie à temps.</p>
           </div>
         </div>
       </section>
@@ -255,7 +255,7 @@ export default function LandingPage() {
             { icon: 'file-text', bg: 'var(--green-pale)', color: 'var(--green-text)', title: 'Did suit vos contrats', text: 'Extensions de garantie, abonnements, assurances : il relie tout à vos achats et surveille chaque échéance.' },
             { icon: 'search', bg: 'var(--red-pale)', color: 'var(--red-text)', title: 'Did retrouve tout, en un instant', text: 'Un ticket, un contrat, un abonnement — par nom, marque, montant, ou même un mot écrit dessus. Did le retrouve pour vous.' },
             { icon: 'folder', bg: 'var(--blue-pale)', color: 'var(--blue-dark)', title: 'Did range vos justificatifs', text: 'Vos factures et documents restent au même endroit, classés, prêts à ressortir quand il faut.' },
-            { icon: 'file-export', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: 'Did prépare votre export', text: 'Téléchargez un récapitulatif de vos achats selon vos critères de recherche.' },
+            { icon: 'file-export', bg: 'var(--amber-pale)', color: 'var(--amber-text)', title: 'Did prépare votre export', text: 'Téléchargez un récapitulatif de vos achats au format CSV selon vos critères de recherche.' },
           ].map((f) => (
             <div className="lp-feature-card" key={f.title}>
               <div className="ico" style={{ background: f.bg, color: f.color }}><Icon name={f.icon} /></div>
@@ -292,7 +292,7 @@ export default function LandingPage() {
             <div className="plan-savings"><Icon name="sparkles" />Économisez l'équivalent de 2 mois par an</div>
 
             <div className="lp-plan-features">
-              {['Garanties illimitées', 'Alertes personnalisables par achat', 'Hébergement cloud sécurisé inclus', 'Coffre documents jusqu\'à 5 000 fichiers', 'Multi-utilisateurs'].map(f => (
+              {['Garanties illimitées', 'Alertes personnalisables par achat', 'Hébergement cloud sécurisé inclus', 'Coffre documents jusqu\'à 5 000 fichiers', 'Utilisable sur tous vos appareils'].map(f => (
                 <div className="f" key={f}><Icon name="check" />{f}</div>
               ))}
             </div>
@@ -301,7 +301,7 @@ export default function LandingPage() {
 
             <div className="lp-price-reassurance">
               Annulation à tout moment · Données hébergées en France<br />
-              Une garantie perdue ou une reconduction tacite peuvent vous coûter très cher !
+              Une garantie perdue peut vous coûter très cher !
             </div>
           </div>
 
@@ -313,7 +313,7 @@ export default function LandingPage() {
             <div className="plan-spacer"></div>
 
             <div className="lp-plan-features">
-              {['10 garanties enregistrées', 'Alertes à 60 jours', 'Scan et saisie manuelle', 'Stockage local ou Drive / Dropbox / Onedrive'].map(f => (
+              {['10 garanties enregistrées', 'Alertes à 60 jours', 'Scan et saisie manuelle', 'Stockage local ou Drive / Dropbox'].map(f => (
                 <div className="f" key={f}><Icon name="check" />{f}</div>
               ))}
             </div>
@@ -441,7 +441,6 @@ export default function LandingPage() {
           <div className="lp-footer-top">
             <div className="lp-footer-brand">
               <div className="lp-logo">
-                <div className="mark"></div>
                 <div className="word">Hey Did</div>
               </div>
               <p>Did gère vos achats, garanties et contrats à votre place.</p>
