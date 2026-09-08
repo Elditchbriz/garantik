@@ -13,6 +13,63 @@ import UpdatesPopup from './components/UpdatesPopup.jsx';
 import AddTypeSheet from './components/AddTypeSheet.jsx';
 import BiometricLockScreen, { isBiometricLockEnabled } from './components/BiometricLockScreen.jsx';
 
+// Extrait ici pour être utilisé à la fois dans le bandeau mobile ET la
+// barre desktop, sans dupliquer tout ce balisage deux fois.
+function NotificationBell({ alertCount, alertItems, notifOpen, setNotifOpen, navigate }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <button className="ph-icon-btn ph-bell" onClick={() => setNotifOpen(!notifOpen)} aria-label="Échéances">
+        <Icon name="bell" />
+        {alertCount > 0 && <span className="ph-badge">{alertCount > 9 ? '9+' : alertCount}</span>}
+      </button>
+      {notifOpen && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setNotifOpen(false)} />
+          <div className="sort-dropdown" style={{ minWidth: 280, right: 0 }}>
+            <div style={{ padding: '12px 14px 8px', fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', borderBottom: '1px solid var(--line)' }}>
+              Échéances
+            </div>
+            {alertItems.length === 0 ? (
+              <div style={{ padding: '20px 14px', fontSize: 12.5, color: 'var(--ink-faint)', textAlign: 'center' }}>
+                👍 Tout est sous contrôle, rien à signaler.
+              </div>
+            ) : (
+              alertItems.slice(0, 5).map((item) => {
+                const isExpired = new Date(item.endDate) < new Date();
+                return (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className="sort-dropdown-item"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer' }}
+                    onClick={() => { setNotifOpen(false); navigate(item.type === 'purchase' ? `/purchase/${item.id}` : `/contract/${item.id}`); }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
+                        {isExpired ? 'Expirée' : 'fin'} {new Date(item.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <span className={`badge ${isExpired ? 'red' : 'amber'}`} style={{ flexShrink: 0 }}>{isExpired ? 'Expirée' : 'Bientôt'}</span>
+                  </div>
+                );
+              })
+            )}
+            {alertItems.length > 0 && (
+              <div
+                className="sort-dropdown-item"
+                style={{ textAlign: 'center', fontWeight: 700, color: 'var(--blue)', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
+                onClick={() => { setNotifOpen(false); navigate('/search?sort=expiry_asc'); }}
+              >
+                Voir toutes les échéances
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -205,56 +262,7 @@ export default function App() {
             <Icon name="search" />
           </button>
           <HelpMenu />
-          <div style={{ position: 'relative' }}>
-            <button className="ph-icon-btn ph-bell" onClick={() => setNotifOpen(!notifOpen)} aria-label="Échéances">
-              <Icon name="bell" />
-              {alertCount > 0 && <span className="ph-badge">{alertCount > 9 ? '9+' : alertCount}</span>}
-            </button>
-            {notifOpen && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setNotifOpen(false)} />
-                <div className="sort-dropdown" style={{ minWidth: 280, right: 0 }}>
-                  <div style={{ padding: '12px 14px 8px', fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', borderBottom: '1px solid var(--line)' }}>
-                    Échéances
-                  </div>
-                  {alertItems.length === 0 ? (
-                    <div style={{ padding: '20px 14px', fontSize: 12.5, color: 'var(--ink-faint)', textAlign: 'center' }}>
-                      👍 Tout est sous contrôle, rien à signaler.
-                    </div>
-                  ) : (
-                    alertItems.slice(0, 5).map((item) => {
-                      const isExpired = new Date(item.endDate) < new Date();
-                      return (
-                        <div
-                          key={`${item.type}-${item.id}`}
-                          className="sort-dropdown-item"
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, cursor: 'pointer' }}
-                          onClick={() => { setNotifOpen(false); navigate(item.type === 'purchase' ? `/purchase/${item.id}` : `/contract/${item.id}`); }}
-                        >
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>
-                              {isExpired ? 'Expirée' : 'fin'} {new Date(item.endDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </div>
-                          </div>
-                          <span className={`badge ${isExpired ? 'red' : 'amber'}`} style={{ flexShrink: 0 }}>{isExpired ? 'Expirée' : 'Bientôt'}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                  {alertItems.length > 0 && (
-                    <div
-                      className="sort-dropdown-item"
-                      style={{ textAlign: 'center', fontWeight: 700, color: 'var(--blue)', cursor: 'pointer', borderTop: '1px solid var(--line)' }}
-                      onClick={() => { setNotifOpen(false); navigate('/search?sort=expiry_asc'); }}
-                    >
-                      Voir toutes les échéances
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+          <NotificationBell alertCount={alertCount} alertItems={alertItems} notifOpen={notifOpen} setNotifOpen={setNotifOpen} navigate={navigate} />
         </div>
       </div>
 
@@ -276,14 +284,6 @@ export default function App() {
           ))}
           <button
             type="button"
-            onClick={() => setQuickSearchOpen(true)}
-            className="topbar-nav-item"
-          >
-            <Icon name="search" />
-            <span>Rechercher</span>
-          </button>
-          <button
-            type="button"
             onClick={() => setAddSheetOpen(true)}
             className="topbar-nav-item primary"
           >
@@ -291,6 +291,16 @@ export default function App() {
             <span>Scanner</span>
           </button>
         </nav>
+
+        {/* Recherche, aide et notifications — groupées juste avant le
+            compte, comme demandé (référence : barre d'outils type SaaS). */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <button className="ph-icon-btn" onClick={() => setQuickSearchOpen(true)} aria-label="Recherche rapide">
+            <Icon name="search" />
+          </button>
+          <HelpMenu />
+          <NotificationBell alertCount={alertCount} alertItems={alertItems} notifOpen={notifOpen} setNotifOpen={setNotifOpen} navigate={navigate} />
+        </div>
 
         {/* Compte : initiales visibles en permanence, les 3 actions
             n'apparaissent qu'au clic — le menu s'ouvre vers le BAS
