@@ -93,7 +93,6 @@ export default function AuthPage() {
         <div className="auth-panel">
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-              <div className="mark"></div>
               <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
             <h2>Did s'occupe de votre administratif</h2>
@@ -145,7 +144,6 @@ export default function AuthPage() {
         <div className="auth-panel">
           <div className="auth-panel-content">
             <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-              <div className="mark"></div>
               <div className="word" style={{ color: '#fff' }}>Hey Did</div>
             </a>
             <h2>Did s'occupe de votre administratif</h2>
@@ -203,7 +201,6 @@ export default function AuthPage() {
       <div className="auth-panel">
         <div className="auth-panel-content">
           <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
-            <div className="mark"></div>
             <div className="word" style={{ color: '#fff' }}>Hey Did</div>
           </a>
           <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', marginBottom: 20, border: '3px solid rgba(255,255,255,0.3)' }}>
