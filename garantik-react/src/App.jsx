@@ -11,6 +11,7 @@ import AccountStatusBanner from './components/AccountStatusBanner.jsx';
 import SuspendedScreen from './components/SuspendedScreen.jsx';
 import UpdatesPopup from './components/UpdatesPopup.jsx';
 import AddTypeSheet from './components/AddTypeSheet.jsx';
+import DesktopSearchBar from './components/DesktopSearchBar.jsx';
 import BiometricLockScreen, { isBiometricLockEnabled } from './components/BiometricLockScreen.jsx';
 
 // Extrait ici pour être utilisé à la fois dans le bandeau mobile ET la
@@ -292,12 +293,10 @@ export default function App() {
           </button>
         </nav>
 
-        {/* Recherche, aide et notifications — groupées juste avant le
+        {/* Recherche inline, aide et notifications — groupées avant le
             compte, comme demandé (référence : barre d'outils type SaaS). */}
+        <DesktopSearchBar orgId={profile?.organization_id} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <button className="ph-icon-btn" onClick={() => setQuickSearchOpen(true)} aria-label="Recherche rapide">
-            <Icon name="search" />
-          </button>
           <HelpMenu />
           <NotificationBell alertCount={alertCount} alertItems={alertItems} notifOpen={notifOpen} setNotifOpen={setNotifOpen} navigate={navigate} />
         </div>
