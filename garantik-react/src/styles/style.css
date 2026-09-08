@@ -80,7 +80,7 @@ button { font-family: inherit; cursor: pointer; }
   height: 100vh;
   overflow: hidden;
 }
-.shell .main { flex: 1; min-width: 0; overflow-y: auto; }
+.shell .main { flex: 1; min-width: 0; overflow-y: auto; height: 100%; }
 
 /* ---------- Barre horizontale desktop (remplace l'ancienne barre
    latérale) — même 5 destinations que le bas de l'écran sur mobile,
