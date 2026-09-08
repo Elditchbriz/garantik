@@ -97,7 +97,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .topbar-desktop-logo {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.01em;
   flex-shrink: 0;
@@ -187,7 +187,12 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 40;
 }
 .mobile-topbar-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.mobile-topbar-logo .word { font-size: 17px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 800; }
+.mobile-topbar-logo .word { font-size: 18px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 800; }
+/* Logo texte "Hey Did" — une seule règle simple : "Did" reste toujours
+   dans la famille du bleu de marque, seul "Hey" s'adapte au fond pour
+   rester lisible. Sur fond sombre, "Did" passe à un bleu plus clair
+   (plutôt que le bleu de marque pur, qui se fondrait dans le dégradé
+   du panneau de connexion, identique par endroits). */
 .word-hey { color: var(--navy); }
 .word-did { color: var(--blue); }
 .mobile-topbar-icons { display: flex; align-items: center; gap: 6px; }
