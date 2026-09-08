@@ -441,7 +441,7 @@ export default function LandingPage() {
           <div className="lp-footer-top">
             <div className="lp-footer-brand">
               <div className="lp-logo">
-                <div className="word">Hey Did</div>
+                <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
               </div>
               <p>Did gère vos achats, garanties et contrats à votre place.</p>
             </div>
