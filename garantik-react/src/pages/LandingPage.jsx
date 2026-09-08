@@ -106,7 +106,7 @@ export default function LandingPage() {
       <header className="lp-header">
         <div className="lp-header-inner">
           <div className="lp-logo">
-            <span className="word-hey">Hey</span> <span className="word-did">Did</span>
+            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
           </div>
           <nav className="lp-nav">
             <a href="#fonctionnalites">Fonctionnalités</a>
