@@ -43,13 +43,13 @@ export default function App() {
   // passer l'app brièvement en arrière-plan puis revenir au premier plan,
   // ce qui redéclencherait le verrou juste après l'avoir levé avec succès.
   const biometricVerifyingRef = React.useRef(false);
+  const lastUnlockTimeRef = React.useRef(0);
   // Stabilisée avec useCallback — sans ça, une NOUVELLE fonction est créée
-  // à chaque rendu de App.jsx (il y en a beaucoup : alertes, profil...),
-  // ce qui redéclenchait l'effet de vérification biométrique en boucle
-  // dans BiometricLockScreen (son useEffect dépend de cette fonction).
+  // à chaque rendu de App.jsx, ce qui redéclenchait l'effet de vérification
+  // biométrique en boucle dans BiometricLockScreen.
   const handleBiometricUnlock = React.useCallback(() => {
-    alert('DIAGNOSTIC — handleBiometricUnlock appelé, biometricLocked va passer à false'); // TEMPORAIRE
     biometricVerifyingRef.current = false;
+    lastUnlockTimeRef.current = Date.now();
     setBiometricLocked(false);
   }, []);
   useEffect(() => {
@@ -61,6 +61,7 @@ export default function App() {
 
     const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (biometricVerifyingRef.current) return; // ignore le va-et-vient de la boîte de dialogue elle-même
+      if (Date.now() - lastUnlockTimeRef.current < 2000) return; // évite un événement retardé juste après un déverrouillage réussi
       if (isActive && isBiometricLockEnabled()) {
         biometricVerifyingRef.current = true;
         setBiometricLocked(true);
@@ -188,8 +189,6 @@ export default function App() {
     { to: '/discussions', icon: 'sparkles', label: 'Did' },
     { to: '/documents', icon: 'folder', label: 'Documents' },
   ];
-
-  console.log("DIAGNOSTIC RENDU — biometricLocked =", biometricLocked); // TEMPORAIRE
 
   return (
     <>
