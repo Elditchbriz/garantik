@@ -12,7 +12,7 @@ import SuspendedScreen from './components/SuspendedScreen.jsx';
 import UpdatesPopup from './components/UpdatesPopup.jsx';
 import AddTypeSheet from './components/AddTypeSheet.jsx';
 import DesktopSearchBar from './components/DesktopSearchBar.jsx';
-import BiometricLockScreen, { isBiometricLockEnabled } from './components/BiometricLockScreen.jsx';
+import BiometricLockScreen, { isBiometricLockEnabled, isBiometricLockSuppressed } from './components/BiometricLockScreen.jsx';
 
 // Extrait ici pour être utilisé à la fois dans le bandeau mobile ET la
 // barre desktop, sans dupliquer tout ce balisage deux fois.
@@ -119,6 +119,7 @@ export default function App() {
     const sub = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
       if (biometricVerifyingRef.current) return; // ignore le va-et-vient de la boîte de dialogue elle-même
       if (Date.now() - lastUnlockTimeRef.current < 2000) return; // évite un événement retardé juste après un déverrouillage réussi
+      if (isBiometricLockSuppressed()) return; // une autre UI native (scanner...) vient de s'afficher brièvement
       if (isActive && isBiometricLockEnabled()) {
         biometricVerifyingRef.current = true;
         setBiometricLocked(true);
