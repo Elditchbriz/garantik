@@ -20,6 +20,7 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
   const [step, setStep] = useState(STEPS.CHOOSE);
   const trapRef = useFocusTrap(onClose);
   const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState(null);
   const [fileBlob, setFileBlob] = useState(null);
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -71,8 +72,7 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
     }
   }
 
-  async function handleFile(e) {
-    const file = e.target.files?.[0];
+  async function processFile(file) {
     if (!file) return;
     setError('');
     setFileBlob(file);
@@ -87,6 +87,16 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
     const mediaType = file.type || 'image/jpeg';
 
     await sendToAI(base64data, mediaType, phraseTimer);
+  }
+
+  function handleFile(e) {
+    processFile(e.target.files?.[0]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    processFile(e.dataTransfer.files?.[0]);
   }
 
   // ---------- Scanner natif (mobile) — détection de bords, correction de
@@ -142,7 +152,22 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
 
         <div className="modal-body">
           {step === STEPS.CHOOSE && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              style={{
+                display: 'flex', flexDirection: 'column', gap: 12,
+                borderRadius: 'var(--radius-m)', padding: dragOver ? 12 : 0,
+                border: dragOver ? '2px dashed var(--blue-dark)' : '2px dashed transparent',
+                background: dragOver ? 'var(--blue-pale)' : 'transparent',
+                transition: 'background 0.15s, border-color 0.15s, padding 0.15s',
+              }}>
+              {dragOver && (
+                <div style={{ textAlign: 'center', color: 'var(--blue-dark)', fontWeight: 600, fontSize: 13.5, padding: '8px 0' }}>
+                  Déposez le fichier ici
+                </div>
+              )}
               <button className="btn btn-primary" style={{ justifyContent: 'center', gap: 10 }}
                 onClick={() => Capacitor.isNativePlatform() ? handleNativeScan() : cameraInputRef.current?.click()}>
                 <Icon name="camera" /> {Capacitor.isNativePlatform() ? 'Scanner avec l\'appareil photo' : 'Prendre une photo'}
