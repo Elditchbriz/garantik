@@ -322,7 +322,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
               d'un fichier depuis l'ordinateur (utile sur desktop web). */}
           {step === STEPS.CHOOSE && (
             <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragOver={(e) => { e.preventDefault(); console.log('DIAGNOSTIC dragover'); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               style={{
@@ -401,6 +401,9 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
                   Saisir manuellement sans scanner
                 </button>
               )}
+              <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--ink-faint)', margin: '2px 0 0' }}>
+                Vous pouvez aussi glisser un fichier directement ici
+              </p>
             </div>
           )}
 
