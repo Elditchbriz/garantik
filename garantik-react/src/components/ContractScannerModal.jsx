@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { Capacitor } from '@capacitor/core';
 import { DocumentScanner } from '@capgo/capacitor-document-scanner';
-import { suppressBiometricLockTemporarily } from './BiometricLockScreen.jsx';
+import { beginNativeUIAction, endNativeUIAction } from './BiometricLockScreen.jsx';
 import Icon from './Icon.jsx';
 import useFocusTrap from '../hooks/useFocusTrap.js';
 
@@ -122,7 +122,7 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
   // perspective et nettoyage automatique (taches, doigts) via ML Kit. ----------
   async function handleNativeScan() {
     setError('');
-    suppressBiometricLockTemporarily(); // le scanner ouvre une UI native, ne pas reverrouiller
+    beginNativeUIAction(); // le scanner ouvre une UI native, ne pas reverrouiller tant que ce n'est pas fini
     try {
       const scanResult = await DocumentScanner.scanDocument({
         responseType: 'base64',
@@ -148,6 +148,8 @@ export default function ContractScannerModal({ onResult, onClose, onManual, isPr
     } catch (err) {
       console.error('Erreur scanner natif :', err);
       setError("Impossible d'utiliser le scanner : " + err.message);
+    } finally {
+      setTimeout(endNativeUIAction, 1500);
     }
   }
 
