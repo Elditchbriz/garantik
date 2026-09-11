@@ -103,6 +103,7 @@ export default function PurchaseDetailPage() {
   // Document upload
   const [uploading, setUploading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('garantie');
+  const [dragOver, setDragOver] = useState(false);
   const [viewer, setViewer] = useState(null); // { url, type }
   const [openDocMenu, setOpenDocMenu] = useState(null); // { docId, top, right }
   const [renamingDoc, setRenamingDoc] = useState(null); // { id, name }
@@ -172,8 +173,7 @@ export default function PurchaseDetailPage() {
     setPurchase(p => ({ ...p, alert_dismissed: next }));
   }
 
-  async function handleUploadDoc(e) {
-    const file = e.target.files?.[0];
+  async function uploadFile(file) {
     if (!file) return;
     setUploading(true);
     const filePath = `${orgId}/${Date.now()}_${file.name}`;
@@ -191,6 +191,16 @@ export default function PurchaseDetailPage() {
       await loadAll();
     }
     setUploading(false);
+  }
+
+  function handleUploadDoc(e) {
+    uploadFile(e.target.files?.[0]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    uploadFile(e.dataTransfer.files?.[0]);
   }
 
   async function handleSetPrimary(docId) {
@@ -557,15 +567,24 @@ export default function PurchaseDetailPage() {
             </select>
           </div>
 
-          {/* Upload */}
-          <label style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: 16, borderRadius: 'var(--radius-m)', border: '2px dashed var(--blue)',
-            background: 'var(--blue-pale-2)', cursor: uploading ? 'wait' : 'pointer',
-            color: 'var(--blue-dark)', fontWeight: 600, fontSize: 14, marginBottom: 16,
-          }}>
+          {/* Upload — cliquable comme avant, mais accepte aussi le
+              glisser-déposer d'un fichier depuis l'ordinateur (surtout
+              utile sur desktop, où on n'a pas d'appareil photo). */}
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: 16, borderRadius: 'var(--radius-m)',
+              border: `2px dashed ${dragOver ? 'var(--blue-dark)' : 'var(--blue)'}`,
+              background: dragOver ? 'var(--blue-pale)' : 'var(--blue-pale-2)',
+              cursor: uploading ? 'wait' : 'pointer',
+              color: 'var(--blue-dark)', fontWeight: 600, fontSize: 14, marginBottom: 16,
+              transition: 'background 0.15s, border-color 0.15s',
+            }}>
             <Icon name="upload" />
-            {uploading ? 'Upload en cours…' : 'Ajouter un document (photo, PDF)'}
+            {uploading ? 'Upload en cours…' : dragOver ? 'Déposez le fichier ici' : 'Ajouter un document (photo, PDF) ou glisser-déposer'}
             <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }}
               disabled={uploading} onChange={handleUploadDoc} />
           </label>
