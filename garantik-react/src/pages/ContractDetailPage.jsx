@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom';
 import { supabase, uploadDocument, deleteContract, updateContract, listContractTypes } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -19,6 +22,7 @@ function daysUntil(d) {
 }
 
 const typeIcons = { 'image/jpeg': 'photo', 'image/png': 'photo', 'image/webp': 'photo', 'application/pdf': 'pdf' };
+const catLabels = { garantie: 'Garantie', facture: 'Facture', justificatif: 'Justificatif', contrat: 'Contrat', autre: 'Autre' };
 
 const noticeMethodLabels = {
   email: 'E-mail',
@@ -30,16 +34,16 @@ const noticeMethodLabels = {
 // Zone tactile 44px minimum (audit P2 — accessibilité)
 const DOC_BTN = { background: 'none', border: 'none', cursor: 'pointer', width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
-function DocumentViewer({ viewer, onClose }) {
+function DocumentViewer({ viewer, onClose, onDownload }) {
   const trapRef = useFocusTrap(onClose);
   return (
     <div ref={trapRef} tabIndex={-1} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(0,0,0,0.5)' }}>
-        <span style={{ color: '#fff', fontSize: 14, fontWeight: 600, flex: 1 }}>{viewer.name}</span>
+        <span style={{ color: '#fff', fontSize: 14, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{viewer.name}</span>
         <div style={{ display: 'flex', gap: 4 }}>
-          <a href={viewer.url} download={viewer.name} style={{ ...DOC_BTN, width: 'auto', padding: '0 12px', color: '#fff', fontSize: 13, gap: 6, textDecoration: 'none' }}>
+          <button onClick={() => onDownload(viewer)} style={{ ...DOC_BTN, width: 'auto', padding: '0 12px', color: '#fff', fontSize: 13, gap: 6 }}>
             <Icon name="download" /> Télécharger
-          </a>
+          </button>
           <button onClick={onClose} style={{ ...DOC_BTN, color: '#fff', fontSize: 22 }}><Icon name="x" /></button>
         </div>
       </div>
@@ -49,7 +53,7 @@ function DocumentViewer({ viewer, onClose }) {
         ) : viewer.type === 'application/pdf' ? (
           <iframe src={viewer.url} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }} title={viewer.name} />
         ) : (
-          <a href={viewer.url} download={viewer.name} className="btn btn-primary">Télécharger</a>
+          <button onClick={() => onDownload(viewer)} className="btn btn-primary">Télécharger</button>
         )}
       </div>
     </div>
@@ -70,15 +74,26 @@ export default function ContractDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('detail');
 
+  // Même raison que sur les garanties : changer d'onglet ici ne change pas
+  // l'URL, donc le correctif global de défilement ne se déclenche pas.
+  useEffect(() => {
+    const mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.scrollTop = 0;
+  }, [tab]);
+
   const [editing, setEditing] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
 
   const [uploading, setUploading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('contrat');
   const [viewer, setViewer] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [openDocMenu, setOpenDocMenu] = useState(null); // { docId, top, right }
+  const [renamingDoc, setRenamingDoc] = useState(null); // { id, name }
+  const [categoryMenuDocId, setCategoryMenuDocId] = useState(null);
 
   useEffect(() => {
     if (!orgId) return;
@@ -140,17 +155,46 @@ export default function ContractDetailPage() {
     await loadAll();
   }
 
+  async function toggleAlertDismissed() {
+    const next = !contract.alert_dismissed;
+    await supabase.from('contracts').update({ alert_dismissed: next }).eq('id', id);
+    setContract(c => ({ ...c, alert_dismissed: next }));
+  }
+
   async function handleUploadDoc(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const isPrimary = documents.length === 0;
     const { data } = await uploadDocument(file, orgId, null, null, id);
-    if (data && isPrimary) {
-      await supabase.from('documents').update({ document_category: 'contrat' }).eq('id', data.id);
+    if (data) {
+      await supabase.from('documents').update({ document_category: uploadCategory }).eq('id', data.id);
     }
     await loadAll();
     setUploading(false);
+  }
+
+  async function handleRenameDoc(docId, newName) {
+    if (!newName?.trim()) return;
+    await supabase.from('documents').update({ file_name: newName.trim() }).eq('id', docId);
+    await loadAll();
+  }
+
+  async function handleChangeCategory(docId, category) {
+    await supabase.from('documents').update({ document_category: category }).eq('id', docId);
+    await loadAll();
+  }
+
+  // Ouvre le menu d'actions d'un document, vers le bas ou le HAUT selon la
+  // place disponible — évite qu'il soit coupé par la barre de navigation.
+  function openDocActionMenu(e, docId) {
+    if (openDocMenu?.docId === docId) { setOpenDocMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const estimatedMenuHeight = 260;
+    const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+    const top = notEnoughRoomBelow
+      ? Math.max(8, rect.top - estimatedMenuHeight - 4)
+      : rect.bottom + 4;
+    setOpenDocMenu({ docId, top, right: window.innerWidth - rect.right });
   }
 
   async function openViewer(doc) {
@@ -160,7 +204,14 @@ export default function ContractDetailPage() {
     }
     if (!doc.file_path) return;
     const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 300);
-    if (data?.signedUrl) setViewer({ url: data.signedUrl, type: doc.file_type, name: doc.file_name });
+    if (!data?.signedUrl) return;
+    // Les WebView Android n'affichent pas les PDF en <iframe> — on les
+    // ouvre dans le lecteur système à la place.
+    if (Capacitor.isNativePlatform() && doc.file_type === 'application/pdf') {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+    setViewer({ url: data.signedUrl, type: doc.file_type, name: doc.file_name });
   }
 
   async function downloadFile(doc) {
@@ -171,7 +222,15 @@ export default function ContractDetailPage() {
     if (!doc.file_path) return;
     const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
     if (!data?.signedUrl) return;
-    // Forcer le téléchargement via fetch+blob pour éviter l'ouverture dans un nouvel onglet
+
+    // Sur mobile natif, le téléchargement automatique via lien invisible
+    // échoue silencieusement dans la WebView — on ouvre via le navigateur
+    // système à la place.
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+
     try {
       const response = await fetch(data.signedUrl);
       const blob = await response.blob();
@@ -184,7 +243,6 @@ export default function ContractDetailPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch {
-      // Fallback si le fetch échoue (CORS etc.)
       window.open(data.signedUrl, '_blank');
     }
   }
@@ -260,6 +318,24 @@ export default function ContractDetailPage() {
             }}>
               <Icon name="bell" />
               Préavis de résiliation à envoyer avant le <strong>{formatDate(noticeDate, true)}</strong>
+            </div>
+          )}
+
+          {/* Utile pour un vieux contrat expiré depuis longtemps — évite
+              d'être notifié indéfiniment une fois que ce n'est plus utile. */}
+          {expired && !isCancelled && (
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <button
+                onClick={toggleAlertDismissed}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 12.5, fontWeight: 600, color: contract.alert_dismissed ? 'var(--ink-faint)' : 'var(--blue)',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon name={contract.alert_dismissed ? 'bell' : 'bell-off'} style={{ fontSize: 13 }} />
+                {contract.alert_dismissed ? 'Alertes coupées — réactiver' : 'Ne plus m\'alerter sur ce contrat'}
+              </button>
             </div>
           )}
 
@@ -443,6 +519,16 @@ export default function ContractDetailPage() {
 
       {tab === 'documents' && (
         <>
+          {/* Choix de la catégorie AVANT l'ajout */}
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>Catégorie du document à ajouter</label>
+            <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)}>
+              {Object.entries(catLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
           <label style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
             padding: 16, borderRadius: 'var(--radius-m)', border: '2px dashed var(--blue)',
@@ -470,24 +556,108 @@ export default function ContractDetailPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.file_name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>{doc.file_size_bytes ? Math.round(doc.file_size_bytes / 1024) + ' Ko' : ''}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
+                        {catLabels[doc.document_category] || 'Autre'} · {doc.file_size_bytes ? Math.round(doc.file_size_bytes / 1024) + ' Ko' : ''}
+                      </div>
                     </div>
-                    <button onClick={() => openViewer(doc)} title="Visualiser" style={{ ...DOC_BTN, color: 'var(--blue)' }}><Icon name="eye" /></button>
-                    <button onClick={() => downloadFile(doc)} title="Télécharger" style={{ ...DOC_BTN, color: 'var(--ink-soft)' }}><Icon name="download" /></button>
-                    <button onClick={() => handleDeleteDoc(doc.id, doc.file_path)} title="Supprimer" style={{ ...DOC_BTN, color: 'var(--red-text)' }}><Icon name="x" /></button>
+                    <button onClick={(e) => openDocActionMenu(e, doc.id)} style={{ ...DOC_BTN, color: 'var(--ink-soft)', fontSize: 20, fontWeight: 700, lineHeight: 1 }} aria-label="Actions">
+                      ⋯
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Menu d'actions document, rendu hors de .panel via un portail —
+              sinon coupé par son overflow:hidden (coins arrondis). */}
+          {openDocMenu && createPortal(
+            (() => {
+              const doc = documents.find(d => d.id === openDocMenu.docId);
+              if (!doc) return null;
+              return (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
+                  <div className="sort-dropdown" style={{ position: 'fixed', top: openDocMenu.top, right: openDocMenu.right, minWidth: 200, zIndex: 2001 }}>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); openViewer(doc); }}>
+                      <Icon name="eye" style={{ fontSize: 14, color: 'var(--blue)' }} /> Visualiser
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); downloadFile(doc); }}>
+                      <Icon name="download" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Télécharger
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); setRenamingDoc({ id: doc.id, name: doc.file_name }); }}>
+                      <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setCategoryMenuDocId(categoryMenuDocId === doc.id ? null : doc.id); }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégorie
+                        </span>
+                        <Icon name="chevron-down" style={{ fontSize: 12, color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+                      </div>
+                      {categoryMenuDocId === doc.id && (
+                        <div style={{ background: 'var(--bg)' }}>
+                          {Object.entries(catLabels).map(([key, label]) => (
+                            <div key={key}
+                              className="sort-dropdown-item"
+                              style={{ paddingLeft: 34, fontSize: 12.5, fontWeight: doc.document_category === key ? 700 : 500, color: doc.document_category === key ? 'var(--blue)' : 'var(--ink-soft)' }}
+                              onClick={() => { setOpenDocMenu(null); setCategoryMenuDocId(null); handleChangeCategory(doc.id, key); }}>
+                              {label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: 'var(--red-text)' }}
+                      onClick={() => { setOpenDocMenu(null); handleDeleteDoc(doc.id, doc.file_path); }}>
+                      <Icon name="x" style={{ fontSize: 14 }} /> Supprimer
+                    </div>
+                  </div>
+                </>
+              );
+            })(),
+            document.body
+          )}
         </>
+      )}
+
+      {renamingDoc && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setRenamingDoc(null)}>
+          <div className="modal-card" style={{ maxWidth: 400 }}>
+            <div className="modal-top">
+              <div className="modal-close" onClick={() => setRenamingDoc(null)}><Icon name="x" /></div>
+              <div className="modal-icon"><Icon name="edit" /></div>
+              <h3>Renommer le document</h3>
+            </div>
+            <div className="modal-body">
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label>Nom du fichier</label>
+                <input
+                  type="text"
+                  value={renamingDoc.name}
+                  onChange={(e) => setRenamingDoc(d => ({ ...d, name: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { handleRenameDoc(renamingDoc.id, renamingDoc.name); setRenamingDoc(null); } }}
+                  autoFocus
+                />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => { handleRenameDoc(renamingDoc.id, renamingDoc.name); setRenamingDoc(null); }}>
+                <Icon name="check" /> Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showCancelModal && (
         <CancelContractModal contract={contract} onClose={() => setShowCancelModal(false)} onConfirm={handleConfirmCancel} />
       )}
 
-      {viewer && <DocumentViewer viewer={viewer} onClose={() => setViewer(null)} />}
+      {viewer && <DocumentViewer viewer={viewer} onClose={() => setViewer(null)} onDownload={downloadFile} />}
 
       {showLinkModal && (
         <LinkModal
