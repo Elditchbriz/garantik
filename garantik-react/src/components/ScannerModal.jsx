@@ -35,6 +35,27 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  function handleDragEnter(e) {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    setDragOver(true);
+  }
+  function handleDragOver(e) {
+    e.preventDefault(); // obligatoire pour autoriser le dépôt
+  }
+  function handleDragLeaveZone(e) {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    // Ne repasse à "pas de survol" que quand on a vraiment quitté toute la
+    // zone — sans ce compteur, passer sur un bouton À L'INTÉRIEUR de la
+    // zone déclenche sortie+entrée en boucle, d'où le scintillement.
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setDragOver(false);
+    }
+  }
   const [result, setResult] = useState(null);
   const [selectedItems, setSelectedItems] = useState({}); // index -> boolean
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -67,6 +88,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
 
   function handleDrop(e) {
     e.preventDefault();
+    dragCounterRef.current = 0;
     setDragOver(false);
     loadFile(e.dataTransfer.files?.[0]);
   }
@@ -322,19 +344,20 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
               d'un fichier depuis l'ordinateur (utile sur desktop web). */}
           {step === STEPS.CHOOSE && (
             <div
-              onDragOver={(e) => { e.preventDefault(); console.log('DIAGNOSTIC dragover'); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeaveZone}
               onDrop={handleDrop}
               style={{
                 display: 'flex', flexDirection: 'column', gap: 12,
-                borderRadius: 'var(--radius-m)', padding: dragOver ? 12 : 0,
+                borderRadius: 'var(--radius-m)', padding: 12,
                 border: dragOver ? '2px dashed var(--blue-dark)' : '2px dashed transparent',
                 background: dragOver ? 'var(--blue-pale)' : 'transparent',
-                transition: 'background 0.15s, border-color 0.15s, padding 0.15s',
+                transition: 'background 0.15s, border-color 0.15s',
               }}>
               {dragOver && (
-                <div style={{ textAlign: 'center', color: 'var(--blue-dark)', fontWeight: 600, fontSize: 13.5, padding: '8px 0' }}>
-                  Déposez le fichier ici
+                <div style={{ textAlign: 'center', color: 'var(--blue-dark)', fontWeight: 700, fontSize: 15, padding: '8px 0' }}>
+                  📄 Déposez le fichier ici
                 </div>
               )}
               <button className="btn btn-primary" style={{ justifyContent: 'center', gap: 10 }}
@@ -401,8 +424,8 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
                   Saisir manuellement sans scanner
                 </button>
               )}
-              <p style={{ textAlign: 'center', fontSize: 11.5, color: 'var(--ink-faint)', margin: '2px 0 0' }}>
-                Vous pouvez aussi glisser un fichier directement ici
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500, margin: '4px 0 0' }}>
+                💡 Vous pouvez aussi glisser un fichier directement ici
               </p>
             </div>
           )}
