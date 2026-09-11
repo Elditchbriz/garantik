@@ -361,7 +361,7 @@ export default function DashboardPage() {
         <button className="dash-add-btn primary" onClick={() => setAddSheetOpen(true)}>
           <div className="dash-add-icon"><Icon name="plus" /></div>
           <div>
-            <div className="dash-add-label">Scanner</div>
+            <div className="dash-add-label">Ajouter</div>
             <div className="dash-add-sub">Garantie, contrat ou abonnement</div>
           </div>
         </button>
