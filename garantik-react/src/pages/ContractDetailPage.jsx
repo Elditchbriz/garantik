@@ -88,6 +88,7 @@ export default function ContractDetailPage() {
 
   const [uploading, setUploading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('contrat');
+  const [dragOver, setDragOver] = useState(false);
   const [viewer, setViewer] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -161,8 +162,7 @@ export default function ContractDetailPage() {
     setContract(c => ({ ...c, alert_dismissed: next }));
   }
 
-  async function handleUploadDoc(e) {
-    const file = e.target.files?.[0];
+  async function uploadFile(file) {
     if (!file) return;
     setUploading(true);
     const { data } = await uploadDocument(file, orgId, null, null, id);
@@ -171,6 +171,16 @@ export default function ContractDetailPage() {
     }
     await loadAll();
     setUploading(false);
+  }
+
+  function handleUploadDoc(e) {
+    uploadFile(e.target.files?.[0]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    uploadFile(e.dataTransfer.files?.[0]);
   }
 
   async function handleRenameDoc(docId, newName) {
@@ -529,14 +539,21 @@ export default function ContractDetailPage() {
             </select>
           </div>
 
-          <label style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: 16, borderRadius: 'var(--radius-m)', border: '2px dashed var(--blue)',
-            background: 'var(--blue-pale-2)', cursor: uploading ? 'wait' : 'pointer',
-            color: 'var(--blue-dark)', fontWeight: 600, fontSize: 14, marginBottom: 16,
-          }}>
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: 16, borderRadius: 'var(--radius-m)',
+              border: `2px dashed ${dragOver ? 'var(--blue-dark)' : 'var(--blue)'}`,
+              background: dragOver ? 'var(--blue-pale)' : 'var(--blue-pale-2)',
+              cursor: uploading ? 'wait' : 'pointer',
+              color: 'var(--blue-dark)', fontWeight: 600, fontSize: 14, marginBottom: 16,
+              transition: 'background 0.15s, border-color 0.15s',
+            }}>
             <Icon name="upload" />
-            {uploading ? 'Upload en cours…' : 'Ajouter le contrat ou une annexe'}
+            {uploading ? 'Upload en cours…' : dragOver ? 'Déposez le fichier ici' : 'Ajouter le contrat ou une annexe, ou glisser-déposer'}
             <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} disabled={uploading} onChange={handleUploadDoc} />
           </label>
 
