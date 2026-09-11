@@ -34,6 +34,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
   const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState(null);
   const [selectedItems, setSelectedItems] = useState({}); // index -> boolean
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -51,14 +52,23 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
   const previewRef = useRef(null);
 
   // ---------- Chargement d'une image depuis un fichier ----------
-  function handleFileChange(e) {
-    const file = e.target.files?.[0];
+  function loadFile(file) {
     if (!file) return;
     setError('');
     setImageFile(file);
     setImageUrl(URL.createObjectURL(file));
     setCrop({ x: 0.05, y: 0.05, w: 0.90, h: 0.90 });
     setStep(STEPS.PREVIEW);
+  }
+
+  function handleFileChange(e) {
+    loadFile(e.target.files?.[0]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    loadFile(e.dataTransfer.files?.[0]);
   }
 
   // ---------- Recadrage via poignées tactiles ----------
@@ -308,9 +318,25 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
 
         <div className="modal-body">
 
-          {/* ÉTAPE 1 : Choix de la source */}
+          {/* ÉTAPE 1 : Choix de la source — accepte aussi le glisser-déposer
+              d'un fichier depuis l'ordinateur (utile sur desktop web). */}
           {step === STEPS.CHOOSE && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              style={{
+                display: 'flex', flexDirection: 'column', gap: 12,
+                borderRadius: 'var(--radius-m)', padding: dragOver ? 12 : 0,
+                border: dragOver ? '2px dashed var(--blue-dark)' : '2px dashed transparent',
+                background: dragOver ? 'var(--blue-pale)' : 'transparent',
+                transition: 'background 0.15s, border-color 0.15s, padding 0.15s',
+              }}>
+              {dragOver && (
+                <div style={{ textAlign: 'center', color: 'var(--blue-dark)', fontWeight: 600, fontSize: 13.5, padding: '8px 0' }}>
+                  Déposez le fichier ici
+                </div>
+              )}
               <button className="btn btn-primary" style={{ justifyContent: 'center', gap: 10 }}
                 onClick={() => Capacitor.isNativePlatform() ? handleNativeScan() : cameraInputRef.current?.click()}>
                 <Icon name="camera" /> {Capacitor.isNativePlatform() ? 'Scanner avec l\'appareil photo' : 'Prendre une photo'}
