@@ -360,6 +360,9 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
                   📄 Déposez le fichier ici
                 </div>
               )}
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500, margin: '0 0 4px' }}>
+                💡 Vous pouvez aussi glisser un fichier directement ici
+              </p>
               <button className="btn btn-primary" style={{ justifyContent: 'center', gap: 10 }}
                 onClick={() => Capacitor.isNativePlatform() ? handleNativeScan() : cameraInputRef.current?.click()}>
                 <Icon name="camera" /> {Capacitor.isNativePlatform() ? 'Scanner avec l\'appareil photo' : 'Prendre une photo'}
@@ -424,9 +427,6 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
                   Saisir manuellement sans scanner
                 </button>
               )}
-              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500, margin: '4px 0 0' }}>
-                💡 Vous pouvez aussi glisser un fichier directement ici
-              </p>
             </div>
           )}
 
