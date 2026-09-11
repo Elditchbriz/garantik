@@ -102,6 +102,7 @@ export default function PurchaseDetailPage() {
 
   // Document upload
   const [uploading, setUploading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('garantie');
   const [viewer, setViewer] = useState(null); // { url, type }
   const [openDocMenu, setOpenDocMenu] = useState(null); // { docId, top, right }
   const [renamingDoc, setRenamingDoc] = useState(null); // { id, name }
@@ -178,7 +179,6 @@ export default function PurchaseDetailPage() {
     const filePath = `${orgId}/${Date.now()}_${file.name}`;
     const { error: upErr } = await supabase.storage.from('documents').upload(filePath, file);
     if (!upErr) {
-      const isPrimary = documents.length === 0;
       await supabase.from('documents').insert({
         organization_id: orgId,
         purchase_id: id,
@@ -186,7 +186,7 @@ export default function PurchaseDetailPage() {
         file_path: filePath,
         file_type: file.type,
         file_size_bytes: file.size,
-        document_category: isPrimary ? 'garantie' : 'autre',
+        document_category: uploadCategory,
       });
       await loadAll();
     }
@@ -546,6 +546,17 @@ export default function PurchaseDetailPage() {
       {/* ===== ONGLET DOCUMENTS ===== */}
       {tab === 'documents' && (
         <>
+          {/* Choix de la catégorie AVANT l'ajout — plus logique que de devoir
+              la corriger après coup via le menu "⋯". */}
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>Catégorie du document à ajouter</label>
+            <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)}>
+              {Object.entries(catLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Upload */}
           <label style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
