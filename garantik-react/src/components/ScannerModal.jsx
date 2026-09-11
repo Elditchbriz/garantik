@@ -177,7 +177,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
       // on n'accepte un document comme ticket/facture que s'il contient au
       // moins une date d'achat ET un montant sur au moins un article.
       const hasDate = !!data.data.purchase_date;
-      const hasAmount = (data.data.items || []).some((item) => item.total_amount != null);
+      const hasAmount = (data.data.items || []).some((item) => item.total_amount != null) || data.data.ticket_total_amount != null;
       if (!hasDate || !hasAmount) {
         clearInterval(phraseTimer);
         setError("Ce document ne semble pas être un ticket ou une facture valide : impossible d'y trouver à la fois une date et un montant. Réessayez avec une photo plus nette, ou saisissez les informations manuellement.");
