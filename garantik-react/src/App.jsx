@@ -292,7 +292,7 @@ export default function App() {
             className="topbar-nav-item primary"
           >
             <Icon name="plus" />
-            <span>Scanner</span>
+            <span>Ajouter</span>
           </button>
         </nav>
 
@@ -364,7 +364,7 @@ export default function App() {
         </NavLink>
         <NavLink to="/add-purchase" className="bottom-nav-item primary" onClick={(e) => { e.preventDefault(); setAddSheetOpen(true); }}>
           <Icon name="plus" />
-          <span>Scanner</span>
+          <span>Ajouter</span>
         </NavLink>
         <NavLink to="/documents" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
           <Icon name="folder" />
