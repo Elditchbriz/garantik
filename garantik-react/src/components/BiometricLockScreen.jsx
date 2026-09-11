@@ -22,12 +22,30 @@ export function setBiometricLockEnabled(enabled) {
 // en arrière-plan (le temps que l'UI native s'affiche) ne redéclenche le
 // verrou par erreur, comme si l'app venait d'être rouverte depuis le
 // multitâche.
-let suppressUntil = 0;
-export function suppressBiometricLockTemporarily(ms = 4000) {
-  suppressUntil = Date.now() + ms;
+// Suppression partagée — n'importe quel composant qui lance une UI native
+// (scanner de documents, biométrie elle-même, connexion Google…) doit
+// appeler beginNativeUIAction() juste avant et endNativeUIAction() une fois
+// terminé (dans un bloc finally, pour ne jamais l'oublier même en cas
+// d'erreur). Un minuteur fixe s'était révélé trop court : un scan complet
+// (positionner, capturer, ajuster le recadrage dans l'UI native) peut
+// prendre plus de temps que prévu, laissant la fenêtre de suppression
+// expirer avant la fin réelle de l'opération.
+let suppressCount = 0;
+export function beginNativeUIAction() {
+  suppressCount += 1;
+}
+export function endNativeUIAction() {
+  suppressCount = Math.max(0, suppressCount - 1);
 }
 export function isBiometricLockSuppressed() {
-  return Date.now() < suppressUntil;
+  return suppressCount > 0;
+}
+
+// Conservée pour compatibilité — équivaut à begin immédiat + fin automatique
+// après le délai indiqué (utile pour un appel ponctuel très bref).
+export function suppressBiometricLockTemporarily(ms = 4000) {
+  beginNativeUIAction();
+  setTimeout(endNativeUIAction, ms);
 }
 
 export async function isBiometricAvailable() {
