@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { Capacitor } from '@capacitor/core';
 import { DocumentScanner } from '@capgo/capacitor-document-scanner';
-import { suppressBiometricLockTemporarily } from './BiometricLockScreen.jsx';
+import { beginNativeUIAction, endNativeUIAction } from './BiometricLockScreen.jsx';
 import Icon from './Icon.jsx';
 import useFocusTrap from '../hooks/useFocusTrap.js';
 
@@ -205,7 +205,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
   // Bien plus qualitatif que le recadrage manuel utilisé sur le web. ----------
   async function handleNativeScan() {
     setError('');
-    suppressBiometricLockTemporarily(); // le scanner ouvre une UI native, ne pas reverrouiller
+    beginNativeUIAction(); // le scanner ouvre une UI native, ne pas reverrouiller tant que ce n'est pas fini
     try {
       const scanResult = await DocumentScanner.scanDocument({
         responseType: 'base64',
@@ -236,6 +236,8 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
     } catch (err) {
       console.error('Erreur scanner natif :', err);
       setError("Impossible d'utiliser le scanner : " + err.message);
+    } finally {
+      setTimeout(endNativeUIAction, 1500);
     }
   }
 
