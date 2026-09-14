@@ -879,8 +879,10 @@ function FeedbackAdminView() {
 function CharitiesAdminView() {
   const [charities, setCharities] = useState([]);
   const [summary, setSummary] = useState([]);
-  const [percentage, setPercentage] = useState(5);
-  const [percentageInput, setPercentageInput] = useState('5');
+  const [baseAmountMonthly, setBaseAmountMonthly] = useState(0.50);
+  const [baseAmountYearly, setBaseAmountYearly] = useState(6.00);
+  const [baseAmountMonthlyInput, setBaseAmountMonthlyInput] = useState('0.50');
+  const [baseAmountYearlyInput, setBaseAmountYearlyInput] = useState('6.00');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [newName, setNewName] = useState('');
@@ -898,7 +900,7 @@ function CharitiesAdminView() {
     setLoading(true);
     setError('');
     try {
-      const [{ charities }, { summary }, { percentage }, { news }] = await Promise.all([
+      const [{ charities }, { summary }, donationSettings, { news }] = await Promise.all([
         callAdminApi('list_charities'),
         callAdminApi('list_donations_summary'),
         callAdminApi('get_donation_settings'),
@@ -906,8 +908,10 @@ function CharitiesAdminView() {
       ]);
       setCharities(charities);
       setSummary(summary);
-      setPercentage(percentage);
-      setPercentageInput(String(percentage));
+      setBaseAmountMonthly(donationSettings.base_amount_monthly);
+      setBaseAmountYearly(donationSettings.base_amount_yearly);
+      setBaseAmountMonthlyInput(String(donationSettings.base_amount_monthly));
+      setBaseAmountYearlyInput(String(donationSettings.base_amount_yearly));
       setNews(news);
     } catch (err) {
       setError(err.message);
@@ -975,11 +979,12 @@ function CharitiesAdminView() {
     }
   }
 
-  async function handleSavePercentage() {
-    const value = parseFloat(percentageInput);
-    if (isNaN(value) || value < 0 || value > 100) return;
+  async function handleSaveDonationBaseAmounts() {
+    const monthly = parseFloat(baseAmountMonthlyInput);
+    const yearly = parseFloat(baseAmountYearlyInput);
+    if (isNaN(monthly) || monthly < 0 || isNaN(yearly) || yearly < 0) return;
     try {
-      await callAdminApi('set_donation_percentage', { percentage: value });
+      await callAdminApi('set_donation_base_amounts', { base_amount_monthly: monthly, base_amount_yearly: yearly });
       await loadAll();
     } catch (err) {
       setError(err.message);
@@ -1026,20 +1031,36 @@ function CharitiesAdminView() {
     <div>
       {error && <p style={{ color: '#DC2626', marginBottom: 12 }}>{error}</p>}
 
-      {/* Réglage du pourcentage */}
+      {/* Réglage du montant fixe reversé */}
       <div style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 480 }}>
-        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Pourcentage reversé</h3>
+        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Montant fixe reversé</h3>
         <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 12 }}>
-          Part de chaque paiement premium reversée à l'association choisie par le client. Actuel : <strong>{percentage}%</strong>
+          Montant reversé à l'association choisie par le client, en plus de son abonnement (ne réduit jamais votre marge).
+          Actuel : <strong>{baseAmountMonthly}€/mois</strong> ou <strong>{baseAmountYearly}€/an</strong>.
+          Le client peut choisir de donner davantage lors du paiement (supplément additif, géré côté Stripe).
         </p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            type="number" min="10" max="100" step="0.5"
-            value={percentageInput}
-            onChange={(e) => setPercentageInput(e.target.value)}
-            style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
-          />
-          <button onClick={handleSavePercentage} style={btnStyle('#1E3A6E')}>Enregistrer</button>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, color: '#64748B', marginBottom: 4 }}>Mensuel</label>
+            <input
+              type="number" min="0" max="20" step="0.05"
+              value={baseAmountMonthlyInput}
+              onChange={(e) => setBaseAmountMonthlyInput(e.target.value)}
+              style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, color: '#64748B', marginBottom: 4 }}>Annuel</label>
+            <input
+              type="number" min="0" max="200" step="0.5"
+              value={baseAmountYearlyInput}
+              onChange={(e) => setBaseAmountYearlyInput(e.target.value)}
+              style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button onClick={handleSaveDonationBaseAmounts} style={btnStyle('#1E3A6E')}>Enregistrer</button>
+          </div>
         </div>
       </div>
 
