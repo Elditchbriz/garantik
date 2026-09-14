@@ -25,6 +25,7 @@ export default function AccountPage() {
   const [charityId, setCharityId] = useState(profile?.organizations?.charity_id || '');
   const [savingCharity, setSavingCharity] = useState(false);
   const [charitySaved, setCharitySaved] = useState(false);
+  const [charityError, setCharityError] = useState('');
   const [donationBaseMonthly, setDonationBaseMonthly] = useState(0.50);
   const [donationBaseYearly, setDonationBaseYearly] = useState(6.00);
   const [totalDonated, setTotalDonated] = useState(null);
@@ -56,9 +57,15 @@ export default function AccountPage() {
 
   async function handleSaveCharity() {
     setSavingCharity(true);
-    await supabase.from('organizations').update({ charity_id: charityId || null }).eq('id', profile.organization_id);
-    setProfile(p => ({ ...p, organizations: { ...p.organizations, charity_id: charityId || null } }));
+    setCharityError('');
+    const { error } = await supabase.from('organizations').update({ charity_id: charityId || null }).eq('id', profile.organization_id);
     setSavingCharity(false);
+    if (error) {
+      console.error('Erreur enregistrement association:', error);
+      setCharityError(error.message || 'Impossible d\'enregistrer votre choix — réessayez.');
+      return;
+    }
+    setProfile(p => ({ ...p, organizations: { ...p.organizations, charity_id: charityId || null } }));
     setCharitySaved(true);
     setTimeout(() => setCharitySaved(false), 2500);
   }
@@ -309,6 +316,11 @@ export default function AccountPage() {
             {charitySaved && (
               <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginBottom: 8 }}>
                 ✓ Préférence enregistrée
+              </div>
+            )}
+            {charityError && (
+              <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginBottom: 8 }}>
+                ⚠️ {charityError}
               </div>
             )}
             <button
