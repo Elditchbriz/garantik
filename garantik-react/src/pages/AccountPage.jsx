@@ -17,6 +17,7 @@ export default function AccountPage() {
   const [orgName, setOrgName] = useState(profile?.organizations?.name || '');
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
+  const [donationAddon, setDonationAddon] = useState('none'); // 'none' | 'plus_025' | 'plus_050' | 'plus_100'
   const [checkoutError, setCheckoutError] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -24,15 +25,19 @@ export default function AccountPage() {
   const [charityId, setCharityId] = useState(profile?.organizations?.charity_id || '');
   const [savingCharity, setSavingCharity] = useState(false);
   const [charitySaved, setCharitySaved] = useState(false);
-  const [donationPercentage, setDonationPercentage] = useState(10);
+  const [donationBaseMonthly, setDonationBaseMonthly] = useState(0.50);
+  const [donationBaseYearly, setDonationBaseYearly] = useState(6.00);
   const [totalDonated, setTotalDonated] = useState(null);
   const [charityNews, setCharityNews] = useState([]);
 
   React.useEffect(() => {
     supabase.from('charities').select('id, name, description, website_url, image_url').eq('active', true).order('name')
       .then(({ data }) => setCharities(data || []));
-    supabase.rpc('get_donation_percentage').then(({ data }) => {
-      if (data != null) setDonationPercentage(data);
+    supabase.rpc('get_donation_base_amounts').then(({ data }) => {
+      if (data && data.length > 0) {
+        setDonationBaseMonthly(Number(data[0].base_amount_monthly));
+        setDonationBaseYearly(Number(data[0].base_amount_yearly));
+      }
     });
     supabase.rpc('get_my_donation_total').then(({ data }) => {
       if (data != null) setTotalDonated(Number(data));
@@ -101,7 +106,7 @@ export default function AccountPage() {
     setCheckoutLoading(billingPeriod);
     setCheckoutError('');
     try {
-      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod });
+      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon: donationAddon });
       window.location.href = url;
     } catch (err) {
       setCheckoutError(err.message);
@@ -268,11 +273,10 @@ export default function AccountPage() {
               🤝 Association soutenue
             </div>
             <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
-              Choisissez une association : <strong>au moins {donationPercentage}%</strong> de votre abonnement
-              premium lui est reversé chaque mois, sans frais supplémentaire pour vous.
-              {' '}Sur un abonnement annuel à 24,99€, cela représente au minimum{' '}
-              <strong>{(24.99 * donationPercentage / 100).toFixed(2)}€/an</strong> (ou{' '}
-              <strong>{(2.99 * donationPercentage / 100).toFixed(2)}€/mois</strong> en mensuel).
+              Choisissez une association : <strong>{donationBaseYearly.toFixed(2)}€ par an</strong> (ou{' '}
+              <strong>{donationBaseMonthly.toFixed(2)}€/mois</strong> en mensuel) lui sont reversés
+              automatiquement, sans frais supplémentaire pour vous — en plus de votre abonnement.
+              {' '}Vous pourrez choisir de donner davantage si vous le souhaitez.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
@@ -382,6 +386,37 @@ export default function AccountPage() {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 14px' }}>
                 <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>2,08€</span>
                 <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>/ mois, facturé 24,99€ par an</span>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
+                  Envie de donner plus à l'association de votre choix ?
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
+                  Un supplément optionnel, en plus de votre abonnement — n'affecte jamais le prix ci-dessus.
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'none', label: 'Non merci' },
+                    { key: 'plus_025', label: '+0,25€' },
+                    { key: 'plus_050', label: '+0,50€' },
+                    { key: 'plus_100', label: '+1€' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setDonationAddon(opt.key)}
+                      style={{
+                        padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                        border: donationAddon === opt.key ? '1.5px solid var(--blue)' : '1px solid var(--line)',
+                        background: donationAddon === opt.key ? 'var(--blue-pale)' : '#fff',
+                        color: donationAddon === opt.key ? 'var(--blue-dark)' : 'var(--ink-soft)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <button
                 className="btn btn-primary"
