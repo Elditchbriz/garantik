@@ -22,6 +22,7 @@ import BlogListPage from './pages/BlogListPage.jsx';
 import BlogPostPage from './pages/BlogPostPage.jsx';
 import AssociationsPage from './pages/AssociationsPage.jsx';
 import ExpensesPage from './pages/ExpensesPage.jsx';
+import JoinHouseholdPage from './pages/JoinHouseholdPage.jsx';
 import FaqPage from './pages/FaqPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 import IconSprite from './components/IconSprite.jsx';
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/join-household" element={<JoinHouseholdPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
