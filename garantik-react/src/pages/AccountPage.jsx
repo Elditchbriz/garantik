@@ -42,6 +42,7 @@ export default function AccountPage() {
   const [donationExtraCurrentInput, setDonationExtraCurrentInput] = useState(String(profile?.organizations?.donation_addon_extra_monthly ?? 0));
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
   const [donationAddonError, setDonationAddonError] = useState('');
+  const [donationAddonSaved, setDonationAddonSaved] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -91,6 +92,7 @@ export default function AccountPage() {
     }
     setSavingDonationAddon(true);
     setDonationAddonError('');
+    setDonationAddonSaved(false);
     try {
       const result = await callEdgeFunction('update-donation-addon', { donation_addon_extra_monthly: value });
       if (result.requires_action && result.client_secret) {
@@ -112,6 +114,8 @@ export default function AccountPage() {
         return;
       }
       setCurrentDonationExtraMonthly(result.donation_addon_extra_monthly);
+      setDonationAddonSaved(true);
+      setTimeout(() => setDonationAddonSaved(false), 4000);
       setDonationExtraCurrentInput(String(result.donation_addon_extra_monthly));
     } catch (err) {
       setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
@@ -393,6 +397,14 @@ export default function AccountPage() {
               {currentDonationExtraMonthly > 0 && (
                 <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
                   Supplément actuellement actif : {currentDonationExtraMonthly.toFixed(2)}€/mois
+                </div>
+              )}
+              {donationAddonSaved && (
+                <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="circle-check" />
+                  {currentDonationExtraMonthly > 0
+                    ? `Merci ! Prélèvement effectué, votre supplément de ${currentDonationExtraMonthly.toFixed(2)}€/mois est confirmé.`
+                    : 'Supplément retiré — votre don revient au montant de base.'}
                 </div>
               )}
               {donationAddonError && (
