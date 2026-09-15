@@ -67,6 +67,8 @@ export default function ContractDetailPage() {
   const isPremium = profile?.organizations?.plan === 'premium';
   const [latestPriceChange, setLatestPriceChange] = useState(null);
   const [acknowledgingPriceChange, setAcknowledgingPriceChange] = useState(false);
+  const [renewedFromContract, setRenewedFromContract] = useState(null);
+  const [renewedByContract, setRenewedByContract] = useState(null);
 
   async function handleAcknowledgePriceChange() {
     if (!latestPriceChange) return;
@@ -133,6 +135,18 @@ export default function ContractDetailPage() {
     setContractTypes(types || []);
     setPurchases(p || []);
     setLatestPriceChange(priceChanges?.[0] || null);
+
+    // Lien ancien ↔ nouveau contrat en cas de renouvellement — deux requêtes
+    // légères, l'une ou l'autre s'applique selon le sens de la relation.
+    if (c.renewed_from_contract_id) {
+      supabase.from('contracts').select('id, name').eq('id', c.renewed_from_contract_id).single()
+        .then(({ data }) => setRenewedFromContract(data || null));
+    }
+    if (c.renewed_at) {
+      supabase.from('contracts').select('id, name').eq('renewed_from_contract_id', id).maybeSingle()
+        .then(({ data }) => setRenewedByContract(data || null));
+    }
+
     setLoading(false);
   }
 
@@ -284,8 +298,9 @@ export default function ContractDetailPage() {
   const expired = days !== null && days < 0;
   const expiring = days !== null && days >= 0 && days <= 60;
   const isCancelled = !!contract.cancelled_at;
-  const statusColor = isCancelled ? 'var(--ink-faint)' : expired ? 'var(--red)' : expiring ? 'var(--amber)' : 'var(--green)';
-  const statusLabel = isCancelled ? 'Résilié' : expired ? 'Expiré' : expiring ? `Expire dans ${days} jours` : 'Actif';
+  const isRenewed = !!contract.renewed_at;
+  const statusColor = isRenewed ? 'var(--blue)' : isCancelled ? 'var(--ink-faint)' : expired ? 'var(--red)' : expiring ? 'var(--amber)' : 'var(--green)';
+  const statusLabel = isRenewed ? 'Renouvelé' : isCancelled ? 'Résilié' : expired ? 'Expiré' : expiring ? `Expire dans ${days} jours` : 'Actif';
 
   const noticeDate = contract.notice_period_days && contract.end_date
     ? new Date(new Date(contract.end_date).getTime() - contract.notice_period_days * 86400000)
@@ -334,6 +349,39 @@ export default function ContractDetailPage() {
 
       {tab === 'detail' && (
         <>
+          {renewedByContract && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+              background: 'var(--blue-pale)', color: 'var(--blue-dark)',
+              fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <Icon name="sparkles" />
+              Renouvelé — <Link to={`/contracts/${renewedByContract.id}`} style={{ color: 'inherit', fontWeight: 700 }}>voir le nouveau contrat : {renewedByContract.name}</Link>
+            </div>
+          )}
+
+          {renewedFromContract && (
+            <div style={{
+              padding: '10px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+              background: 'var(--gray-pale)', color: 'var(--ink-soft)', fontSize: 12.5,
+            }}>
+              Renouvellement de <Link to={`/contracts/${renewedFromContract.id}`} style={{ color: 'var(--blue)', fontWeight: 600 }}>{renewedFromContract.name}</Link>
+            </div>
+          )}
+
+          {!isCancelled && contract.renewal_type === 'aucun' && (expired || expiring) && (
+            <Link to={`/add-contract?renew_from=${contract.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                background: 'var(--green-pale)', color: 'var(--green-text)',
+                fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <Icon name="calendar-check" />
+                Ce contrat ne se renouvelle pas automatiquement — Renouveler maintenant
+              </div>
+            </Link>
+          )}
+
           {latestPriceChange && latestPriceChange.new_amount > latestPriceChange.old_amount && (
             isPremium ? (
               <div style={{
