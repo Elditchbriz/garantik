@@ -45,6 +45,8 @@ export default function AddPurchasePage() {
   const [purchaseDate, setPurchaseDate] = useState('');
   const [warrantyMonths, setWarrantyMonths] = useState(24);
   const [warrantySource, setWarrantySource] = useState(null);
+  const [maintenanceAdvice, setMaintenanceAdvice] = useState(null);
+  const [maintenanceIntervalMonths, setMaintenanceIntervalMonths] = useState(null);
   const [notes, setNotes] = useState('');
   const [ocrContent, setOcrContent] = useState('');
   const scannedBlobRef = useRef(null);
@@ -102,6 +104,8 @@ export default function AddPurchasePage() {
       setWarrantyMonths(item.warranty_duration_months_guess);
       setWarrantySource(item.warranty_duration_source || null);
     }
+    setMaintenanceAdvice(item.maintenance_advice || null);
+    setMaintenanceIntervalMonths(item.maintenance_interval_months || null);
     setErrorMsg('');
   }
 
@@ -173,6 +177,8 @@ export default function AddPurchasePage() {
         notes: notes || null,
         warranty_conditions: getWarrantyConditionsText(warrantySource, warrantyMonths),
         conditions_analyzed_at: warrantySource ? new Date().toISOString() : null,
+        maintenance_advice: maintenanceAdvice,
+        maintenance_interval_months: maintenanceIntervalMonths,
       },
       orgId
     );
