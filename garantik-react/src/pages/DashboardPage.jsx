@@ -350,6 +350,19 @@ export default function DashboardPage() {
   const [priceIncreaseDetails, setPriceIncreaseDetails] = useState([]);
   const [dismissedAdviceKeys, setDismissedAdviceKeys] = useState(new Set());
 
+  const [documentsCount, setDocumentsCount] = useState(0);
+  const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
+  // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
+  // derniers achats), et change pour refléter la carte cliquée juste au-dessus.
+  const [categoryView, setCategoryView] = useState('garanties'); // 'garanties' | 'contrat' | 'abonnement'
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [onboardingStarted, setOnboardingStarted] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const surveillerRef = useRef(null);
+  const listsRef = useRef(null);
+
+  const orgId = profile?.organization_id;
+
   useEffect(() => {
     if (!orgId) return;
     supabase.from('dismissed_advice').select('advice_key').eq('organization_id', orgId)
@@ -374,18 +387,6 @@ export default function DashboardPage() {
     const { error } = await supabase.rpc('acknowledge_price_change', { p_id: id });
     if (error) console.error('Erreur acknowledge_price_change:', error);
   }
-  const [documentsCount, setDocumentsCount] = useState(0);
-  const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
-  // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
-  // derniers achats), et change pour refléter la carte cliquée juste au-dessus.
-  const [categoryView, setCategoryView] = useState('garanties'); // 'garanties' | 'contrat' | 'abonnement'
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const [onboardingStarted, setOnboardingStarted] = useState(false);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
-  const surveillerRef = useRef(null);
-  const listsRef = useRef(null);
-
-  const orgId = profile?.organization_id;
 
   const purchaseSortKey = orgId ? `garantik_sort_purchases_${orgId}` : null;
   const contractSortKey = orgId ? `garantik_sort_contracts_${orgId}` : null;
