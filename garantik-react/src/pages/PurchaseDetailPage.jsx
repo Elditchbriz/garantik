@@ -76,6 +76,7 @@ export default function PurchaseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile } = useOutletContext();
+  const isPremium = profile?.organizations?.plan === 'premium';
   const orgId = profile?.organization_id;
 
   const [purchase, setPurchase] = useState(null);
@@ -359,6 +360,40 @@ export default function PurchaseDetailPage() {
       {/* ===== ONGLET DÉTAIL ===== */}
       {tab === 'detail' && (
         <>
+          {isPremium ? (
+            purchase.warranty_conditions && (
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                background: 'var(--blue-pale)', border: '1px solid var(--blue-pale-2)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Icon name="sparkles" style={{ color: 'var(--blue-dark)' }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--blue-dark)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                    Conditions de garantie
+                  </span>
+                </div>
+                <p style={{ fontSize: 13.5, color: 'var(--navy)', margin: 0, lineHeight: 1.6 }}>
+                  {purchase.warranty_conditions}
+                </p>
+              </div>
+            )
+          ) : (
+            purchase.warranty_duration_months && (
+              <Link to="/account" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                  background: 'var(--gray-pale)', border: '1px dashed var(--line)',
+                  fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <Icon name="lock" />
+                  <span>
+                    <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did vous explique concrètement ce que couvre cette garantie et comment la faire jouer.
+                  </span>
+                </div>
+              </Link>
+            )
+          )}
+
           {/* Barre de garantie */}
           <div className="panel" style={{ marginBottom: 16, padding: '20px 20px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, fontSize: 13 }}>
