@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient.js';
+import { supabase, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 function formatDate(d) {
   if (!d) return '';
@@ -31,25 +34,109 @@ function statusLabelFor(status, type) {
   return statusLabelFr[status];
 }
 
-function exportToCsv(purchases) {
-  const headers = ['Objet', 'Marque', 'Enseigne', 'Catégorie', 'Montant (€)', "Date d'achat", 'Fin de garantie', 'Statut', 'Notes'];
+// ============================================================
+// Export — un schéma de lignes commun aux garanties ET aux contrats,
+// réutilisé par les 3 formats (CSV, PDF, Excel) pour ne pas dupliquer la
+// logique de mise en forme à 3 endroits différents.
+// ============================================================
+function buildExportRows(purchases, contracts) {
+  const purchaseRows = purchases.map((p) => ({
+    type: 'Garantie', nom: p.object_name, tiers: p.brand || '', categorie: p.store || '',
+    montant: p.total_amount, debut: p.purchase_date, echeance: p.warranty_end_date,
+    statut: statusLabelFor(itemStatus(p.warranty_end_date), 'purchase'), notes: p.notes || '',
+  }));
+  const contractRows = contracts.map((c) => ({
+    type: 'Contrat', nom: c.name, tiers: c.provider || '', categorie: c.contract_type || '',
+    montant: c.amount, debut: c.start_date, echeance: c.end_date,
+    statut: statusLabelFor(itemStatus(c.end_date), 'contract'), notes: c.notes || '',
+  }));
+  return [...purchaseRows, ...contractRows];
+}
+
+const EXPORT_HEADERS = ['Type', 'Nom', 'Marque / Prestataire', 'Enseigne / Catégorie', 'Montant (€)', 'Date de début', 'Échéance', 'Statut', 'Notes'];
+
+function exportToCsv(purchases, contracts) {
+  const rows = buildExportRows(purchases, contracts);
   const escapeCsv = (val) => {
     if (val === null || val === undefined) return '';
     const str = String(val);
     if (str.includes(';') || str.includes('"') || str.includes('\n')) return '"' + str.replace(/"/g, '""') + '"';
     return str;
   };
-  const rows = purchases.map((p) => [
-    p.object_name, p.brand, p.store, p.category, p.total_amount,
-    p.purchase_date, p.warranty_end_date, statusLabelFr[itemStatus(p.warranty_end_date)], p.notes,
-  ].map(escapeCsv).join(';'));
-  const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\n');
+  const csvRows = rows.map((r) => [r.type, r.nom, r.tiers, r.categorie, r.montant, r.debut, r.echeance, r.statut, r.notes].map(escapeCsv).join(';'));
+  const csvContent = '\uFEFF' + [EXPORT_HEADERS.join(';'), ...csvRows].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, 'csv');
+}
+
+// Hey Did+ — mise en page soignée plutôt qu'un simple tableau brut : un
+// résumé chiffré en haut (repris de la page Dépenses), puis le détail.
+function exportToPdf(purchases, contracts) {
+  const doc = new jsPDF();
+  const dateStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  doc.setFontSize(18);
+  doc.setTextColor(23, 59, 143); // var(--blue-dark)
+  doc.text('Hey Did — Récapitulatif', 14, 20);
+  doc.setFontSize(10);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Exporté le ${dateStr}`, 14, 27);
+
+  const totalProtected = purchases.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+  const totalMonthly = contracts.reduce((sum, c) => sum + monthlyEquivalent(c.amount, c.billing_period), 0);
+  doc.setFontSize(11);
+  doc.setTextColor(27, 36, 48); // var(--navy)
+  doc.text(`Valeur protégée : ${totalProtected.toFixed(0)} €`, 14, 38);
+  doc.text(`Engagements récurrents : ${totalMonthly.toFixed(2)} € / mois`, 14, 45);
+
+  const rows = buildExportRows(purchases, contracts);
+  autoTable(doc, {
+    startY: 53,
+    head: [EXPORT_HEADERS],
+    body: rows.map((r) => [
+      r.type, r.nom, r.tiers, r.categorie,
+      r.montant != null ? `${r.montant} €` : '',
+      formatDate(r.debut), formatDate(r.echeance), r.statut, r.notes,
+    ]),
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [41, 98, 255] }, // var(--blue)
+    alternateRowStyles: { fillColor: [248, 250, 253] }, // var(--bg)
+  });
+
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  doc.save(`hey-did-export_${dateSlug}.pdf`);
+}
+
+// Hey Did+ — deux feuilles distinctes (plus lisible qu'un mélange garanties
+// + contrats dans un même tableau une fois ouvert dans un vrai tableur).
+function exportToExcel(purchases, contracts) {
+  const wb = XLSX.utils.book_new();
+
+  const purchaseSheet = XLSX.utils.json_to_sheet(purchases.map((p) => ({
+    Objet: p.object_name, Marque: p.brand || '', Enseigne: p.store || '', Catégorie: p.category || '',
+    'Montant (€)': p.total_amount, "Date d'achat": p.purchase_date, 'Fin de garantie': p.warranty_end_date,
+    Statut: statusLabelFor(itemStatus(p.warranty_end_date), 'purchase'), Notes: p.notes || '',
+  })));
+  XLSX.utils.book_append_sheet(wb, purchaseSheet, 'Garanties');
+
+  const contractSheet = XLSX.utils.json_to_sheet(contracts.map((c) => ({
+    Nom: c.name, Prestataire: c.provider || '', Type: c.contract_type || '',
+    'Montant (€)': c.amount, Périodicité: c.billing_period || '',
+    'Date de début': c.start_date, Échéance: c.end_date, 'Préavis (jours)': c.notice_period_days || '',
+    Statut: statusLabelFor(itemStatus(c.end_date), 'contract'), Notes: c.notes || '',
+  })));
+  XLSX.utils.book_append_sheet(wb, contractSheet, 'Contrats');
+
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `hey-did-export_${dateSlug}.xlsx`);
+}
+
+function downloadBlob(blob, ext) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   const dateSlug = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = `garantik-export_${dateSlug}.csv`;
+  link.download = `hey-did-export_${dateSlug}.${ext}`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -229,6 +316,9 @@ export default function SearchPage() {
   const hasActiveFilters = query || filterStatus || scope !== 'all' || filterBrand || filterStore || filterCategory
     || filterDateFrom || filterDateTo || filterProvider || filterContractType || filterEndDateFrom || filterEndDateTo;
   const purchaseResults = results.filter(r => r._type === 'purchase');
+  const contractResults = results.filter(r => r._type === 'contract');
+  const isPremium = profile?.organizations?.plan === 'premium';
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
   return (
     <>
@@ -240,11 +330,46 @@ export default function SearchPage() {
       <div className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-header">
           <h3><div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="search" /></div>Recherche et filtres</h3>
-          {purchaseResults.length > 0 && (
-            <button className="btn btn-primary" style={{ fontSize: 12.5, padding: '7px 12px', gap: 6, flexShrink: 0 }}
-              onClick={() => exportToCsv(purchaseResults)} title="L'export CSV couvre les garanties, pas les contrats">
-              <Icon name="file-export" style={{ fontSize: 14 }} /> Export
-            </button>
+          {(purchaseResults.length > 0 || contractResults.length > 0) && (
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <button className="btn btn-primary" style={{ fontSize: 12.5, padding: '7px 12px', gap: 6 }}
+                onClick={() => setExportMenuOpen((v) => !v)}>
+                <Icon name="file-export" style={{ fontSize: 14 }} /> Export
+              </button>
+              {exportMenuOpen && (
+                <>
+                  <div onClick={() => setExportMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+                  <div style={{
+                    position: 'absolute', top: '110%', right: 0, zIndex: 11, background: '#fff',
+                    borderRadius: 'var(--radius-m)', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: 6, minWidth: 200,
+                  }}>
+                    <button
+                      onClick={() => { exportToCsv(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <Icon name="file-text" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> CSV
+                    </button>
+                    <button
+                      onClick={() => { if (!isPremium) { navigate('/account'); return; } exportToPdf(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <Icon name="file-type-pdf" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> PDF
+                      {!isPremium && <Icon name="lock" style={{ fontSize: 12, color: 'var(--ink-faint)', marginLeft: 'auto' }} />}
+                    </button>
+                    <button
+                      onClick={() => { if (!isPremium) { navigate('/account'); return; } exportToExcel(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <Icon name="file-spreadsheet" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> Excel
+                      {!isPremium && <Icon name="lock" style={{ fontSize: 12, color: 'var(--ink-faint)', marginLeft: 'auto' }} />}
+                    </button>
+                    {!isPremium && (
+                      <div style={{ fontSize: 11, color: 'var(--ink-faint)', padding: '6px 12px 2px' }}>PDF et Excel réservés à Hey Did+</div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
 
