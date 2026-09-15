@@ -17,8 +17,10 @@ export default function AccountPage() {
   const [orgName, setOrgName] = useState(profile?.organizations?.name || '');
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
-  const [donationAddon, setDonationAddon] = useState('none'); // 'none' | 'plus_025' | 'plus_050' | 'plus_100'
-  const [currentDonationAddon, setCurrentDonationAddon] = useState(profile?.organizations?.donation_addon || 'none');
+  const [donationExtraMonthly, setDonationExtraMonthly] = useState(0); // €/mois, avant premier abonnement
+  const [donationExtraInput, setDonationExtraInput] = useState('0');
+  const [currentDonationExtraMonthly, setCurrentDonationExtraMonthly] = useState(profile?.organizations?.donation_addon_extra_monthly ?? 0);
+  const [donationExtraCurrentInput, setDonationExtraCurrentInput] = useState(String(profile?.organizations?.donation_addon_extra_monthly ?? 0));
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
   const [donationAddonError, setDonationAddonError] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
@@ -58,12 +60,22 @@ export default function AccountPage() {
       .then(({ data }) => setCharityNews(data || []));
   }, [profile?.organizations?.charity_id]);
 
-  async function handleUpdateDonationAddon(key) {
+  async function handleUpdateDonationAddon() {
+    const value = parseFloat(donationExtraCurrentInput.replace(',', '.'));
+    if (isNaN(value) || value < 0 || value > 50) {
+      setDonationAddonError('Le montant doit être entre 0 et 50€');
+      return;
+    }
+    if (value > 0 && value < 0.5) {
+      setDonationAddonError('Le supplément doit être de 0,50€ minimum, ou 0 pour le retirer');
+      return;
+    }
     setSavingDonationAddon(true);
     setDonationAddonError('');
     try {
-      const { donation_addon } = await callEdgeFunction('update-donation-addon', { donation_addon: key });
-      setCurrentDonationAddon(donation_addon);
+      const { donation_addon_extra_monthly } = await callEdgeFunction('update-donation-addon', { donation_addon_extra_monthly: value });
+      setCurrentDonationExtraMonthly(donation_addon_extra_monthly);
+      setDonationExtraCurrentInput(String(donation_addon_extra_monthly));
     } catch (err) {
       setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
     } finally {
@@ -126,10 +138,14 @@ export default function AccountPage() {
   }
 
   async function handleCheckout(billingPeriod) {
+    if (donationExtraMonthly > 0 && donationExtraMonthly < 0.5) {
+      setCheckoutError('Le supplément de don doit être de 0,50€ minimum, ou 0 pour ne rien ajouter');
+      return;
+    }
     setCheckoutLoading(billingPeriod);
     setCheckoutError('');
     try {
-      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon: donationAddon });
+      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon_extra_monthly: donationExtraMonthly });
       window.location.href = url;
     } catch (err) {
       setCheckoutError(err.message);
@@ -151,6 +167,8 @@ export default function AccountPage() {
   }
 
   const plan = profile?.organizations?.plan || 'free';
+  const subscriptionAmount = profile?.organizations?.subscription_amount ?? null; // montant réel payé (base plan uniquement), selon l'intervalle
+  const subscriptionInterval = profile?.organizations?.subscription_interval || 'month'; // 'month' | 'year'
   const isPremium = plan === 'premium';
   const renewalDate = profile?.organizations?.plan_renewal_date;
   const initials = (profile?.full_name || profile?.email || '?')
@@ -265,6 +283,33 @@ export default function AccountPage() {
             )}
           </div>
 
+          {isPremium && (() => {
+            // Récap "ce que vous payez par mois" : abonnement + don de base +
+            // supplément choisi, tout ramené à un équivalent mensuel même
+            // si vous êtes facturé à l'année.
+            const isYearly = subscriptionInterval === 'year';
+            const subMonthly = subscriptionAmount != null ? (isYearly ? subscriptionAmount / 12 : subscriptionAmount) : null;
+            const donationBaseMonthlyEquiv = isYearly ? donationBaseYearly / 12 : donationBaseMonthly;
+            const totalMonthly = subMonthly != null ? subMonthly + donationBaseMonthlyEquiv + currentDonationExtraMonthly : null;
+            if (totalMonthly == null) return null;
+            return (
+              <div style={{
+                padding: '14px 18px', borderRadius: 'var(--radius-m)',
+                border: '1px dashed var(--line)', marginBottom: 16,
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)', marginBottom: 6 }}>
+                  💳 Ce que vous payez par mois
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.7 }}>
+                  {subMonthly.toFixed(2)}€ abonnement + {donationBaseMonthlyEquiv.toFixed(2)}€ don de base
+                  {currentDonationExtraMonthly > 0 && <> + {currentDonationExtraMonthly.toFixed(2)}€ supplément</>}
+                  {' '}= <strong style={{ color: 'var(--navy)' }}>{totalMonthly.toFixed(2)}€ / mois</strong>
+                  {isYearly && <span style={{ color: 'var(--ink-faint)' }}> (facturé en une fois par an)</span>}
+                </div>
+              </div>
+            );
+          })()}
+
           {isPremium && (
             <div style={{
               padding: '16px 18px', borderRadius: 'var(--radius-m)',
@@ -274,36 +319,38 @@ export default function AccountPage() {
                 💙 Donner davantage
               </div>
               <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                Ajoutez un supplément volontaire à votre don, en plus de votre abonnement — sans jamais
+                Ajoutez le supplément mensuel de votre choix à votre don (0,50€ minimum), en plus de votre abonnement — sans jamais
                 changer son prix. Modifiable à tout moment.
               </p>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                {[
-                  { key: 'none', label: 'Aucun supplément' },
-                  { key: 'plus_025', label: '+0,25€' },
-                  { key: 'plus_050', label: '+0,50€' },
-                  { key: 'plus_100', label: '+1€' },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number" min="0" max="50" step="0.25"
+                    value={donationExtraCurrentInput}
+                    onChange={(e) => setDonationExtraCurrentInput(e.target.value)}
                     disabled={savingDonationAddon}
-                    onClick={() => handleUpdateDonationAddon(opt.key)}
-                    style={{
-                      padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
-                      cursor: savingDonationAddon ? 'default' : 'pointer',
-                      border: currentDonationAddon === opt.key ? '1.5px solid var(--blue)' : '1px solid var(--line)',
-                      background: currentDonationAddon === opt.key ? 'var(--blue-pale)' : '#fff',
-                      color: currentDonationAddon === opt.key ? 'var(--blue-dark)' : 'var(--ink-soft)',
-                      opacity: savingDonationAddon ? 0.6 : 1,
-                    }}
-                  >
-                    {savingDonationAddon && currentDonationAddon !== opt.key ? '…' : opt.label}
-                  </button>
-                ))}
+                    style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+                  />
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+                </div>
+                <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
+                <button
+                  type="button"
+                  onClick={handleUpdateDonationAddon}
+                  disabled={savingDonationAddon}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: 12.5 }}
+                >
+                  {savingDonationAddon ? 'Enregistrement…' : 'Mettre à jour'}
+                </button>
               </div>
+              {currentDonationExtraMonthly > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
+                  Supplément actuellement actif : {currentDonationExtraMonthly.toFixed(2)}€/mois
+                </div>
+              )}
               {donationAddonError && (
-                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600 }}>
+                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 6 }}>
                   ⚠️ {donationAddonError}
                 </div>
               )}
@@ -466,29 +513,23 @@ export default function AccountPage() {
                   Envie de donner plus à l'association de votre choix ?
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
-                  Un supplément optionnel, en plus de votre abonnement — n'affecte jamais le prix ci-dessus.
+                  Un supplément optionnel, 0,50€ minimum, en plus de votre abonnement — n'affecte jamais le prix ci-dessus. Modifiable à tout moment depuis votre compte.
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[
-                    { key: 'none', label: 'Non merci' },
-                    { key: 'plus_025', label: '+0,25€' },
-                    { key: 'plus_050', label: '+0,50€' },
-                    { key: 'plus_100', label: '+1€' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() => setDonationAddon(opt.key)}
-                      style={{
-                        padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
-                        border: donationAddon === opt.key ? '1.5px solid var(--blue)' : '1px solid var(--line)',
-                        background: donationAddon === opt.key ? 'var(--blue-pale)' : '#fff',
-                        color: donationAddon === opt.key ? 'var(--blue-dark)' : 'var(--ink-soft)',
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number" min="0" max="50" step="0.25"
+                      value={donationExtraInput}
+                      onChange={(e) => {
+                        setDonationExtraInput(e.target.value);
+                        const v = parseFloat(e.target.value.replace(',', '.'));
+                        setDonationExtraMonthly(isNaN(v) || v < 0 ? 0 : v);
                       }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                      style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+                    />
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+                  </div>
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
                 </div>
               </div>
               <button
