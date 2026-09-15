@@ -229,14 +229,20 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
   // ailleurs, juste pas suivie ici.
   const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
   const COMMON_COVERAGE_CHECKS = [
-    { key: 'coverage:habitation', keywords: ['habitation', 'locataire', 'propriétaire'], title: 'Assurance habitation ?', text: "On ne voit pas d'assurance habitation dans vos contrats suivis. Si vous êtes locataire, elle est généralement obligatoire — si vous en avez une ailleurs, ignorez simplement ce conseil." },
-    { key: 'coverage:mutuelle', keywords: ['mutuelle', 'complémentaire santé', 'assurance santé'], title: 'Mutuelle santé ?', text: "On ne voit pas de mutuelle ou complémentaire santé dans vos contrats suivis. Si vous en avez une par votre employeur ou ailleurs, ignorez ce conseil." },
-    { key: 'coverage:vie', keywords: ['assurance vie', 'assurance-vie'], title: 'Assurance vie ?', text: "On ne voit pas d'assurance vie dans vos contrats suivis — souvent utile pour se constituer une épargne ou protéger ses proches. Si vous en avez une ailleurs, ignorez ce conseil." },
+    { key: 'coverage:habitation', keywords: ['habitation', 'locataire', 'propriétaire'], title: 'Assurance habitation ?',
+      text: "Vous avez peut-être déjà une assurance habitation, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did puisse surveiller son échéance. Si vous n'en disposez pas, ignorez ce conseil.",
+      actionLabel: 'Ajouter mon assurance habitation', contractType: 'Assurance habitation' },
+    { key: 'coverage:mutuelle', keywords: ['mutuelle', 'complémentaire santé', 'assurance santé'], title: 'Mutuelle santé ?',
+      text: "Vous avez peut-être déjà une mutuelle ou complémentaire santé, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did puisse la suivre. Si vous n'en disposez pas, ignorez ce conseil.",
+      actionLabel: 'Ajouter ma mutuelle', contractType: 'Mutuelle santé' },
+    { key: 'coverage:vie', keywords: ['assurance vie', 'assurance-vie'], title: 'Assurance vie ?',
+      text: "Vous avez peut-être déjà une assurance vie, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did la suive aussi. Si vous n'en disposez pas, ignorez ce conseil.",
+      actionLabel: 'Ajouter mon assurance vie', contractType: 'Assurance vie' },
   ];
   COMMON_COVERAGE_CHECKS.forEach((check) => {
     const found = check.keywords.some((kw) => contractsText.includes(kw));
     if (!found) {
-      advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: 'Ajouter un contrat', actionLink: '/add-contract' });
+      advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: check.actionLabel, actionLink: `/add-contract?type=${encodeURIComponent(check.contractType)}` });
     }
   });
 
