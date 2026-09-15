@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
-import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox } from '../lib/supabaseClient.js';
+import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import OnboardingWizard from '../components/OnboardingWizard.jsx';
 import AddTypeSheet from '../components/AddTypeSheet.jsx';
@@ -188,7 +188,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
     advices.push({
       priority: 1, icon: '💰', title: `Hausse chez ${p.name}`,
       text: `Passé de ${p.oldAmount} € à ${p.newAmount} €${pct != null ? ` (+${pct}%)` : ''}. C'est souvent le bon moment de comparer ou de négocier.`,
-      actionLabel: 'Voir le contrat', actionLink: `/contracts/${p.contractId}`,
+      actionLabel: 'Voir le contrat', actionLink: `/contract/${p.contractId}`,
     });
   });
 
@@ -209,7 +209,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
       advices.push({
         priority: 3, icon: '🔧', title: `Vérifiez ${p.object_name}`,
         text: `Sa garantie expire dans ${days} jour${days > 1 ? 's' : ''}. Si un problème traîne depuis un moment, c'est le moment de le signaler avant qu'il soit trop tard.`,
-        actionLabel: 'Voir la garantie', actionLink: `/purchases/${p.id}`,
+        actionLabel: 'Voir la garantie', actionLink: `/purchase/${p.id}`,
       });
     }
   });
@@ -281,7 +281,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
     if (daysToNext >= 0 && daysToNext <= 30) {
       advices.push({
         priority: 3, icon: '🔧', title: `Entretien à prévoir — ${p.object_name}`,
-        text: advice, actionLabel: 'Voir la fiche', actionLink: `/purchases/${p.id}`,
+        text: advice, actionLabel: 'Voir la fiche', actionLink: `/purchase/${p.id}`,
       });
     }
   });
@@ -511,11 +511,11 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const totalProtectedValue = purchases.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
-  const monthlySpend = contracts.reduce((sum, c) => {
-    const amount = Number(c.amount) || 0;
-    if (!amount) return sum;
-    return sum + (c.billing_period === 'annual' ? amount / 12 : amount);
-  }, 0);
+  // Équivalent mensuel correct pour TOUTES les périodicités — l'ancien code
+  // ne testait que 'annual' (anglais), qui ne correspond à aucune valeur
+  // réellement stockée ('annuel', en français) : tous les contrats,
+  // annuels compris, étaient donc comptés comme s'ils étaient mensuels.
+  const monthlySpend = contracts.reduce((sum, c) => sum + monthlyEquivalent(c.amount, c.billing_period), 0);
 
   function scrollSurveiller(direction) {
     const el = surveillerRef.current;
@@ -724,15 +724,15 @@ export default function DashboardPage() {
 
       {!loading && (totalProtectedValue > 0 || monthlySpend > 0 || (totalDonated ?? 0) > 0) && (
         <div className="chiffres-grid">
-          <div className="chiffre-mini">
+          <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
             <div className="l">Valeur protégée</div>
           </div>
-          <div className="chiffre-mini">
+          <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
             <div className="l">Abos / mois</div>
           </div>
-          <div className="chiffre-mini">
+          <div className="chiffre-mini" onClick={() => navigate('/account#association')} style={{ cursor: 'pointer' }}>
             <div className="v" style={{ color: totalDonated ? 'var(--blue)' : 'var(--ink-faint)' }}>
               {totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '—'}
             </div>
