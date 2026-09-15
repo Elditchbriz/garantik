@@ -21,6 +21,7 @@ import DiscussionsPage from './pages/DiscussionsPage.jsx';
 import BlogListPage from './pages/BlogListPage.jsx';
 import BlogPostPage from './pages/BlogPostPage.jsx';
 import AssociationsPage from './pages/AssociationsPage.jsx';
+import ExpensesPage from './pages/ExpensesPage.jsx';
 import FaqPage from './pages/FaqPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 import IconSprite from './components/IconSprite.jsx';
@@ -39,6 +40,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/legal/:page" element={<LegalPage />} />
         <Route element={<App />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/add-purchase" element={<AddPurchasePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
