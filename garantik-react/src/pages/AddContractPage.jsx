@@ -33,6 +33,7 @@ export default function AddContractPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [renewalType, setRenewalType] = useState('aucun');
+  const [cancellationTerms, setCancellationTerms] = useState('');
   const [purchaseId, setPurchaseId] = useState(linkedPurchaseId || '');
   const [purchases, setPurchases] = useState([]);
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -78,6 +79,8 @@ export default function AddContractPage() {
     if (data.end_date) setEndDate(data.end_date);
     if (data.start_date) setStartDate(data.start_date);
     if (data.notice_period_days) setNoticePeriodDays(String(data.notice_period_days));
+    if (data.renewal_type) setRenewalType(data.renewal_type);
+    if (data.cancellation_terms) setCancellationTerms(data.cancellation_terms);
     if (data.raw_text) setOcrContent(data.raw_text);
     if (data.amount) setAmount(String(data.amount));
     if (data.billing_period) setBillingPeriod(data.billing_period);
@@ -137,6 +140,11 @@ export default function AddContractPage() {
       notice_method: noticeMethod,
       ocr_content: ocrContent || null,
       notes: notes || null,
+      cancellation_terms: cancellationTerms || null,
+      // Marqué "analysé" uniquement si l'IA a effectivement produit une info
+      // exploitable — pas si l'utilisateur a tout saisi manuellement sans
+      // jamais passer par le scan (dans ce cas, rien à "ré-analyser" par IA).
+      conditions_analyzed_at: cancellationTerms ? new Date().toISOString() : null,
     }, orgId);
 
     if (error) { setErrorMsg(error.message); setSaving(false); return; }
