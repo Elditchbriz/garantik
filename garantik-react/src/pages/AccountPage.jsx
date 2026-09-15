@@ -43,6 +43,8 @@ export default function AccountPage() {
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
   const [donationAddonError, setDonationAddonError] = useState('');
   const [donationAddonSaved, setDonationAddonSaved] = useState(false);
+  const [analyzingContracts, setAnalyzingContracts] = useState(false);
+  const [contractsAnalysisResult, setContractsAnalysisResult] = useState(null); // { analyzed, remaining } cumulés
   const [checkoutError, setCheckoutError] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -121,6 +123,25 @@ export default function AccountPage() {
       setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
     } finally {
       setSavingDonationAddon(false);
+    }
+  }
+
+  async function handleAnalyzeExistingContracts() {
+    setAnalyzingContracts(true);
+    setContractsAnalysisResult({ analyzed: 0, remaining: null });
+    try {
+      let totalAnalyzed = 0;
+      let done = false;
+      while (!done) {
+        const result = await callEdgeFunction('analyze-existing-contracts', {});
+        totalAnalyzed += result.analyzed;
+        setContractsAnalysisResult({ analyzed: totalAnalyzed, remaining: result.remaining });
+        done = result.done;
+      }
+    } catch (err) {
+      setContractsAnalysisResult({ error: err.message || 'Une erreur est survenue pendant l\'analyse.' });
+    } finally {
+      setAnalyzingContracts(false);
     }
   }
 
@@ -410,6 +431,42 @@ export default function AccountPage() {
               {donationAddonError && (
                 <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 6 }}>
                   ⚠️ {donationAddonError}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isPremium && (
+            <div style={{
+              padding: '16px 18px', borderRadius: 'var(--radius-m)',
+              background: 'var(--gray-pale)', marginBottom: 16,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
+                ✨ Analyser mes contrats existants
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                Did relit vos contrats enregistrés avant votre passage à Hey Did+ pour en extraire le préavis,
+                le mode de reconduction et la marche à suivre pour résilier — sans avoir à les rescanner.
+              </p>
+              <button
+                type="button"
+                onClick={handleAnalyzeExistingContracts}
+                disabled={analyzingContracts}
+                className="btn btn-secondary"
+                style={{ padding: '8px 16px', fontSize: 12.5 }}
+              >
+                {analyzingContracts ? 'Analyse en cours…' : 'Lancer l\'analyse'}
+              </button>
+              {contractsAnalysisResult && !contractsAnalysisResult.error && (
+                <div style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 8 }}>
+                  {contractsAnalysisResult.remaining === 0
+                    ? `✓ Terminé — ${contractsAnalysisResult.analyzed} contrat${contractsAnalysisResult.analyzed > 1 ? 's' : ''} analysé${contractsAnalysisResult.analyzed > 1 ? 's' : ''}.`
+                    : `${contractsAnalysisResult.analyzed} analysé${contractsAnalysisResult.analyzed > 1 ? 's' : ''} pour l'instant…`}
+                </div>
+              )}
+              {contractsAnalysisResult?.error && (
+                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 8 }}>
+                  ⚠️ {contractsAnalysisResult.error}
                 </div>
               )}
             </div>
