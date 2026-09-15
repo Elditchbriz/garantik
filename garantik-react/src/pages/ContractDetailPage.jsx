@@ -64,6 +64,7 @@ export default function ContractDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile } = useOutletContext();
+  const isPremium = profile?.organizations?.plan === 'premium';
   const orgId = profile?.organization_id;
 
   const [contract, setContract] = useState(null);
@@ -139,6 +140,7 @@ export default function ContractDetailPage() {
       renewal_type: editData.renewal_type,
       purchase_id: editData.purchase_id || null,
       notes: editData.notes || null,
+      cancellation_terms: editData.cancellation_terms || null,
     });
     await loadAll();
     setSaving(false);
@@ -331,6 +333,42 @@ export default function ContractDetailPage() {
             </div>
           )}
 
+          {!isCancelled && (
+            isPremium ? (
+              contract.cancellation_terms && (
+                <div style={{
+                  padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                  background: 'var(--blue-pale)', border: '1px solid var(--blue-pale-2)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Icon name="sparkles" style={{ color: 'var(--blue-dark)' }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--blue-dark)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      Comment résilier
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13.5, color: 'var(--navy)', margin: 0, lineHeight: 1.6 }}>
+                    {contract.cancellation_terms}
+                  </p>
+                </div>
+              )
+            ) : (
+              contract.notice_period_days && (
+                <Link to="/account" style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                    background: 'var(--gray-pale)', border: '1px dashed var(--line)',
+                    fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 10,
+                  }}>
+                    <Icon name="lock" />
+                    <span>
+                      <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a lu ce contrat en détail : marche à suivre exacte pour résilier, sans avoir à relire les petites lignes.
+                    </span>
+                  </div>
+                </Link>
+              )
+            )
+          )}
+
           {/* Utile pour un vieux contrat expiré depuis longtemps — évite
               d'être notifié indéfiniment une fois que ce n'est plus utile. */}
           {expired && !isCancelled && (
@@ -417,6 +455,14 @@ export default function ContractDetailPage() {
                     <input type="date" value={editData.end_date || ''} onChange={e => setEditData(d => ({ ...d, end_date: e.target.value }))} />
                   </div>
                 </div>
+                {isPremium && (
+                  <div className="field full">
+                    <label>Comment résilier <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(rempli automatiquement par Did si détecté dans le document scanné)</span></label>
+                    <textarea rows={3} value={editData.cancellation_terms || ''}
+                      onChange={e => setEditData(d => ({ ...d, cancellation_terms: e.target.value }))}
+                      placeholder="Ex : Lettre recommandée avec AR à envoyer 30 jours avant l'échéance…" style={{ resize: 'vertical' }} />
+                  </div>
+                )}
                 <div className="field">
                   <label>Montant</label>
                   <input type="number" step="0.01" min="0" value={editData.amount || ''}
