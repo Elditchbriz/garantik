@@ -112,83 +112,29 @@ function QuotaBar({ used, quota }) {
   );
 }
 
-function DidBrief({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseCount, isPremium }) {
+// Un seul bloc Did — recap neutre (gratuit) + conseils actionnables
+// (Hey Did+) dans le MÊME panneau, plutôt que deux blocs distincts qui
+// donnaient une impression de doublon. Chaque conseil (hors hausse de
+// prix, qui a son propre mécanisme d'acquittement partagé avec la fiche
+// contrat) peut être ignoré durablement via "Ne pas traiter".
+function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseDetails, contracts, purchases, isPremium, dismissedKeys, onDismissAdvice, onAcknowledgePriceChange }) {
   const navigate = useNavigate();
+  const daysUntil = (dateStr) => Math.round((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
 
   const expiring = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expiring');
   const expired = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expired');
 
-  const bullets = [];
-  if (isPremium && priceIncreaseCount > 0) {
-    bullets.push({ icon: '📈', text: `${priceIncreaseCount} hausse${priceIncreaseCount > 1 ? 's' : ''} de prix détectée${priceIncreaseCount > 1 ? 's' : ''} sur vos contrats.` });
-  }
-  if (documentsThisMonth > 0) {
-    bullets.push({ icon: '✅', text: `J'ai classé ${documentsThisMonth} nouveau${documentsThisMonth > 1 ? 'x' : ''} document${documentsThisMonth > 1 ? 's' : ''} ce mois-ci.` });
-  }
-  if (expiring.length > 0) {
-    const first = expiring[0];
-    const days = Math.max(0, Math.round((new Date(first.endDate) - new Date()) / (1000 * 60 * 60 * 24)));
-    bullets.push({ icon: '⚠️', text: `${first.name} expire dans ${days} jour${days > 1 ? 's' : ''}${expiring.length > 1 ? `, et ${expiring.length - 1} autre${expiring.length > 2 ? 's' : ''} approche${expiring.length > 2 ? 'nt' : ''}` : ''}.` });
-  }
-  if (expired.length > 0) {
-    bullets.push({ icon: '🔴', text: `${expired[0].name}${expired.length > 1 ? ` et ${expired.length - 1} autre${expired.length > 2 ? 's' : ''}` : ''} déjà expiré${expired.length > 1 ? 's' : ''}.` });
-  }
-  if (inboxCount > 0) {
-    bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de votre validation.` });
-  }
-  if (bullets.length === 0) {
-    bullets.push({ icon: '👍', text: 'Rien à signaler, tout est sous contrôle.' });
-  }
-
-  return (
-    <div className="didier-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="didier-avatar">
-          <img src="/didier-headshot.jpg" alt="Did" />
-        </div>
-        <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-          Voici ce que j'ai préparé pour vous aujourd'hui :
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingLeft: 4 }}>
-        {bullets.map((b, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--navy)', lineHeight: 1.4 }}>
-            <span>{b.icon}</span><span>{b.text}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 4 }}>
-        <span style={{ fontSize: 12, color: 'var(--ink-faint)', fontStyle: 'italic' }}>— Did</span>
-        <button
-          onClick={() => navigate('/discussions')}
-          style={{
-            background: 'var(--blue)', color: '#fff', border: 'none',
-            borderRadius: 'var(--radius-s)', padding: '9px 16px', fontSize: 12.5, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
-          }}
-        >
-          <Icon name="sparkles" style={{ fontSize: 13 }} /> Demander à Did
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// Conseils de Did — Hey Did+ : contrairement au récap ci-dessus (neutre,
-// gratuit), chaque conseil pointe vers une ACTION concrète à faire,
-// construit à partir de signaux déjà en base (aucun appel IA ici).
-function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
-  const navigate = useNavigate();
-  const daysUntil = (dateStr) => Math.round((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
-
+  // --- Conseils actionnables — construits même côté gratuit (pour savoir
+  // s'il y a de quoi teaser Hey Did+), affichés en détail seulement si premium.
   const advices = [];
 
   priceIncreaseDetails.forEach((p) => {
     const pct = p.oldAmount > 0 ? Math.round(((p.newAmount - p.oldAmount) / p.oldAmount) * 100) : null;
     advices.push({
-      priority: 1, icon: '💰', title: `Hausse chez ${p.name}`,
+      key: `price:${p.id}`, priority: 1, icon: '💰', title: `Hausse chez ${p.name}`,
       text: `Passé de ${p.oldAmount} € à ${p.newAmount} €${pct != null ? ` (+${pct}%)` : ''}. C'est souvent le bon moment de comparer ou de négocier.`,
       actionLabel: 'Voir le contrat', actionLink: `/contract/${p.contractId}`,
+      isPriceChange: true, priceChangeId: p.id,
     });
   });
 
@@ -196,7 +142,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
     const days = daysUntil(c.end_date);
     if (days >= 0 && days <= 30) {
       advices.push({
-        priority: 2, icon: '📄', title: `Renouveler ${c.name} ?`,
+        key: `renewal:${c.id}`, priority: 2, icon: '📄', title: `Renouveler ${c.name} ?`,
         text: `Ce contrat n'a pas de reconduction automatique et arrive à échéance dans ${days} jour${days > 1 ? 's' : ''}. Sans action de votre part, la couverture s'arrête.`,
         actionLabel: 'Renouveler', actionLink: `/add-contract?renew_from=${c.id}`,
       });
@@ -207,7 +153,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
     const days = daysUntil(p.warranty_end_date);
     if (days >= 0 && days <= 30) {
       advices.push({
-        priority: 3, icon: '🔧', title: `Vérifiez ${p.object_name}`,
+        key: `warranty:${p.id}`, priority: 3, icon: '🔧', title: `Vérifiez ${p.object_name}`,
         text: `Sa garantie expire dans ${days} jour${days > 1 ? 's' : ''}. Si un problème traîne depuis un moment, c'est le moment de le signaler avant qu'il soit trop tard.`,
         actionLabel: 'Voir la garantie', actionLink: `/purchase/${p.id}`,
       });
@@ -222,7 +168,7 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
   const stripAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const MAINTENANCE_RULES = [
     { keywords: ['poele a bois', 'poele bois', 'insert bois', 'cheminee'], icon: '🔥', intervalMonths: 6,
-      title: (name) => `Ramonage à prévoir ?`,
+      title: () => `Ramonage à prévoir ?`,
       text: "Le ramonage est généralement obligatoire (souvent 2 fois par an selon votre commune) — sans attestation, votre assurance peut refuser de vous couvrir en cas d'incendie." },
     { keywords: ['poele a pellets', 'poele granules', 'poele a granules'], icon: '🔥', intervalMonths: 12,
       title: () => `Entretien annuel à prévoir ?`,
@@ -251,10 +197,6 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
   ];
 
   purchases.filter((p) => p.purchase_date && p.object_name).forEach((p) => {
-    // Priorité au conseil généré par l'IA au scan (couvre potentiellement
-    // n'importe quel objet) — repli sur les règles à mots-clés ci-dessus
-    // uniquement pour les garanties plus anciennes qui n'ont pas encore
-    // cette donnée (scannées avant l'ajout de ce champ).
     let advice = null;
     let intervalMonths = null;
     if (p.maintenance_advice && p.maintenance_interval_months) {
@@ -263,15 +205,10 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
     } else {
       const normalizedName = stripAccents(p.object_name.toLowerCase());
       const rule = MAINTENANCE_RULES.find((r) => r.keywords.some((kw) => normalizedName.includes(kw)));
-      if (rule) {
-        advice = rule.text;
-        intervalMonths = rule.intervalMonths;
-      }
+      if (rule) { advice = rule.text; intervalMonths = rule.intervalMonths; }
     }
     if (!advice || !intervalMonths) return;
 
-    // Prochaine échéance estimée : premier multiple de l'intervalle, à
-    // partir de la date d'achat, qui tombe après aujourd'hui.
     const purchaseDate = new Date(p.purchase_date);
     let next = new Date(purchaseDate);
     const now = new Date();
@@ -280,69 +217,120 @@ function DidAdvice({ contracts, purchases, priceIncreaseDetails, isPremium }) {
 
     if (daysToNext >= 0 && daysToNext <= 30) {
       advices.push({
-        priority: 3, icon: '🔧', title: `Entretien à prévoir — ${p.object_name}`,
+        key: `maintenance:${p.id}`, priority: 3, icon: '🔧', title: `Entretien à prévoir — ${p.object_name}`,
         text: advice, actionLabel: 'Voir la fiche', actionLink: `/purchase/${p.id}`,
       });
     }
   });
 
   // Détection de manque de couverture — priorité basse (4), jamais devant
-  // une hausse de prix ou une échéance urgente. Recherche par mots-clés
-  // sur le type + le nom du contrat, sans jamais affirmer une absence
-  // certaine : l'utilisateur peut très bien avoir cette couverture ailleurs,
-  // juste pas suivie ici — le ton reste toujours une suggestion, pas une alerte.
+  // une hausse de prix ou une échéance urgente. Toujours formulé comme une
+  // suggestion : l'utilisateur peut très bien avoir cette couverture
+  // ailleurs, juste pas suivie ici.
   const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
   const COMMON_COVERAGE_CHECKS = [
-    { keywords: ['habitation', 'locataire', 'propriétaire'], title: 'Assurance habitation ?', text: "On ne voit pas d'assurance habitation dans vos contrats suivis. Si vous êtes locataire, elle est généralement obligatoire — si vous en avez une ailleurs, ignorez simplement ce conseil." },
-    { keywords: ['mutuelle', 'complémentaire santé', 'assurance santé'], title: 'Mutuelle santé ?', text: "On ne voit pas de mutuelle ou complémentaire santé dans vos contrats suivis. Si vous en avez une par votre employeur ou ailleurs, ignorez ce conseil." },
-    { keywords: ['assurance vie', 'assurance-vie'], title: 'Assurance vie ?', text: "On ne voit pas d'assurance vie dans vos contrats suivis — souvent utile pour se constituer une épargne ou protéger ses proches. Si vous en avez une ailleurs, ignorez ce conseil." },
+    { key: 'coverage:habitation', keywords: ['habitation', 'locataire', 'propriétaire'], title: 'Assurance habitation ?', text: "On ne voit pas d'assurance habitation dans vos contrats suivis. Si vous êtes locataire, elle est généralement obligatoire — si vous en avez une ailleurs, ignorez simplement ce conseil." },
+    { key: 'coverage:mutuelle', keywords: ['mutuelle', 'complémentaire santé', 'assurance santé'], title: 'Mutuelle santé ?', text: "On ne voit pas de mutuelle ou complémentaire santé dans vos contrats suivis. Si vous en avez une par votre employeur ou ailleurs, ignorez ce conseil." },
+    { key: 'coverage:vie', keywords: ['assurance vie', 'assurance-vie'], title: 'Assurance vie ?', text: "On ne voit pas d'assurance vie dans vos contrats suivis — souvent utile pour se constituer une épargne ou protéger ses proches. Si vous en avez une ailleurs, ignorez ce conseil." },
   ];
   COMMON_COVERAGE_CHECKS.forEach((check) => {
     const found = check.keywords.some((kw) => contractsText.includes(kw));
     if (!found) {
-      advices.push({ priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: 'Ajouter un contrat', actionLink: '/add-contract' });
+      advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: 'Ajouter un contrat', actionLink: '/add-contract' });
     }
   });
 
-  const top = advices.sort((a, b) => a.priority - b.priority).slice(0, 3);
+  const visibleAdvices = advices.filter((a) => !dismissedKeys.has(a.key));
+  const topAdvices = visibleAdvices.sort((a, b) => a.priority - b.priority).slice(0, 3);
 
-  if (!isPremium) {
-    if (top.length === 0) return null; // pas de pub si Did n'a rien de concret à dire
-    return (
-      <div className="panel" style={{ marginBottom: 16, padding: 20 }}>
-        <div
-          onClick={() => navigate('/account')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-            background: 'var(--gray-pale)', border: '1px dashed var(--line)',
-            borderRadius: 'var(--radius-m)', padding: '12px 16px', fontSize: 13, color: 'var(--ink-soft)',
-          }}
-        >
-          <Icon name="lock" />
-          <span><strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a {top.length} conseil{top.length > 1 ? 's' : ''} concret{top.length > 1 ? 's' : ''} à vous donner sur vos contrats et garanties.</span>
-        </div>
-      </div>
-    );
+  // --- Bullets neutres du récap (toujours visibles) ---
+  const bullets = [];
+  if (documentsThisMonth > 0) {
+    bullets.push({ icon: '✅', text: `J'ai classé ${documentsThisMonth} nouveau${documentsThisMonth > 1 ? 'x' : ''} document${documentsThisMonth > 1 ? 's' : ''} ce mois-ci.` });
+  }
+  if (expiring.length > 0) {
+    const first = expiring[0];
+    const days = Math.max(0, Math.round((new Date(first.endDate) - new Date()) / (1000 * 60 * 60 * 24)));
+    bullets.push({ icon: '⚠️', text: `${first.name} expire dans ${days} jour${days > 1 ? 's' : ''}${expiring.length > 1 ? `, et ${expiring.length - 1} autre${expiring.length > 2 ? 's' : ''} approche${expiring.length > 2 ? 'nt' : ''}` : ''}.` });
+  }
+  if (expired.length > 0) {
+    bullets.push({ icon: '🔴', text: `${expired[0].name}${expired.length > 1 ? ` et ${expired.length - 1} autre${expired.length > 2 ? 's' : ''}` : ''} déjà expiré${expired.length > 1 ? 's' : ''}.` });
+  }
+  if (inboxCount > 0) {
+    bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de votre validation.` });
+  }
+  if (!isPremium && topAdvices.length > 0) {
+    bullets.push({
+      icon: '🔒',
+      text: <><strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a {topAdvices.length} conseil{topAdvices.length > 1 ? 's' : ''} concret{topAdvices.length > 1 ? 's' : ''} à vous donner.</>,
+      onClick: () => navigate('/account'),
+    });
+  }
+  if (bullets.length === 0 && !(isPremium && topAdvices.length > 0)) {
+    bullets.push({ icon: '👍', text: 'Rien à signaler, tout est sous contrôle.' });
   }
 
-  if (top.length === 0) return null;
+  function handleDismiss(advice) {
+    if (advice.isPriceChange) onAcknowledgePriceChange(advice.priceChangeId);
+    else onDismissAdvice(advice.key);
+  }
 
   return (
-    <div className="panel" style={{ marginBottom: 16, padding: 20 }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Icon name="sparkles" style={{ color: 'var(--blue)' }} /> Conseils de Did
+    <div className="didier-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="didier-avatar">
+          <img src="/didier-headshot.jpg" alt="Did" />
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+          Voici ce que j'ai préparé pour vous aujourd'hui :
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {top.map((a, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' }}>
-            <span style={{ fontSize: 18 }}>{a.icon}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>{a.title}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '2px 0 6px', lineHeight: 1.5 }}>{a.text}</div>
-              <Link to={a.actionLink} style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue)' }}>{a.actionLabel} →</Link>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingLeft: 4 }}>
+        {bullets.map((b, i) => (
+          <div key={i} onClick={b.onClick} style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--navy)', lineHeight: 1.4, cursor: b.onClick ? 'pointer' : 'default' }}>
+            <span>{b.icon}</span><span>{b.text}</span>
           </div>
         ))}
+      </div>
+
+      {isPremium && topAdvices.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 2 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 2, paddingLeft: 4 }}>
+            Conseils
+          </div>
+          {topAdvices.map((a, i) => (
+            <div key={a.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 4px', borderTop: i > 0 ? '1px solid var(--line)' : 'none' }}>
+              <span style={{ fontSize: 18 }}>{a.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>{a.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '2px 0 8px', lineHeight: 1.5 }}>{a.text}</div>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <Link to={a.actionLink} style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue)' }}>{a.actionLabel} →</Link>
+                  <button
+                    onClick={() => handleDismiss(a)}
+                    style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Ne pas traiter
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 4 }}>
+        <span style={{ fontSize: 12, color: 'var(--ink-faint)', fontStyle: 'italic' }}>— Did</span>
+        <button
+          onClick={() => navigate('/discussions')}
+          style={{
+            background: 'var(--blue)', color: '#fff', border: 'none',
+            borderRadius: 'var(--radius-s)', padding: '9px 16px', fontSize: 12.5, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          <Icon name="sparkles" style={{ fontSize: 13 }} /> Demander à Did
+        </button>
       </div>
     </div>
   );
@@ -360,6 +348,32 @@ export default function DashboardPage() {
   const [totalDonated, setTotalDonated] = useState(null);
   const [priceIncreaseCount, setPriceIncreaseCount] = useState(0);
   const [priceIncreaseDetails, setPriceIncreaseDetails] = useState([]);
+  const [dismissedAdviceKeys, setDismissedAdviceKeys] = useState(new Set());
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from('dismissed_advice').select('advice_key').eq('organization_id', orgId)
+      .then(({ data, error }) => {
+        if (!error && data) setDismissedAdviceKeys(new Set(data.map((d) => d.advice_key)));
+      });
+  }, [orgId]);
+
+  async function handleDismissAdvice(key) {
+    setDismissedAdviceKeys((prev) => new Set(prev).add(key)); // optimiste
+    const { error } = await supabase.rpc('dismiss_advice', { p_advice_key: key });
+    if (error) {
+      console.error('Erreur dismiss_advice:', error);
+      setDismissedAdviceKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
+    }
+  }
+
+  async function handleAcknowledgePriceChange(id) {
+    // Optimiste : retire immédiatement de la liste affichée
+    setPriceIncreaseDetails((prev) => prev.filter((p) => p.id !== id));
+    setPriceIncreaseCount((prev) => Math.max(0, prev - 1));
+    const { error } = await supabase.rpc('acknowledge_price_change', { p_id: id });
+    if (error) console.error('Erreur acknowledge_price_change:', error);
+  }
   const [documentsCount, setDocumentsCount] = useState(0);
   const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
   // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
@@ -536,21 +550,17 @@ export default function DashboardPage() {
       </div>
 
       {!loading && (
-        <DidBrief
+        <DidCard
           surveillerItems={surveillerItems}
           documentsThisMonth={documentsThisMonth}
           inboxCount={inboxItems.length}
-          priceIncreaseCount={priceIncreaseCount}
-          isPremium={isPremium}
-        />
-      )}
-
-      {!loading && (
-        <DidAdvice
+          priceIncreaseDetails={priceIncreaseDetails}
           contracts={contracts}
           purchases={purchases}
-          priceIncreaseDetails={priceIncreaseDetails}
           isPremium={isPremium}
+          dismissedKeys={dismissedAdviceKeys}
+          onDismissAdvice={handleDismissAdvice}
+          onAcknowledgePriceChange={handleAcknowledgePriceChange}
         />
       )}
 
