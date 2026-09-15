@@ -12,7 +12,7 @@ export default function AddContractPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const orgId = profile?.organization_id;
-  const isPremium = profile?.organization?.plan === 'premium' || profile?.plan === 'premium';
+  const isPremium = profile?.organizations?.plan === 'premium';
   const [hasStorageConnected, setHasStorageConnected] = useState(false);
 
   useEffect(() => {
@@ -24,6 +24,31 @@ export default function AddContractPage() {
   // Préselection du type via le tiroir "Ajouter" (Garantie/Contrat/Abonnement) —
   // ex: /add-contract?type=Abonnement
   const presetType = searchParams.get('type');
+  // Renouvellement d'un contrat existant (bouton "Renouveler" sur la fiche
+  // d'un contrat sans tacite reconduction) — ex: /add-contract?renew_from=<id>
+  const renewFromContractId = searchParams.get('renew_from');
+  const [renewFromContract, setRenewFromContract] = useState(null);
+
+  useEffect(() => {
+    if (!renewFromContractId || !orgId) return;
+    supabase.from('contracts').select('*').eq('id', renewFromContractId).eq('organization_id', orgId).single()
+      .then(({ data }) => {
+        if (!data) return;
+        setRenewFromContract(data);
+        // Pré-remplissage à partir de l'ancien contrat — l'utilisateur
+        // ajuste ensuite montant/dates via un nouveau scan ou manuellement.
+        setName(data.name || '');
+        setProvider(data.provider || '');
+        setContractType(data.contract_type || '');
+        setPurchaseId(data.purchase_id || '');
+        setReferenceNumber(data.reference_number || '');
+        setNoticeMethod(data.notice_method || 'email');
+        setNoticePeriodDays(data.notice_period_days ? String(data.notice_period_days) : '');
+        setRenewalType(data.renewal_type || 'aucun');
+        setAmount(data.amount ? String(data.amount) : '');
+        setBillingPeriod(data.billing_period || '');
+      });
+  }, [renewFromContractId, orgId]);
 
   const [name, setName] = useState('');
   const [provider, setProvider] = useState('');
@@ -145,6 +170,7 @@ export default function AddContractPage() {
       // exploitable — pas si l'utilisateur a tout saisi manuellement sans
       // jamais passer par le scan (dans ce cas, rien à "ré-analyser" par IA).
       conditions_analyzed_at: cancellationTerms ? new Date().toISOString() : null,
+      renewed_from_contract_id: renewFromContractId || null,
     }, orgId);
 
     if (error) { setErrorMsg(error.message); setSaving(false); return; }
@@ -177,8 +203,8 @@ export default function AddContractPage() {
     <>
       <PageHeader
         backTo="/dashboard"
-        title={presetType === 'Abonnement' ? 'Nouvel abonnement' : 'Nouveau contrat'}
-        subtitle="Extension de garantie, assurance, abonnement ou autre"
+        title={renewFromContract ? `Renouveler « ${renewFromContract.name} »` : presetType === 'Abonnement' ? 'Nouvel abonnement' : 'Nouveau contrat'}
+        subtitle={renewFromContract ? 'Mettez à jour le montant et les dates — Did comparera avec l\'ancien contrat.' : 'Extension de garantie, assurance, abonnement ou autre'}
       />
 
 
@@ -187,6 +213,17 @@ export default function AddContractPage() {
       {showForm && (
         <div className="panel">
           <div className="panel-body" style={{ padding: 24 }}>
+
+            {renewFromContract && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 8, marginBottom: 20,
+                background: 'var(--blue-pale)', color: 'var(--blue-dark)',
+                fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <Icon name="sparkles" style={{ fontSize: 14 }} />
+                Renouvellement de « {renewFromContract.name} » ({renewFromContract.amount} €{renewFromContract.billing_period ? ` / ${renewFromContract.billing_period}` : ''})
+              </div>
+            )}
 
             {scanned && (
               <div style={{
