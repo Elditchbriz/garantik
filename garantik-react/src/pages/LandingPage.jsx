@@ -11,6 +11,7 @@ const COMPARISON_ROWS = [
   { label: 'Scan par IA', free: true, premium: true },
   { label: 'Stockage des documents', free: 'Supprimé sous 30 jours', premium: 'Conservé définitivement' },
   { label: 'Coffre documents', free: false, premium: 'Jusqu\'à 5 000 documents' },
+  { label: 'Historique de discussion avec Did', free: 'Conservé 30 jours', premium: 'Conservé indéfiniment' },
 ];
 
 function ComparisonCell({ value }) {
@@ -20,7 +21,7 @@ function ComparisonCell({ value }) {
 }
 
 function PublicContactModal({ onClose }) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState('');a
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
