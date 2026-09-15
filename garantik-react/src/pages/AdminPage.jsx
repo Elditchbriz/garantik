@@ -771,7 +771,15 @@ function FeedbackAdminView() {
     setError('');
     try {
       const { feedback } = await callAdminApi('list_feedback');
-      setFeedback(feedback);
+      // Hey Did+ en premier (déjà triées par date récente à l'intérieur de
+      // chaque groupe côté serveur) — l'engagement "traité en priorité"
+      // se traduit ici, pas par un délai chiffré qu'on ne maîtrise pas.
+      const sorted = [...(feedback || [])].sort((a, b) => {
+        const aPremium = a.organization?.plan === 'premium' ? 1 : 0;
+        const bPremium = b.organization?.plan === 'premium' ? 1 : 0;
+        return bPremium - aPremium;
+      });
+      setFeedback(sorted);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -841,8 +849,13 @@ function FeedbackAdminView() {
               <div key={f.id} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {f.profile?.full_name || f.profile?.email || 'Utilisateur inconnu'}
+                      {f.organization?.plan === 'premium' && (
+                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: '#EEF4FF', color: '#173B8F' }}>
+                          ⭐ Hey Did+
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: 11.5, color: '#94A3B8' }}>
                       {f.organization?.name || '—'} · {new Date(f.created_at).toLocaleDateString('fr-FR')}
