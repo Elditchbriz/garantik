@@ -174,9 +174,14 @@ export default function AccountPage() {
     setInvitingMember(true);
     setHouseholdError('');
     try {
-      await callEdgeFunction('invite-household-member', { email });
+      const result = await callEdgeFunction('invite-household-member', { email });
       setInviteEmailInput('');
       await loadHousehold();
+      if (!result.email_sent) {
+        setHouseholdError(
+          "L'invitation a bien été créée, mais l'email n'a pas pu être envoyé. Vérifiez la configuration email (secret BREVO_API_KEY) côté Supabase — l'invitation reste valable, la personne peut toujours la rejoindre si vous lui transmettez le lien manuellement."
+        );
+      }
     } catch (err) {
       setHouseholdError(err.message || "Impossible d'envoyer l'invitation.");
     } finally {
