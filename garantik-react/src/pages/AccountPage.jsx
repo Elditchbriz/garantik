@@ -495,7 +495,7 @@ export default function AccountPage() {
               </div>
             </div>
           )}
-          <div style={{
+          <div id="association" style={{
             padding: '16px 18px', borderRadius: 'var(--radius-m)',
             background: 'var(--blue-pale-2)', marginBottom: 16,
           }}>
