@@ -8,13 +8,29 @@ import DuplicateWarningModal from '../components/DuplicateWarningModal.jsx';
 import SimilarSuggest from '../components/SimilarSuggest.jsx';
 import WarrantyInfoPanel from '../components/WarrantyInfoPanel.jsx';
 
+// Texte généré (pas d'IA nécessaire) selon la base légale déjà déterminée
+// par extract-receipt.ts — un ticket de caisse ne contient quasiment
+// jamais les vraies conditions de garantie, contrairement à un contrat ;
+// ces règles sont fixes en droit français, autant les afficher directement.
+function getWarrantyConditionsText(source, months) {
+  if (!months) return null;
+  if (source === 'legal_second_hand') {
+    return `Garantie légale de conformité : ${months} mois à compter de l'achat pour ce produit d'occasion. En cas de défaut, vous pouvez exiger la réparation ou le remplacement gratuit — conservez votre ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
+  }
+  if (source === 'commercial_stated') {
+    return `Garantie commerciale de ${months} mois annoncée par le vendeur ou le fabricant. Conservez votre ticket et, si fourni, le certificat de garantie — les conditions précises (couverture, démarche à suivre) dépendent des mentions du document ou du site du fabricant.`;
+  }
+  // legal_default (ou source inconnue) : traité comme la garantie légale standard
+  return `Garantie légale de conformité : ${months} mois à compter de l'achat. En cas de panne, vous pouvez exiger la réparation ou le remplacement gratuit, sans frais — conservez votre ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
+}
+
 export default function AddPurchasePage() {
   const { profile } = useOutletContext();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const linkedContractId = searchParams.get('contract_id');
   const orgId = profile?.organization_id;
-  const isPremium = profile?.organization?.plan === 'premium' || profile?.plan === 'premium';
+  const isPremium = profile?.organizations?.plan === 'premium';
   const [hasStorageConnected, setHasStorageConnected] = useState(false);
 
   // Le scanner s'ouvre directement à l'arrivée sur cette page
@@ -155,6 +171,8 @@ export default function AddPurchasePage() {
         warranty_duration_months: warrantyMonths,
         ocr_content: ocrContent || null,
         notes: notes || null,
+        warranty_conditions: getWarrantyConditionsText(warrantySource, warrantyMonths),
+        conditions_analyzed_at: warrantySource ? new Date().toISOString() : null,
       },
       orgId
     );
