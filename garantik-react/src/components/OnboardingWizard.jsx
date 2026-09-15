@@ -123,7 +123,7 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
             fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8,
             width: '100%', justifyContent: 'center',
           }}>
-            <Icon name="heart-handshake" /> Inviter des amis et gagner 1 mois premium
+            <Icon name="heart-handshake" /> Inviter des amis et gagner 1 mois de Hey Did+
           </button>
           <button onClick={handleFinish} style={{
             background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)',
