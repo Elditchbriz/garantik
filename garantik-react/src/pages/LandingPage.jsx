@@ -6,12 +6,21 @@ import { supabase } from '../lib/supabaseClient.js';
 import '../styles/landing.css';
 
 const COMPARISON_ROWS = [
-  { label: 'Garanties et contrats', free: '10 max', premium: 'Illimité' },
-  { label: 'Alertes avant échéance', free: 'À 60 jours', premium: 'Personnalisables par achat' },
-  { label: 'Scan par IA', free: true, premium: true },
-  { label: 'Stockage des documents', free: 'Supprimé sous 30 jours', premium: 'Conservé définitivement' },
-  { label: 'Coffre documents', free: false, premium: 'Jusqu\'à 5 000 documents' },
+  { label: 'Garanties et contrats suivis', free: '10 max', premium: 'Illimité' },
+  { label: 'Scan et analyse par IA', free: true, premium: true },
+  { label: 'Alertes d\'échéance et de préavis', free: true, premium: true },
+  { label: 'Recherche', free: true, premium: true },
+  { label: 'Coffre-fort documents', free: 'Selon votre quota', premium: 'Illimité' },
+  { label: 'Stockage cloud Hey Did', free: 'Supprimé sous 30 jours', premium: 'Conservé définitivement' },
+  { label: 'Export', free: 'CSV', premium: 'CSV, PDF et Excel' },
   { label: 'Historique de discussion avec Did', free: 'Conservé 30 jours', premium: 'Conservé indéfiniment' },
+  { label: 'Analyse des conditions de résiliation', free: false, premium: true },
+  { label: 'Détection des hausses de prix', free: false, premium: true },
+  { label: 'Conseils personnalisés de Did', free: false, premium: true },
+  { label: 'Vue d\'ensemble des dépenses', free: false, premium: true },
+  { label: 'Gestion familiale (jusqu\'à 5 membres)', free: false, premium: true },
+  { label: 'Don à une association', free: false, premium: 'Inclus, montant modifiable' },
+  { label: 'Support', free: 'Standard', premium: 'Prioritaire' },
 ];
 
 function ComparisonCell({ value }) {
@@ -21,7 +30,7 @@ function ComparisonCell({ value }) {
 }
 
 function PublicContactModal({ onClose }) {
-  const [name, setName] = useState('');a
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -293,7 +302,7 @@ export default function LandingPage() {
             <div className="plan-savings"><Icon name="sparkles" />Économisez l'équivalent de plus de 3 mois par an</div>
 
             <div className="lp-plan-features">
-              {['Garanties illimitées', 'Alertes personnalisables par achat', 'Hébergement cloud sécurisé inclus', 'Coffre documents jusqu\'à 5 000 fichiers', 'Utilisable sur tous vos appareils'].map(f => (
+              {['Garanties et contrats illimités', 'Analyse des conditions de résiliation par IA', 'Détection des hausses de prix', 'Conseils personnalisés de Did', 'Export PDF et Excel'].map(f => (
                 <div className="f" key={f}><Icon name="check" />{f}</div>
               ))}
             </div>
@@ -314,7 +323,7 @@ export default function LandingPage() {
             <div className="plan-spacer"></div>
 
             <div className="lp-plan-features">
-              {['10 garanties enregistrées', 'Alertes à 60 jours', 'Scan et saisie manuelle', 'Stockage local ou Drive / Dropbox'].map(f => (
+              {['10 garanties et contrats suivis', 'Scan et analyse par IA', 'Alertes d\'échéance automatiques', 'Recherche et coffre-fort inclus'].map(f => (
                 <div className="f" key={f}><Icon name="check" />{f}</div>
               ))}
             </div>
