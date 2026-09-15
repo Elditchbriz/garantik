@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
   const isConfirmed = searchParams.get('confirmed') === 'true';
   const referralCode = searchParams.get('ref') || null;
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -59,7 +60,7 @@ export default function AuthPage() {
         return;
       }
       if (data.session) {
-        navigate('/dashboard');
+        navigate(redirectTo);
       } else {
         // Afficher l'écran de confirmation dédié
         setConfirmedEmail(email);
@@ -73,7 +74,7 @@ export default function AuthPage() {
         setErrorMsg(error.message);
         return;
       }
-      navigate('/dashboard');
+      navigate(redirectTo);
     }
   }
 
@@ -83,7 +84,7 @@ export default function AuthPage() {
     if (error) { setErrorMsg(error.message); return; }
     // Avec la connexion native, il n'y a plus de redirection de navigateur
     // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
-    navigate('/dashboard');
+    navigate(redirectTo);
   }
 
   // Écran de confirmation post-inscription
