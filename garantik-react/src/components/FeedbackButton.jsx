@@ -4,7 +4,7 @@
 // Arrive dans la console admin (onglet "Retours") avec notification
 // email à l'admin.
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import Icon from './Icon.jsx';
 import useFocusTrap from '../hooks/useFocusTrap.js';
@@ -14,7 +14,17 @@ export function FeedbackModal({ onClose }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [isPremium, setIsPremium] = useState(false);
   const trapRef = useFocusTrap(onClose);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profileData } = await supabase.from('profiles').select('organizations(plan)').eq('id', user.id).single();
+      if (profileData?.organizations?.plan === 'premium') setIsPremium(true);
+    })();
+  }, []);
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -49,7 +59,7 @@ export function FeedbackModal({ onClose }) {
           <div className="modal-close" onClick={onClose}><Icon name="x" /></div>
           <div className="modal-icon" style={{ fontSize: 26 }}>💡</div>
           <h3>Une idée, une remarque ?</h3>
-          <p>Dites-nous ce qui vous aiderait, on lit tout</p>
+          <p>{isPremium ? 'Votre message est traité en priorité — merci pour votre confiance.' : 'Dites-nous ce qui vous aiderait, on lit tout'}</p>
         </div>
         <div className="modal-body">
           {sent ? (
