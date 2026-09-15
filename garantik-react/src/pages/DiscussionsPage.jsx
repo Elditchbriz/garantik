@@ -73,6 +73,15 @@ export default function DiscussionsPage() {
         showHelp={false}
       />
 
+      {profile?.organizations?.plan !== 'premium' && (
+        <div style={{
+          padding: '8px 14px', borderRadius: 'var(--radius-m)', marginBottom: 12,
+          background: 'var(--gray-pale)', color: 'var(--ink-faint)', fontSize: 12, textAlign: 'center',
+        }}>
+          Vos conversations sont conservées 30 jours. <strong style={{ color: 'var(--ink-soft)' }}>Hey Did+</strong> les garde indéfiniment.
+        </div>
+      )}
+
       <div className="chat-messages-area" style={{ paddingBottom: 12, minHeight: 240 }}>
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 24 }}>Chargement…</p>
