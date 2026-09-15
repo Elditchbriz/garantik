@@ -510,7 +510,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {!loading && (totalProtectedValue > 0 || monthlySpend > 0 || (totalDonated && totalDonated > 0)) && (
+      {!loading && (totalProtectedValue > 0 || monthlySpend > 0 || (totalDonated ?? 0) > 0) && (
         <div className="chiffres-grid">
           <div className="chiffre-mini">
             <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
