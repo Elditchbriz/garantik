@@ -65,6 +65,16 @@ export default function ContractDetailPage() {
   const navigate = useNavigate();
   const { profile } = useOutletContext();
   const isPremium = profile?.organizations?.plan === 'premium';
+  const [latestPriceChange, setLatestPriceChange] = useState(null);
+  const [acknowledgingPriceChange, setAcknowledgingPriceChange] = useState(false);
+
+  async function handleAcknowledgePriceChange() {
+    if (!latestPriceChange) return;
+    setAcknowledgingPriceChange(true);
+    await supabase.rpc('acknowledge_price_change', { p_id: latestPriceChange.id });
+    setLatestPriceChange(null);
+    setAcknowledgingPriceChange(false);
+  }
   const orgId = profile?.organization_id;
 
   const [contract, setContract] = useState(null);
@@ -109,11 +119,12 @@ export default function ContractDetailPage() {
   }, [orgId]);
 
   async function loadAll() {
-    const [{ data: c }, { data: d }, { data: types }, { data: p }] = await Promise.all([
+    const [{ data: c }, { data: d }, { data: types }, { data: p }, { data: priceChanges }] = await Promise.all([
       supabase.from('contracts').select('*, purchases(id, object_name, brand)').eq('id', id).eq('organization_id', orgId).single(),
       supabase.from('documents').select('*').eq('contract_id', id).order('created_at'),
       listContractTypes(orgId),
       supabase.from('purchases').select('id, object_name, brand').eq('organization_id', orgId).order('object_name'),
+      supabase.from('contract_price_changes').select('*').eq('contract_id', id).is('acknowledged_at', null).order('detected_at', { ascending: false }).limit(1),
     ]);
     if (!c) { navigate('/contracts'); return; }
     setContract(c);
@@ -121,6 +132,7 @@ export default function ContractDetailPage() {
     setDocuments(d || []);
     setContractTypes(types || []);
     setPurchases(p || []);
+    setLatestPriceChange(priceChanges?.[0] || null);
     setLoading(false);
   }
 
@@ -322,6 +334,50 @@ export default function ContractDetailPage() {
 
       {tab === 'detail' && (
         <>
+          {latestPriceChange && latestPriceChange.new_amount > latestPriceChange.old_amount && (
+            isPremium ? (
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                background: 'var(--red-pale)', border: '1px solid #FCA5A5',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="alert-triangle" style={{ color: 'var(--red-text)', marginTop: 2 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--red-text)', marginBottom: 4 }}>
+                      Hausse détectée
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.5 }}>
+                      Passé de <strong>{latestPriceChange.old_amount} €</strong> à <strong>{latestPriceChange.new_amount} €</strong>
+                      {' '}({latestPriceChange.old_amount > 0 ? `+${(((latestPriceChange.new_amount - latestPriceChange.old_amount) / latestPriceChange.old_amount) * 100).toFixed(1)}%` : ''})
+                      {contract.billing_period === 'mensuel' && (
+                        <> — soit <strong>+{((latestPriceChange.new_amount - latestPriceChange.old_amount) * 12).toFixed(2)} €/an</strong></>
+                      )}
+                    </div>
+                    <button
+                      type="button" onClick={handleAcknowledgePriceChange} disabled={acknowledgingPriceChange}
+                      style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--red-text)', textDecoration: 'underline', cursor: 'pointer' }}
+                    >
+                      J'ai vu, merci
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link to="/account" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                  background: 'var(--gray-pale)', border: '1px dashed var(--line)',
+                  fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <Icon name="lock" />
+                  <span>
+                    <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a détecté un changement de montant sur ce contrat.
+                  </span>
+                </div>
+              </Link>
+            )
+          )}
+
           {!isCancelled && noticeDate && (
             <div style={{
               padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
