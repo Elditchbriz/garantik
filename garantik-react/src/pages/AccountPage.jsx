@@ -6,6 +6,25 @@ import PageHeader from '../components/PageHeader.jsx';
 import { FeedbackModal } from '../components/FeedbackButton.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 
+// Charge Stripe.js à la demande (uniquement quand une confirmation 3D Secure
+// est nécessaire — rare) plutôt qu'au chargement de la page, pour ne pas
+// alourdir inutilement le reste de l'app qui redirige déjà vers Stripe
+// Checkout / le Portail client sans jamais avoir besoin de Stripe.js.
+let stripeJsPromise = null;
+function loadStripeJs() {
+  if (!stripeJsPromise) {
+    stripeJsPromise = new Promise((resolve, reject) => {
+      if (window.Stripe) { resolve(window.Stripe); return; }
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/';
+      script.onload = () => resolve(window.Stripe);
+      script.onerror = () => reject(new Error('Impossible de charger Stripe.js'));
+      document.head.appendChild(script);
+    });
+  }
+  return stripeJsPromise;
+}
+
 export default function AccountPage() {
   const { profile, setProfile } = useOutletContext();
   const navigate = useNavigate();
@@ -73,9 +92,27 @@ export default function AccountPage() {
     setSavingDonationAddon(true);
     setDonationAddonError('');
     try {
-      const { donation_addon_extra_monthly } = await callEdgeFunction('update-donation-addon', { donation_addon_extra_monthly: value });
-      setCurrentDonationExtraMonthly(donation_addon_extra_monthly);
-      setDonationExtraCurrentInput(String(donation_addon_extra_monthly));
+      const result = await callEdgeFunction('update-donation-addon', { donation_addon_extra_monthly: value });
+      if (result.requires_action && result.client_secret) {
+        // Votre banque demande une confirmation (3D Secure) avant de valider
+        // le prélèvement immédiat du prorata. Stripe.js gère la redirection
+        // vers la page de la banque PUIS ramène automatiquement ici (return_url)
+        // — contrairement à l'URL hébergée Stripe, qui n'a pas de retour configurable.
+        const Stripe = await loadStripeJs();
+        const stripe = Stripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+        const { error: confirmError } = await stripe.confirmCardPayment(result.client_secret, {
+          return_url: `${window.location.origin}/account?donation=success`,
+        });
+        if (confirmError) {
+          setDonationAddonError(confirmError.message || 'La confirmation du paiement a échoué.');
+          setSavingDonationAddon(false);
+        }
+        // Si confirmCardPayment réussit sans erreur immédiate, le navigateur
+        // est en train d'être redirigé (3D Secure) — rien d'autre à faire ici.
+        return;
+      }
+      setCurrentDonationExtraMonthly(result.donation_addon_extra_monthly);
+      setDonationExtraCurrentInput(String(result.donation_addon_extra_monthly));
     } catch (err) {
       setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
     } finally {
@@ -99,6 +136,7 @@ export default function AccountPage() {
   }
 
   const checkoutResult = searchParams.get('checkout'); // 'success' | 'cancelled' | null
+  const donationResult = searchParams.get('donation'); // 'success' | null — retour de la confirmation 3D Secure
 
   // Isolée volontairement : le jour où l'app sera packagée en natif
   // (Capacitor), il suffira de remplacer le contenu de cette fonction par
@@ -222,6 +260,14 @@ export default function AccountPage() {
           padding: '12px 16px', marginBottom: 16, fontSize: 13.5,
         }}>
           Paiement annulé — vous pouvez réessayer à tout moment.
+        </div>
+      )}
+      {donationResult === 'success' && (
+        <div style={{
+          background: 'var(--green-pale)', color: 'var(--green-text)', borderRadius: 'var(--radius-m)',
+          padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 500,
+        }}>
+          <Icon name="circle-check" /> Merci ! Votre supplément de don est confirmé (peut prendre quelques secondes à se mettre à jour ci-dessous).
         </div>
       )}
       {checkoutError && (
