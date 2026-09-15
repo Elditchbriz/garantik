@@ -18,6 +18,9 @@ export default function AccountPage() {
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [donationAddon, setDonationAddon] = useState('none'); // 'none' | 'plus_025' | 'plus_050' | 'plus_100'
+  const [currentDonationAddon, setCurrentDonationAddon] = useState(profile?.organizations?.donation_addon || 'none');
+  const [savingDonationAddon, setSavingDonationAddon] = useState(false);
+  const [donationAddonError, setDonationAddonError] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -54,6 +57,19 @@ export default function AccountPage() {
       .order('published_at', { ascending: false }).limit(3)
       .then(({ data }) => setCharityNews(data || []));
   }, [profile?.organizations?.charity_id]);
+
+  async function handleUpdateDonationAddon(key) {
+    setSavingDonationAddon(true);
+    setDonationAddonError('');
+    try {
+      const { donation_addon } = await callEdgeFunction('update-donation-addon', { donation_addon: key });
+      setCurrentDonationAddon(donation_addon);
+    } catch (err) {
+      setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
+    } finally {
+      setSavingDonationAddon(false);
+    }
+  }
 
   async function handleSaveCharity() {
     setSavingCharity(true);
@@ -248,6 +264,51 @@ export default function AccountPage() {
               </div>
             )}
           </div>
+
+          {isPremium && (
+            <div style={{
+              padding: '16px 18px', borderRadius: 'var(--radius-m)',
+              background: 'var(--blue-pale-2)', marginBottom: 16,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
+                💙 Donner davantage
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                Ajoutez un supplément volontaire à votre don, en plus de votre abonnement — sans jamais
+                changer son prix. Modifiable à tout moment.
+              </p>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {[
+                  { key: 'none', label: 'Aucun supplément' },
+                  { key: 'plus_025', label: '+0,25€' },
+                  { key: 'plus_050', label: '+0,50€' },
+                  { key: 'plus_100', label: '+1€' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    disabled={savingDonationAddon}
+                    onClick={() => handleUpdateDonationAddon(opt.key)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                      cursor: savingDonationAddon ? 'default' : 'pointer',
+                      border: currentDonationAddon === opt.key ? '1.5px solid var(--blue)' : '1px solid var(--line)',
+                      background: currentDonationAddon === opt.key ? 'var(--blue-pale)' : '#fff',
+                      color: currentDonationAddon === opt.key ? 'var(--blue-dark)' : 'var(--ink-soft)',
+                      opacity: savingDonationAddon ? 0.6 : 1,
+                    }}
+                  >
+                    {savingDonationAddon && currentDonationAddon !== opt.key ? '…' : opt.label}
+                  </button>
+                ))}
+              </div>
+              {donationAddonError && (
+                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600 }}>
+                  ⚠️ {donationAddonError}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Association soutenue */}
           {totalDonated !== null && totalDonated > 0 && (
