@@ -501,3 +501,22 @@ export async function findSimilarListItems(orgId, table, name) {
   if (error) { console.error('findSimilarListItems:', error); return []; }
   return data || [];
 }
+
+// Convertit un montant + une périodicité de facturation en équivalent
+// mensuel — utilisé partout où un total "par mois" doit être calculé à
+// partir de contrats à périodicités variées (dashboard, page Dépenses).
+// Les valeurs de billing_period sont en français ('mensuel', 'annuel'...),
+// pas en anglais — à ne jamais comparer à 'monthly'/'annual'.
+export function monthlyEquivalent(amount, billingPeriod) {
+  const a = Number(amount) || 0;
+  if (!a) return 0;
+  switch (billingPeriod) {
+    case 'mensuel': return a;
+    case 'bimestriel': return a / 2;
+    case 'trimestriel': return a / 3;
+    case 'semestriel': return a / 6;
+    case 'annuel': return a / 12;
+    case 'unique': return 0; // dépense ponctuelle, pas une charge récurrente
+    default: return a; // 'autre' ou non renseigné : traité comme mensuel, approximation la plus raisonnable par défaut
+  }
+}
