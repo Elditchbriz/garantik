@@ -44,7 +44,13 @@ export default function AccountPage() {
   const [donationAddonError, setDonationAddonError] = useState('');
   const [donationAddonSaved, setDonationAddonSaved] = useState(false);
   const [analyzingContracts, setAnalyzingContracts] = useState(false);
-  const [contractsAnalysisResult, setContractsAnalysisResult] = useState(null); // { analyzed, remaining } cumulés
+  const [contractsAnalysisResult, setContractsAnalysisResult] = useState(null);
+  const [householdMembers, setHouseholdMembers] = useState([]);
+  const [householdInvites, setHouseholdInvites] = useState([]);
+  const [inviteEmailInput, setInviteEmailInput] = useState('');
+  const [invitingMember, setInvitingMember] = useState(false);
+  const [householdError, setHouseholdError] = useState('');
+  const [householdActionId, setHouseholdActionId] = useState(null); // id en cours de retrait/annulation, pour désactiver juste ce bouton-là // { analyzed, remaining } cumulés
   const [checkoutError, setCheckoutError] = useState('');
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
@@ -81,6 +87,10 @@ export default function AccountPage() {
       .order('published_at', { ascending: false }).limit(3)
       .then(({ data }) => setCharityNews(data || []));
   }, [profile?.organizations?.charity_id]);
+
+  React.useEffect(() => {
+    if (profile?.organizations?.plan === 'premium') loadHousehold();
+  }, [profile?.organization_id, profile?.organizations?.plan]);
 
   async function handleUpdateDonationAddon() {
     const value = parseFloat(donationExtraCurrentInput.replace(',', '.'));
@@ -142,6 +152,62 @@ export default function AccountPage() {
       setContractsAnalysisResult({ error: err.message || 'Une erreur est survenue pendant l\'analyse.' });
     } finally {
       setAnalyzingContracts(false);
+    }
+  }
+
+  const isHouseholdOwner = householdMembers.length > 0 && householdMembers[0].id === profile?.id;
+
+  async function loadHousehold() {
+    if (!profile?.organization_id) return;
+    const [{ data: members }, { data: invites }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, email, created_at').eq('organization_id', profile.organization_id).order('created_at', { ascending: true }),
+      supabase.from('household_invites').select('id, invited_email, created_at').eq('organization_id', profile.organization_id).eq('status', 'pending').order('created_at', { ascending: true }),
+    ]);
+    setHouseholdMembers(members || []);
+    setHouseholdInvites(invites || []);
+  }
+
+  async function handleInviteMember(e) {
+    e.preventDefault();
+    const email = inviteEmailInput.trim();
+    if (!email) return;
+    setInvitingMember(true);
+    setHouseholdError('');
+    try {
+      await callEdgeFunction('invite-household-member', { email });
+      setInviteEmailInput('');
+      await loadHousehold();
+    } catch (err) {
+      setHouseholdError(err.message || "Impossible d'envoyer l'invitation.");
+    } finally {
+      setInvitingMember(false);
+    }
+  }
+
+  async function handleCancelInvite(inviteId) {
+    setHouseholdActionId(inviteId);
+    setHouseholdError('');
+    try {
+      await callEdgeFunction('remove-household-member', { action: 'cancel_invite', invite_id: inviteId });
+      await loadHousehold();
+    } catch (err) {
+      setHouseholdError(err.message || "Impossible d'annuler l'invitation.");
+    } finally {
+      setHouseholdActionId(null);
+    }
+  }
+
+  async function handleRemoveMember(memberId) {
+    if (!window.confirm('Retirer ce membre du foyer ? Il retrouvera son propre compte, vide, comme à son inscription.')) return;
+    setHouseholdActionId(memberId);
+    setHouseholdError('');
+    try {
+      await callEdgeFunction('remove-household-member', { action: 'remove_member', profile_id: memberId });
+      await loadHousehold();
+    } catch (err) {
+      setHouseholdError(err.message || 'Impossible de retirer ce membre.');
+    } finally {
+      setHouseholdActionId(null);
     }
   }
 
@@ -468,6 +534,84 @@ export default function AccountPage() {
                 <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 8 }}>
                   ⚠️ {contractsAnalysisResult.error}
                 </div>
+              )}
+            </div>
+          )}
+
+          {isPremium && (
+            <div style={{
+              padding: '16px 18px', borderRadius: 'var(--radius-m)',
+              background: 'var(--gray-pale)', marginBottom: 16,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
+                👨‍👩‍👧‍👦 Membres du foyer
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                Invitez jusqu'à 5 proches à accéder aux mêmes garanties, contrats et documents — sans abonnement séparé pour eux.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                {householdMembers.map((m, i) => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: i > 0 ? '1px solid var(--line)' : 'none' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--blue-pale)', color: 'var(--blue-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                      {(m.full_name || m.email || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
+                        {m.full_name || m.email} {m.id === profile?.id && <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(vous)</span>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>{i === 0 ? 'Propriétaire' : 'Membre'}</div>
+                    </div>
+                    {isHouseholdOwner && i > 0 && (
+                      <button
+                        onClick={() => handleRemoveMember(m.id)}
+                        disabled={householdActionId === m.id}
+                        style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--red-text)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {householdActionId === m.id ? '…' : 'Retirer'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {householdInvites.map((inv) => (
+                  <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--line)' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--amber-pale)', color: 'var(--amber-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="mail" style={{ fontSize: 14 }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>{inv.invited_email}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>Invitation en attente</div>
+                    </div>
+                    {isHouseholdOwner && (
+                      <button
+                        onClick={() => handleCancelInvite(inv.id)}
+                        disabled={householdActionId === inv.id}
+                        style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {householdActionId === inv.id ? '…' : 'Annuler'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {isHouseholdOwner && (householdMembers.length - 1 + householdInvites.length) < 5 && (
+                <form onSubmit={handleInviteMember} style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="email" required placeholder="email@exemple.fr" value={inviteEmailInput}
+                    onChange={(e) => setInviteEmailInput(e.target.value)}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13, fontFamily: 'inherit' }}
+                  />
+                  <button type="submit" disabled={invitingMember} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: 12.5, whiteSpace: 'nowrap' }}>
+                    {invitingMember ? 'Envoi…' : 'Inviter'}
+                  </button>
+                </form>
+              )}
+              {isHouseholdOwner && (householdMembers.length - 1 + householdInvites.length) >= 5 && (
+                <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Votre foyer a atteint la limite de 5 membres.</div>
+              )}
+              {householdError && (
+                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 8 }}>⚠️ {householdError}</div>
               )}
             </div>
           )}
