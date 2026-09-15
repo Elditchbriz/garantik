@@ -112,13 +112,16 @@ function QuotaBar({ used, quota }) {
   );
 }
 
-function DidBrief({ surveillerItems, documentsThisMonth, inboxCount }) {
+function DidBrief({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseCount, isPremium }) {
   const navigate = useNavigate();
 
   const expiring = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expiring');
   const expired = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expired');
 
   const bullets = [];
+  if (isPremium && priceIncreaseCount > 0) {
+    bullets.push({ icon: '📈', text: `${priceIncreaseCount} hausse${priceIncreaseCount > 1 ? 's' : ''} de prix détectée${priceIncreaseCount > 1 ? 's' : ''} sur vos contrats.` });
+  }
   if (documentsThisMonth > 0) {
     bullets.push({ icon: '✅', text: `J'ai classé ${documentsThisMonth} nouveau${documentsThisMonth > 1 ? 'x' : ''} document${documentsThisMonth > 1 ? 's' : ''} ce mois-ci.` });
   }
@@ -181,6 +184,7 @@ export default function DashboardPage() {
   const [loading, setLoading]       = useState(true);
   const [inboxItems, setInboxItems]  = useState([]);
   const [totalDonated, setTotalDonated] = useState(null);
+  const [priceIncreaseCount, setPriceIncreaseCount] = useState(0);
   const [documentsCount, setDocumentsCount] = useState(0);
   const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
   // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
@@ -266,6 +270,23 @@ export default function DashboardPage() {
     });
   }, [orgId]);
 
+  // Hausses de prix détectées pas encore vues — filtré à la fois par
+  // organisation (RLS) et par new_amount > old_amount côté client, la
+  // table peut aussi contenir des baisses qu'on ne veut pas compter ici.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from('contract_price_changes')
+      .select('old_amount, new_amount')
+      .eq('organization_id', orgId)
+      .is('acknowledged_at', null)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setPriceIncreaseCount(data.filter((c) => c.new_amount > c.old_amount).length);
+        }
+      });
+  }, [orgId]);
+
   // Comptage des documents — utilisé par la carte "Documents" du tableau
   // de bord (n'existait pas avant, jamais interrogé sur cette page).
   useEffect(() => {
@@ -339,6 +360,8 @@ export default function DashboardPage() {
           surveillerItems={surveillerItems}
           documentsThisMonth={documentsThisMonth}
           inboxCount={inboxItems.length}
+          priceIncreaseCount={priceIncreaseCount}
+          isPremium={isPremium}
         />
       )}
 
