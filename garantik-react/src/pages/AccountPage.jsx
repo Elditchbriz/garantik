@@ -80,14 +80,16 @@ export default function AccountPage() {
   }, []);
 
   // Actualités réelles de l'association soutenue — publiées depuis la
-  // console admin, jamais inventées. Se recharge si le choix change.
+  // console admin, jamais inventées. Se recharge dès que la sélection
+  // change (même avant d'enregistrer/souscrire) : aperçu immédiat pendant
+  // qu'on clique sur les tuiles, aussi bien en étape 2 de souscription
+  // que dans le sélecteur déjà abonné.
   React.useEffect(() => {
-    const currentCharityId = profile?.organizations?.charity_id;
-    if (!currentCharityId) { setCharityNews([]); return; }
-    supabase.from('charity_news').select('*').eq('charity_id', currentCharityId).eq('active', true)
+    if (!charityId) { setCharityNews([]); return; }
+    supabase.from('charity_news').select('*').eq('charity_id', charityId).eq('active', true)
       .order('published_at', { ascending: false }).limit(3)
       .then(({ data }) => setCharityNews(data || []));
-  }, [profile?.organizations?.charity_id]);
+  }, [charityId]);
 
   React.useEffect(() => {
     if (profile?.organizations?.plan === 'premium') loadHousehold();
@@ -709,7 +711,7 @@ export default function AccountPage() {
 
                 {/* Descriptif + liens de l'association actuellement choisie */}
                 {(() => {
-                  const current = charities.find((c) => c.id === profile?.organizations?.charity_id);
+                  const current = charities.find((c) => c.id === charityId);
                   if (!current) return null;
                   return (
                     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
@@ -835,6 +837,44 @@ export default function AccountPage() {
                     <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6 }}>
                       Modifiable à tout moment depuis votre compte, une fois abonné.
                     </div>
+
+                    {/* Descriptif + actualités de l'association en cours de sélection — pour choisir en connaissance de cause */}
+                    {(() => {
+                      const current = charities.find((c) => c.id === charityId);
+                      if (!current) return null;
+                      return (
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+                          {current.description && (
+                            <p style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 8px' }}>
+                              {current.description}
+                            </p>
+                          )}
+                          {current.website_url && (
+                            <button
+                              onClick={() => openExternalLink(current.website_url)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
+                            >
+                              Voir le site officiel ↗
+                            </button>
+                          )}
+                          {charityNews.length > 0 && (
+                            <div style={{ marginTop: 10 }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+                                Actualité
+                              </div>
+                              {charityNews.map((n) => (
+                                <div key={n.id} style={{ marginBottom: 6 }}>
+                                  <div style={{ fontSize: 12, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
+                                  <div style={{ fontSize: 10.5, color: 'var(--ink-faint)', marginTop: 1 }}>
+                                    {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div style={{ marginBottom: 8 }}>
