@@ -37,6 +37,7 @@ export default function AccountPage() {
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [donationExtraMonthly, setDonationExtraMonthly] = useState(0); // toujours 0 avant le premier abonnement — réglable après coup via "Donner davantage"
+  const [donationExtraInput, setDonationExtraInput] = useState('0');
   const [currentDonationExtraMonthly, setCurrentDonationExtraMonthly] = useState(profile?.organizations?.donation_addon_extra_monthly ?? 0);
   const [donationExtraCurrentInput, setDonationExtraCurrentInput] = useState(String(profile?.organizations?.donation_addon_extra_monthly ?? 0));
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
@@ -772,10 +773,45 @@ export default function AccountPage() {
                   <Icon name="check" style={{ color: 'var(--green)' }} /> {f}
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 4px' }}>
                 <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>2,08€</span>
                 <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>/ mois, facturé 24,99€ par an</span>
               </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 16 }}>
+                Dont 0,50€/mois (6€/an) déjà reversés à l'association de votre choix — inclus dans ce prix, rien à ajouter.
+              </div>
+
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
+                  Envie de donner plus à l'association ?
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
+                  Optionnel, 0,50€ minimum — vient s'ajouter au prix ci-dessus, jamais le remplacer. Modifiable à tout moment après souscription.
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number" min="0" max="50" step="0.25"
+                      value={donationExtraInput}
+                      onChange={(e) => {
+                        setDonationExtraInput(e.target.value);
+                        const v = parseFloat(e.target.value.replace(',', '.'));
+                        setDonationExtraMonthly(isNaN(v) || v < 0 ? 0 : v);
+                      }}
+                      style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+                    />
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+                  </div>
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
+                </div>
+                {donationExtraMonthly > 0 && (
+                  <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 10, background: 'var(--blue-pale)', borderRadius: 8, padding: '8px 10px' }}>
+                    Total à payer : {(2.99 + donationExtraMonthly).toFixed(2)}€/mois en mensuel,
+                    ou {(24.99 + donationExtraMonthly * 12).toFixed(2)}€/an en annuel.
+                  </div>
+                )}
+              </div>
+              <div style={{ marginBottom: 16 }} />
               <button
                 className="btn btn-primary"
                 style={{ width: '100%', justifyContent: 'center' }}
