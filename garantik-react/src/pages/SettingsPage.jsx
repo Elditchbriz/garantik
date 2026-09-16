@@ -34,6 +34,7 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader
+        backTo="/account"
         title="Paramètres"
         subtitle="Personnalisez vos alertes, vos listes et votre hébergement"
       />
@@ -242,7 +243,7 @@ function ListsTab({ orgId }) {
   const [contractTypes, setContractTypes] = useState([]);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [subTab, setSubTab] = useState('brands');
+  const [subTab, setSubTab] = useState('categories');
   const [newValue, setNewValue] = useState('');
   const [adding, setAdding] = useState(false);
   const [similarItems, setSimilarItems] = useState([]);
