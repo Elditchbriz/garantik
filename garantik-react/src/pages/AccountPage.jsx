@@ -38,6 +38,7 @@ export default function AccountPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
   const [donationExtraMonthly, setDonationExtraMonthly] = useState(0); // toujours 0 avant le premier abonnement — réglable après coup via "Donner davantage"
   const [donationExtraInput, setDonationExtraInput] = useState('0');
+  const [pendingBillingPeriod, setPendingBillingPeriod] = useState(null); // null = pitch simple ; 'annual'/'monthly' = étape association+supplément affichée
   const [currentDonationExtraMonthly, setCurrentDonationExtraMonthly] = useState(profile?.organizations?.donation_addon_extra_monthly ?? 0);
   const [donationExtraCurrentInput, setDonationExtraCurrentInput] = useState(String(profile?.organizations?.donation_addon_extra_monthly ?? 0));
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
@@ -279,7 +280,7 @@ export default function AccountPage() {
     setCheckoutLoading(billingPeriod);
     setCheckoutError('');
     try {
-      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon_extra_monthly: donationExtraMonthly });
+      const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon_extra_monthly: donationExtraMonthly, charity_id: charityId || null });
       window.location.href = url;
     } catch (err) {
       setCheckoutError(err.message);
@@ -781,56 +782,101 @@ export default function AccountPage() {
                 Dont 0,50€/mois (6€/an) déjà reversés à l'association de votre choix — inclus dans ce prix, rien à ajouter.
               </div>
 
-              <div style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
-                  Envie de donner plus à l'association ?
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
-                  Optionnel, 0,50€ minimum — vient s'ajouter au prix ci-dessus, jamais le remplacer. Modifiable à tout moment après souscription.
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="number" min="0" max="50" step="0.25"
-                      value={donationExtraInput}
-                      onChange={(e) => {
-                        setDonationExtraInput(e.target.value);
-                        const v = parseFloat(e.target.value.replace(',', '.'));
-                        setDonationExtraMonthly(isNaN(v) || v < 0 ? 0 : v);
-                      }}
-                      style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
-                    />
-                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+              {!pendingBillingPeriod ? (
+                <>
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => setPendingBillingPeriod('annual')}
+                  >
+                    <Icon name="rocket" /> Passer à Hey Did+ (annuel)
+                  </button>
+                  <button
+                    onClick={() => setPendingBillingPeriod('monthly')}
+                    style={{
+                      width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--ink-soft)', fontSize: 12.5, marginTop: 10, textDecoration: 'underline',
+                      fontFamily: 'inherit', textAlign: 'center', display: 'block',
+                    }}
+                  >
+                    ou 2,99€ / mois sans engagement
+                  </button>
+                </>
+              ) : (
+                <div style={{ borderTop: '1px dashed var(--line)', paddingTop: 16 }}>
+                  <button
+                    onClick={() => setPendingBillingPeriod(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', fontSize: 12, fontFamily: 'inherit', padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    ← Revenir en arrière
+                  </button>
+
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>
+                      À quelle association ?
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: 6 }}>
+                      <div
+                        onClick={() => setCharityId('')}
+                        style={{
+                          position: 'relative', height: 80, borderRadius: 'var(--radius-m)',
+                          background: 'var(--gray-pale)', border: charityId === '' ? '2px solid var(--blue)' : '2px solid transparent',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          gap: 4, cursor: 'pointer',
+                        }}
+                      >
+                        <Icon name="x" style={{ fontSize: 16, color: 'var(--ink-soft)' }} />
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--navy)' }}>Aucune</div>
+                      </div>
+                      {charities.map((c) => (
+                        <CharityTile key={c.id} charity={c} selected={charityId === c.id} onSelect={() => setCharityId(c.id)} height={80} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6 }}>
+                      Modifiable à tout moment depuis votre compte, une fois abonné.
+                    </div>
                   </div>
-                  <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
-                </div>
-                {donationExtraMonthly > 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 10, background: 'var(--blue-pale)', borderRadius: 8, padding: '8px 10px' }}>
-                    Total à payer : {(2.99 + donationExtraMonthly).toFixed(2)}€/mois en mensuel,
-                    ou {(24.99 + donationExtraMonthly * 12).toFixed(2)}€/an en annuel.
+
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
+                      Envie de donner plus à l'association ?
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
+                      Optionnel, 0,50€ minimum — vient s'ajouter au prix ci-dessus, jamais le remplacer. Modifiable à tout moment après souscription.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="number" min="0" max="50" step="0.25"
+                          value={donationExtraInput}
+                          onChange={(e) => {
+                            setDonationExtraInput(e.target.value);
+                            const v = parseFloat(e.target.value.replace(',', '.'));
+                            setDonationExtraMonthly(isNaN(v) || v < 0 ? 0 : v);
+                          }}
+                          style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+                        />
+                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+                      </div>
+                      <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 10, background: 'var(--blue-pale)', borderRadius: 8, padding: '8px 10px' }}>
+                      Total à payer : {pendingBillingPeriod === 'annual'
+                        ? `${(24.99 + donationExtraMonthly * 12).toFixed(2)}€/an`
+                        : `${(2.99 + donationExtraMonthly).toFixed(2)}€/mois`}
+                    </div>
                   </div>
-                )}
-              </div>
-              <div style={{ marginBottom: 16 }} />
-              <button
-                className="btn btn-primary"
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => handleCheckout('annual')}
-                disabled={checkoutLoading !== null}
-              >
-                <Icon name="rocket" /> {checkoutLoading === 'annual' ? 'Redirection…' : 'Passer à Hey Did+ (annuel)'}
-              </button>
-              <button
-                onClick={() => handleCheckout('monthly')}
-                disabled={checkoutLoading !== null}
-                style={{
-                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--ink-soft)', fontSize: 12.5, marginTop: 10, textDecoration: 'underline',
-                  fontFamily: 'inherit', textAlign: 'center', display: 'block',
-                }}
-              >
-                {checkoutLoading === 'monthly' ? 'Redirection…' : 'ou 2,99€ / mois sans engagement'}
-              </button>
+
+                  <button
+                    className="btn btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
+                    onClick={() => handleCheckout(pendingBillingPeriod)}
+                    disabled={checkoutLoading !== null}
+                  >
+                    <Icon name="rocket" /> {checkoutLoading ? 'Redirection…' : 'Continuer vers le paiement'}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <button
