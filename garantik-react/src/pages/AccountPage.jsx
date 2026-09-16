@@ -36,8 +36,7 @@ export default function AccountPage() {
   const [orgName, setOrgName] = useState(profile?.organizations?.name || '');
 
   const [checkoutLoading, setCheckoutLoading] = useState(null); // 'monthly' | 'annual' | 'portal' | null
-  const [donationExtraMonthly, setDonationExtraMonthly] = useState(0); // €/mois, avant premier abonnement
-  const [donationExtraInput, setDonationExtraInput] = useState('0');
+  const [donationExtraMonthly, setDonationExtraMonthly] = useState(0); // toujours 0 avant le premier abonnement — réglable après coup via "Donner davantage"
   const [currentDonationExtraMonthly, setCurrentDonationExtraMonthly] = useState(profile?.organizations?.donation_addon_extra_monthly ?? 0);
   const [donationExtraCurrentInput, setDonationExtraCurrentInput] = useState(String(profile?.organizations?.donation_addon_extra_monthly ?? 0));
   const [savingDonationAddon, setSavingDonationAddon] = useState(false);
@@ -621,136 +620,140 @@ export default function AccountPage() {
             </div>
           )}
 
-          {/* Association soutenue */}
-          {totalDonated !== null && totalDonated > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 16, padding: 22, marginBottom: 12,
-              borderRadius: 'var(--radius-m)', background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
-              boxShadow: '0 8px 24px rgba(37,99,235,0.25)',
-            }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                background: 'rgba(255,255,255,0.2)', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-              }}>
-                <Icon name="heart-handshake" />
-              </div>
-              <div>
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
-                  {totalDonated.toFixed(2)}€
-                </div>
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
-              </div>
-            </div>
-          )}
-          <div id="association" style={{
-            padding: '16px 18px', borderRadius: 'var(--radius-m)',
-            background: 'var(--blue-pale-2)', marginBottom: 16,
-          }}>
-            <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
-              🤝 Association soutenue
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
-              Choisissez une association : <strong>{donationBaseYearly.toFixed(2)}€ par an</strong> (ou{' '}
-              <strong>{donationBaseMonthly.toFixed(2)}€/mois</strong> en mensuel) lui sont reversés
-              automatiquement, sans frais supplémentaire pour vous — en plus de votre abonnement.
-              {' '}Vous pourrez choisir de donner davantage si vous le souhaitez.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
-              <div
-                onClick={() => setCharityId('')}
-                style={{
-                  position: 'relative', height: 120, borderRadius: 'var(--radius-m)',
-                  background: 'var(--gray-pale)', border: charityId === '' ? '3px solid var(--blue)' : '3px solid transparent',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 6, cursor: 'pointer',
-                }}
-              >
-                {charityId === '' && (
+          {/* Association soutenue — réservé à Hey Did+, seuls les abonnés peuvent réellement donner */}
+          {isPremium && (
+            <>
+              {totalDonated !== null && totalDonated > 0 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 16, padding: 22, marginBottom: 12,
+                  borderRadius: 'var(--radius-m)', background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
+                  boxShadow: '0 8px 24px rgba(37,99,235,0.25)',
+                }}>
                   <div style={{
-                    position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%',
-                    background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                    background: 'rgba(255,255,255,0.2)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
                   }}>
-                    <Icon name="check" style={{ fontSize: 14, color: '#fff' }} />
+                    <Icon name="heart-handshake" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
+                      {totalDonated.toFixed(2)}€
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
+                  </div>
+                </div>
+              )}
+              <div id="association" style={{
+                padding: '16px 18px', borderRadius: 'var(--radius-m)',
+                background: 'var(--blue-pale-2)', marginBottom: 16,
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
+                  🤝 Association soutenue
+                </div>
+                <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                  Choisissez une association : <strong>{donationBaseYearly.toFixed(2)}€ par an</strong> (ou{' '}
+                  <strong>{donationBaseMonthly.toFixed(2)}€/mois</strong> en mensuel) lui sont reversés
+                  automatiquement, sans frais supplémentaire pour vous — en plus de votre abonnement.
+                  {' '}Vous pourrez choisir de donner davantage si vous le souhaitez.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
+                  <div
+                    onClick={() => setCharityId('')}
+                    style={{
+                      position: 'relative', height: 120, borderRadius: 'var(--radius-m)',
+                      background: 'var(--gray-pale)', border: charityId === '' ? '3px solid var(--blue)' : '3px solid transparent',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      gap: 6, cursor: 'pointer',
+                    }}
+                  >
+                    {charityId === '' && (
+                      <div style={{
+                        position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%',
+                        background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Icon name="check" style={{ fontSize: 14, color: '#fff' }} />
+                      </div>
+                    )}
+                    <Icon name="x" style={{ fontSize: 22, color: 'var(--ink-soft)' }} />
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy)' }}>Aucune</div>
+                  </div>
+
+                  {charities.map((c) => (
+                    <CharityTile key={c.id} charity={c} selected={charityId === c.id} onSelect={() => setCharityId(c.id)} height={120} />
+                  ))}
+                </div>
+
+                {charitySaved && (
+                  <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginBottom: 8 }}>
+                    ✓ Préférence enregistrée
                   </div>
                 )}
-                <Icon name="x" style={{ fontSize: 22, color: 'var(--ink-soft)' }} />
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy)' }}>Aucune</div>
-              </div>
-
-              {charities.map((c) => (
-                <CharityTile key={c.id} charity={c} selected={charityId === c.id} onSelect={() => setCharityId(c.id)} height={120} />
-              ))}
-            </div>
-
-            {charitySaved && (
-              <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginBottom: 8 }}>
-                ✓ Préférence enregistrée
-              </div>
-            )}
-            {charityError && (
-              <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginBottom: 8 }}>
-                ⚠️ {charityError}
-              </div>
-            )}
-            <button
-              onClick={handleSaveCharity}
-              disabled={savingCharity || charityId === (profile?.organizations?.charity_id || '')}
-              className="btn btn-secondary"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              {savingCharity ? 'Enregistrement…' : 'Enregistrer mon choix'}
-            </button>
-
-            {/* Descriptif + liens de l'association actuellement choisie */}
-            {(() => {
-              const current = charities.find((c) => c.id === profile?.organizations?.charity_id);
-              if (!current) return null;
-              return (
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
-                  {current.description && (
-                    <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 10px' }}>
-                      {current.description}
-                    </p>
-                  )}
-                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                    {current.website_url && (
-                      <button
-                        onClick={() => openExternalLink(current.website_url)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
-                      >
-                        Voir le site officiel ↗
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate('/associations')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
-                    >
-                      Voir toutes les associations
-                    </button>
+                {charityError && (
+                  <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginBottom: 8 }}>
+                    ⚠️ {charityError}
                   </div>
-                </div>
-              );
-            })()}
+                )}
+                <button
+                  onClick={handleSaveCharity}
+                  disabled={savingCharity || charityId === (profile?.organizations?.charity_id || '')}
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {savingCharity ? 'Enregistrement…' : 'Enregistrer mon choix'}
+                </button>
 
-            {charityNews.length > 0 && (
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-                  Actualité
-                </div>
-                {charityNews.map((n) => (
-                  <div key={n.id} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12.5, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 1 }}>
-                      {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                {/* Descriptif + liens de l'association actuellement choisie */}
+                {(() => {
+                  const current = charities.find((c) => c.id === profile?.organizations?.charity_id);
+                  if (!current) return null;
+                  return (
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
+                      {current.description && (
+                        <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.5, margin: '0 0 10px' }}>
+                          {current.description}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                        {current.website_url && (
+                          <button
+                            onClick={() => openExternalLink(current.website_url)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
+                          >
+                            Voir le site officiel ↗
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navigate('/associations')}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit', padding: 0 }}
+                        >
+                          Voir toutes les associations
+                        </button>
+                      </div>
                     </div>
+                  );
+                })()}
+
+                {charityNews.length > 0 && (
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(30,58,110,0.12)' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                      Actualité
+                    </div>
+                    {charityNews.map((n) => (
+                      <div key={n.id} style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 12.5, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 1 }}>
+                          {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {!isPremium ? (
             <div>
@@ -758,43 +761,20 @@ export default function AccountPage() {
                 Passez à Hey Did+
               </div>
               {[
-                'Garanties illimitées',
-                'Alertes personnalisables par achat',
-                'Stockage cloud sécurisé inclus',
-                'Accès prioritaire aux nouvelles fonctionnalités',
+                'Garanties et contrats illimités',
+                'Analyse des conditions de résiliation par IA',
+                'Détection des hausses de prix',
+                'Conseils personnalisés de Did',
+                'Export PDF et Excel',
+                'Don à une association de votre choix, inclus',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13.5 }}>
                   <Icon name="check" style={{ color: 'var(--green)' }} /> {f}
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 20px' }}>
                 <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>2,08€</span>
                 <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>/ mois, facturé 24,99€ par an</span>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>
-                  Envie de donner plus à l'association de votre choix ?
-                </div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 8 }}>
-                  Un supplément optionnel, 0,50€ minimum, en plus de votre abonnement — n'affecte jamais le prix ci-dessus. Modifiable à tout moment depuis votre compte.
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="number" min="0" max="50" step="0.25"
-                      value={donationExtraInput}
-                      onChange={(e) => {
-                        setDonationExtraInput(e.target.value);
-                        const v = parseFloat(e.target.value.replace(',', '.'));
-                        setDonationExtraMonthly(isNaN(v) || v < 0 ? 0 : v);
-                      }}
-                      style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
-                    />
-                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
-                  </div>
-                  <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
-                </div>
               </div>
               <button
                 className="btn btn-primary"
