@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, NavLink, useLocation, Link } from 'react-router-dom';
-import { supabase, getSession, getCurrentUserProfile, signOut, applyPendingReferralIfAny } from './lib/supabaseClient.js';
+import { supabase, getSession, getCurrentUserProfile, signOut, applyPendingReferralIfAny, applyPendingHouseholdInviteIfAny } from './lib/supabaseClient.js';
 import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
@@ -173,7 +173,9 @@ export default function App() {
       if (p.organization_id) {
         await applyPendingReferralIfAny(p.organization_id);
       }
-      setProfile(p);
+      const justJoinedHousehold = await applyPendingHouseholdInviteIfAny();
+      const finalProfile = justJoinedHousehold ? await getCurrentUserProfile() : p;
+      setProfile(finalProfile);
       setLoading(false);
       // Récupère les échéances à surveiller : bientôt expirées ET déjà
       // expirées (pas de borne basse) — alimente à la fois le badge de la
