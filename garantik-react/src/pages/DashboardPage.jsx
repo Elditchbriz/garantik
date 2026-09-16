@@ -348,6 +348,7 @@ export default function DashboardPage() {
   const [loading, setLoading]       = useState(true);
   const [inboxItems, setInboxItems]  = useState([]);
   const [priceIncreaseCount, setPriceIncreaseCount] = useState(0);
+  const [totalDonated, setTotalDonated] = useState(null);
   const [priceIncreaseDetails, setPriceIncreaseDetails] = useState([]);
   const [dismissedAdviceKeys, setDismissedAdviceKeys] = useState(new Set());
 
@@ -363,6 +364,15 @@ export default function DashboardPage() {
   const listsRef = useRef(null);
 
   const orgId = profile?.organization_id;
+
+  // Total déjà reversé aux associations — fonction sécurisée créée avec
+  // le système de dons, ne renvoie que le total de SA PROPRE organisation.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.rpc('get_my_donation_total').then(({ data, error }) => {
+      if (!error && data != null) setTotalDonated(Number(data));
+    });
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -729,13 +739,22 @@ export default function DashboardPage() {
       {!loading && (totalProtectedValue > 0 || monthlySpend > 0) && (
         <div className="chiffres-grid">
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
+            <div className="ic" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div>
             <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
             <div className="l">Valeur protégée</div>
           </div>
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
+            <div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="repeat" /></div>
             <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
             <div className="l">Abos / mois</div>
           </div>
+          {isPremium && (
+            <div className="chiffre-mini" onClick={() => navigate('/account/subscription#association')} style={{ cursor: 'pointer' }}>
+              <div className="ic" style={{ background: '#FEE2E2', color: '#DC2626' }}><Icon name="heart-handshake" /></div>
+              <div className="v">{totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '0 €'}</div>
+              <div className="l">Donnés</div>
+            </div>
+          )}
         </div>
       )}
 
