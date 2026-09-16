@@ -671,9 +671,23 @@ export default function SubscriptionPage() {
                       <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 10, background: 'var(--blue-pale)', borderRadius: 8, padding: '8px 10px' }}>
-                      Total à payer : {pendingBillingPeriod === 'annual'
-                        ? `${(24.99 + donationExtraMonthly * 12).toFixed(2)}€/an`
-                        : `${(2.99 + donationExtraMonthly).toFixed(2)}€/mois`}
+                      {(() => {
+                        const isYearly = pendingBillingPeriod === 'annual';
+                        const basePrice = isYearly ? 24.99 : 2.99;
+                        const baseDonation = isYearly ? donationBaseYearly : donationBaseMonthly;
+                        const extraDonation = isYearly ? donationExtraMonthly * 12 : donationExtraMonthly;
+                        const totalDonationToCharity = baseDonation + extraDonation;
+                        const totalToPay = basePrice + totalDonationToCharity;
+                        const chosenCharity = charities.find((c) => c.id === charityId);
+                        return (
+                          <>
+                            Total à payer : {totalToPay.toFixed(2)}€{isYearly ? '/an' : '/mois'}
+                            <div style={{ fontWeight: 500, marginTop: 4 }}>
+                              Dont {totalDonationToCharity.toFixed(2)}€ reversés à {chosenCharity ? chosenCharity.name : 'l\'association (aucune sélectionnée pour l\'instant)'}.
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
