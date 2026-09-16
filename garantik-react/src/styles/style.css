@@ -1998,9 +1998,19 @@ h1, .display { font-weight: 600; }
 .carousel-dots .dot.active { background: var(--blue); width: 16px; border-radius: 3px; }
 
 .chiffres-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-.chiffre-mini { background: #fff; border-radius: var(--radius-m); padding: 14px 10px; box-shadow: 0 4px 20px rgba(27,36,48,0.06); text-align: center; }
-.chiffre-mini .v { font-size: 16px; font-weight: 800; color: var(--navy); }
-.chiffre-mini .l { font-size: 10.5px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; }
+.chiffre-mini {
+  background: #fff; border-radius: var(--radius-m); padding: 14px 12px;
+  box-shadow: 0 4px 20px rgba(27,36,48,0.06); text-align: left;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.chiffre-mini:active { transform: scale(0.97); }
+.chiffre-mini .ic {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.chiffre-mini .v { font-size: 17px; font-weight: 800; color: var(--navy); line-height: 1.1; }
+.chiffre-mini .l { font-size: 10.5px; color: var(--ink-soft); font-weight: 600; margin-top: 1px; }
 
 /* ============================================================
    .item-card — carte de liste autonome (utilisée hors des blocs
