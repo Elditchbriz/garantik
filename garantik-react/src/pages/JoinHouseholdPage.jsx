@@ -48,6 +48,7 @@ export default function JoinHouseholdPage() {
     setError('');
     try {
       await callJoinHousehold('accept');
+      localStorage.removeItem('heydid_pending_household_token');
       setJoined(true);
       setTimeout(() => navigate('/dashboard'), 1800);
     } catch (err) {
@@ -87,6 +88,16 @@ export default function JoinHouseholdPage() {
             <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 24 }}>
               Connectez-vous ou créez un compte avec l'adresse email qui a reçu l'invitation pour rejoindre ce foyer.
             </p>
+            {(() => {
+              // Filet de sécurité : si l'inscription exige une confirmation
+              // par email, le lien de confirmation envoyé par Supabase
+              // ramène l'utilisateur vers une page générique — le paramètre
+              // ?redirect= se perd en route. On mémorise donc le jeton en
+              // local, vérifié ensuite sur le tableau de bord une fois
+              // connecté, peu importe comment il y est arrivé.
+              if (token) localStorage.setItem('heydid_pending_household_token', token);
+              return null;
+            })()}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Link to={`/auth?mode=signup&redirect=${redirectParam}`} className="btn btn-primary" style={{ justifyContent: 'center' }}>Créer un compte</Link>
               <Link to={`/auth?mode=login&redirect=${redirectParam}`} className="btn btn-ghost" style={{ justifyContent: 'center' }}>J'ai déjà un compte</Link>
