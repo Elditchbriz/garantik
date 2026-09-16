@@ -102,30 +102,17 @@ export default function AccountPage() {
         </div>
       )}
 
-      {/* Carte de plan compacte — le détail complet vit sur sa propre page */}
-      <div
-        className="item-card" style={{ cursor: 'pointer', marginBottom: 16 }}
-        onClick={() => navigate('/account/subscription')}
-      >
-        <div className="dash-add-icon" style={{ background: isPremium ? 'var(--amber-pale)' : 'var(--gray-pale)', color: isPremium ? 'var(--amber-text)' : 'var(--ink-soft)' }}>
-          <Icon name="star-filled" />
-        </div>
-        <div className="dash-item-body">
-          <div className="dash-item-name">{isPremium ? '⭐ Hey Did+' : '🔒 Plan Gratuit'}</div>
-          <div className="dash-item-meta">
-            {isPremium && renewalDate
-              ? `Renouvellement le ${new Date(renewalDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-              : isPremium ? 'Voir les détails' : 'Découvrir les avantages'}
-          </div>
-        </div>
-        <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
-      </div>
-
-      {/* Menu — chaque sujet a sa propre page, rien n'est dupliqué ici */}
+      {/* Menu — chaque sujet a sa propre page, rien n'est dupliqué ici.
+          La ligne "Mon abonnement" fait aussi office de statut du plan —
+          plus besoin d'une carte séparée juste au-dessus qui disait la
+          même chose. */}
       <div style={{ marginBottom: 16 }}>
         <MenuRow
-          icon="star-filled" iconBg="var(--amber-pale)" iconColor="var(--amber-text)"
-          label="Mon abonnement" meta="Facturation, don, outils Hey Did+"
+          icon="star-filled" iconBg={isPremium ? 'var(--amber-pale)' : 'var(--gray-pale)'} iconColor={isPremium ? 'var(--amber-text)' : 'var(--ink-soft)'}
+          label={isPremium ? '⭐ Hey Did+' : '🔒 Plan Gratuit'}
+          meta={isPremium && renewalDate
+            ? `Renouvellement le ${new Date(renewalDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+            : isPremium ? 'Facturation, don, outils' : 'Découvrir les avantages'}
           onClick={() => navigate('/account/subscription')}
         />
         <MenuRow
