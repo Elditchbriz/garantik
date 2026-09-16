@@ -60,7 +60,7 @@ export default function ReferralPage() {
   return (
     <>
       <PageHeader
-        backTo="/dashboard"
+        backTo="/account"
                 title="Inviter des amis"
         subtitle="Offrez 1 mois et recevez 1 mois de Hey Did+"
         
