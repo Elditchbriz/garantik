@@ -163,6 +163,37 @@ export async function getSession() {
 // Profil / organisation
 // ============================================================
 
+// Finalise un rattachement à un foyer resté en attente — filet de sécurité
+// pour le cas où l'inscription exige une confirmation par email : le lien
+// de confirmation envoyé par Supabase ramène l'utilisateur vers une page
+// générique (pas /join-household), le paramètre qui aurait repris le fil
+// de l'invitation se perd en route. On mémorise donc le jeton côté
+// navigateur (localStorage, survit même si le lien de confirmation
+// s'ouvre dans un nouvel onglet — sessionStorage ne le permettrait pas),
+// vérifié ici à chaque chargement de l'app, comme applyPendingReferralIfAny
+// ci-dessus. Retourne true si un rattachement vient réellement d'avoir
+// lieu (le profil doit alors être rechargé, son organization_id a changé).
+export async function applyPendingHouseholdInviteIfAny() {
+  const token = localStorage.getItem('heydid_pending_household_token');
+  if (!token) return false;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/join-household`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ token, action: 'accept' }),
+    });
+    const json = await res.json();
+    localStorage.removeItem('heydid_pending_household_token');
+    return !!(res.ok && json.success && !json.already_member);
+  } catch (err) {
+    console.error('Erreur finalisation invitation foyer en attente:', err);
+    localStorage.removeItem('heydid_pending_household_token'); // on n'insiste pas indéfiniment sur un jeton peut-être invalide
+    return false;
+  }
+}
+
 export async function getCurrentUserProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
