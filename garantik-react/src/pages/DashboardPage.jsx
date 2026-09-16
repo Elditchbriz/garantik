@@ -117,7 +117,7 @@ function QuotaBar({ used, quota }) {
 // donnaient une impression de doublon. Chaque conseil (hors hausse de
 // prix, qui a son propre mécanisme d'acquittement partagé avec la fiche
 // contrat) peut être ignoré durablement via "Ne pas traiter".
-function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseDetails, contracts, purchases, isPremium, dismissedKeys, onDismissAdvice, onAcknowledgePriceChange }) {
+function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseDetails, contracts, purchases, isPremium, dismissedKeys, onDismissAdvice, onAcknowledgePriceChange, accountCreatedAt }) {
   const navigate = useNavigate();
   const daysUntil = (dateStr) => Math.round((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
 
@@ -224,27 +224,30 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
   });
 
   // Détection de manque de couverture — priorité basse (4), jamais devant
-  // une hausse de prix ou une échéance urgente. Toujours formulé comme une
-  // suggestion : l'utilisateur peut très bien avoir cette couverture
-  // ailleurs, juste pas suivie ici.
-  const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
-  const COMMON_COVERAGE_CHECKS = [
-    { key: 'coverage:habitation', keywords: ['habitation', 'locataire', 'propriétaire'], title: 'Assurance habitation ?',
-      text: "Vous avez peut-être déjà une assurance habitation, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did puisse surveiller son échéance. Si vous n'en disposez pas, ignorez ce conseil.",
-      actionLabel: 'Ajouter mon assurance habitation', contractType: 'Assurance habitation' },
-    { key: 'coverage:mutuelle', keywords: ['mutuelle', 'complémentaire santé', 'assurance santé'], title: 'Mutuelle santé ?',
-      text: "Vous avez peut-être déjà une mutuelle ou complémentaire santé, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did puisse la suivre. Si vous n'en disposez pas, ignorez ce conseil.",
-      actionLabel: 'Ajouter ma mutuelle', contractType: 'Mutuelle santé' },
-    { key: 'coverage:vie', keywords: ['assurance vie', 'assurance-vie'], title: 'Assurance vie ?',
-      text: "Vous avez peut-être déjà une assurance vie, simplement pas encore ajoutée ici. Si c'est le cas, ajoutez-la pour que Did la suive aussi. Si vous n'en disposez pas, ignorez ce conseil.",
-      actionLabel: 'Ajouter mon assurance vie', contractType: 'Assurance vie' },
-  ];
-  COMMON_COVERAGE_CHECKS.forEach((check) => {
-    const found = check.keywords.some((kw) => contractsText.includes(kw));
-    if (!found) {
-      advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: check.actionLabel, actionLink: `/add-contract?type=${encodeURIComponent(check.contractType)}` });
-    }
-  });
+  // une hausse de prix ou une échéance urgente. Regroupé en catégories
+  // larges (assurance en général, téléphonie/internet) plutôt que des
+  // vérifications trop précises type par type — moins de messages, plus
+  // pertinents. Retardé de 14 jours après la création du compte : un
+  // nouvel utilisateur doit d'abord avoir le temps de déposer ses
+  // documents avant qu'on lui signale ce qui "manque".
+  const accountAgeDays = accountCreatedAt ? Math.floor((new Date() - new Date(accountCreatedAt)) / (1000 * 60 * 60 * 24)) : 0;
+  if (accountAgeDays >= 14) {
+    const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
+    const COMMON_COVERAGE_CHECKS = [
+      { key: 'coverage:assurance', keywords: ['assurance', 'mutuelle', 'complémentaire santé'], title: 'Aucune assurance suivie ?',
+        text: "On ne voit aucun contrat d'assurance dans votre foyer (habitation, auto, santé, vie…). Si vous en avez, ajoutez-les pour que Did surveille leurs échéances. Sinon, ignorez ce conseil.",
+        actionLabel: 'Ajouter une assurance', contractType: 'Assurance' },
+      { key: 'coverage:telecom', keywords: ['téléphonie', 'telephonie', 'internet', 'mobile', 'forfait', 'box'], title: 'Aucun contrat téléphonie/internet ?',
+        text: "On ne voit aucun contrat de téléphonie ou d'accès internet suivi. Si vous en avez, ajoutez-le — c'est souvent là qu'une hausse de prix passe inaperçue.",
+        actionLabel: 'Ajouter cet abonnement', contractType: 'Téléphonie / Internet' },
+    ];
+    COMMON_COVERAGE_CHECKS.forEach((check) => {
+      const found = check.keywords.some((kw) => contractsText.includes(kw));
+      if (!found) {
+        advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: check.actionLabel, actionLink: `/add-contract?type=${encodeURIComponent(check.contractType)}` });
+      }
+    });
+  }
 
   const visibleAdvices = advices.filter((a) => !dismissedKeys.has(a.key));
   const topAdvices = visibleAdvices.sort((a, b) => a.priority - b.priority).slice(0, 3);
@@ -568,6 +571,7 @@ export default function DashboardPage() {
           dismissedKeys={dismissedAdviceKeys}
           onDismissAdvice={handleDismissAdvice}
           onAcknowledgePriceChange={handleAcknowledgePriceChange}
+          accountCreatedAt={profile?.organizations?.created_at}
         />
       )}
 
