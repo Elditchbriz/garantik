@@ -268,13 +268,6 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
   if (inboxCount > 0) {
     bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de votre validation.` });
   }
-  if (!isPremium && topAdvices.length > 0) {
-    bullets.push({
-      icon: '🔒',
-      text: <><strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a {topAdvices.length} conseil{topAdvices.length > 1 ? 's' : ''} concret{topAdvices.length > 1 ? 's' : ''} à vous donner.</>,
-      onClick: () => navigate('/account'),
-    });
-  }
   if (bullets.length === 0 && !(isPremium && topAdvices.length > 0)) {
     bullets.push({ icon: '👍', text: 'Rien à signaler, tout est sous contrôle.' });
   }
@@ -354,7 +347,6 @@ export default function DashboardPage() {
   const [stats, setStats]           = useState({ all: 0, active: 0, expiring: 0, expired: 0 });
   const [loading, setLoading]       = useState(true);
   const [inboxItems, setInboxItems]  = useState([]);
-  const [totalDonated, setTotalDonated] = useState(null);
   const [priceIncreaseCount, setPriceIncreaseCount] = useState(0);
   const [priceIncreaseDetails, setPriceIncreaseDetails] = useState([]);
   const [dismissedAdviceKeys, setDismissedAdviceKeys] = useState(new Set());
@@ -458,15 +450,6 @@ export default function DashboardPage() {
       setStats(sd);
       setLoading(false);
     })();
-  }, [orgId]);
-
-  // Total déjà reversé aux associations — fonction sécurisée créée avec
-  // le système de dons, ne renvoie que le total de SA PROPRE organisation.
-  useEffect(() => {
-    if (!orgId) return;
-    supabase.rpc('get_my_donation_total').then(({ data, error }) => {
-      if (!error && data != null) setTotalDonated(Number(data));
-    });
   }, [orgId]);
 
   // Hausses de prix détectées pas encore vues — filtré à la fois par
@@ -743,7 +726,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {!loading && (totalProtectedValue > 0 || monthlySpend > 0 || (totalDonated ?? 0) > 0) && (
+      {!loading && (totalProtectedValue > 0 || monthlySpend > 0) && (
         <div className="chiffres-grid">
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
@@ -752,12 +735,6 @@ export default function DashboardPage() {
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
             <div className="l">Abos / mois</div>
-          </div>
-          <div className="chiffre-mini" onClick={() => navigate('/account#association')} style={{ cursor: 'pointer' }}>
-            <div className="v" style={{ color: totalDonated ? 'var(--blue)' : 'var(--ink-faint)' }}>
-              {totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '—'}
-            </div>
-            <div className="l">Donnés</div>
           </div>
         </div>
       )}
