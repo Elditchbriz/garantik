@@ -255,12 +255,10 @@ export default function DocumentsPage() {
                   <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}
+                  <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                     onClick={(e) => { e.stopPropagation(); setCategoryMenuDocId(categoryMenuDocId === doc.id ? null : doc.id); }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégorie
-                    </span>
-                    <Icon name="chevron-down" style={{ fontSize: 12, color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+                    <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégorie
+                    <Icon name="chevron-down" style={{ fontSize: 12, color: 'var(--ink-faint)', transform: 'rotate(-90deg)', marginLeft: 'auto' }} />
                   </div>
                   {categoryMenuDocId === doc.id && (
                     <div style={{ background: 'var(--bg)' }}>
