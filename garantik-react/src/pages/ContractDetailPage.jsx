@@ -1,0 +1,896 @@
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom';
+import { supabase, uploadDocument, deleteContract, updateContract, listContractTypes } from '../lib/supabaseClient.js';
+import Icon from '../components/Icon.jsx';
+import LinkModal from '../components/LinkModal.jsx';
+import SimilarSuggest from '../components/SimilarSuggest.jsx';
+import useFocusTrap from '../hooks/useFocusTrap.js';
+
+function formatDate(d, long = false) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR', long
+    ? { day: 'numeric', month: 'long', year: 'numeric' }
+    : { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function daysUntil(d) {
+  if (!d) return null;
+  return Math.ceil((new Date(d) - new Date()) / (1000 * 60 * 60 * 24));
+}
+
+const typeIcons = { 'image/jpeg': 'photo', 'image/png': 'photo', 'image/webp': 'photo', 'application/pdf': 'pdf' };
+const catLabels = { garantie: 'Garantie', facture: 'Facture', justificatif: 'Justificatif', contrat: 'Contrat', autre: 'Autre' };
+
+const noticeMethodLabels = {
+  email: 'E-mail',
+  telephone: 'Téléphone',
+  courrier_recommande: 'Courrier recommandé avec accusé de réception',
+  autre: 'Autre',
+};
+
+// Zone tactile 44px minimum (audit P2 — accessibilité)
+const DOC_BTN = { background: 'none', border: 'none', cursor: 'pointer', width: 44, height: 44, minWidth: 44, minHeight: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+
+function DocumentViewer({ viewer, onClose, onDownload }) {
+  const trapRef = useFocusTrap(onClose);
+  return (
+    <div ref={trapRef} tabIndex={-1} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 2000, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'rgba(0,0,0,0.5)' }}>
+        <span style={{ color: '#fff', fontSize: 14, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{viewer.name}</span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => onDownload(viewer)} style={{ ...DOC_BTN, width: 'auto', padding: '0 12px', color: '#fff', fontSize: 13, gap: 6 }}>
+            <Icon name="download" /> Télécharger
+          </button>
+          <button onClick={onClose} style={{ ...DOC_BTN, color: '#fff', fontSize: 22 }}><Icon name="x" /></button>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        {viewer.type?.startsWith('image/') ? (
+          <img src={viewer.url} alt={viewer.name} style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8 }} />
+        ) : viewer.type === 'application/pdf' ? (
+          <iframe src={viewer.url} style={{ width: '100%', height: '100%', border: 'none', borderRadius: 8 }} title={viewer.name} />
+        ) : (
+          <button onClick={() => onDownload(viewer)} className="btn btn-primary">Télécharger</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function ContractDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { profile } = useOutletContext();
+  const isPremium = profile?.organizations?.plan === 'premium';
+  const [latestPriceChange, setLatestPriceChange] = useState(null);
+  const [acknowledgingPriceChange, setAcknowledgingPriceChange] = useState(false);
+  const [renewedFromContract, setRenewedFromContract] = useState(null);
+  const [renewedByContract, setRenewedByContract] = useState(null);
+
+  async function handleAcknowledgePriceChange() {
+    if (!latestPriceChange) return;
+    setAcknowledgingPriceChange(true);
+    await supabase.rpc('acknowledge_price_change', { p_id: latestPriceChange.id });
+    setLatestPriceChange(null);
+    setAcknowledgingPriceChange(false);
+  }
+  const orgId = profile?.organization_id;
+
+  const [contract, setContract] = useState(null);
+  const [documents, setDocuments] = useState([]);
+  const [contractTypes, setContractTypes] = useState([]);
+  const [purchases, setPurchases] = useState([]);
+  const [providers, setProviders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('detail');
+
+  // Même raison que sur les garanties : changer d'onglet ici ne change pas
+  // l'URL, donc le correctif global de défilement ne se déclenche pas.
+  useEffect(() => {
+    const mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.scrollTop = 0;
+  }, [tab]);
+
+  const [editing, setEditing] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('contrat');
+  const [dragOver, setDragOver] = useState(false);
+  const [viewer, setViewer] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [openDocMenu, setOpenDocMenu] = useState(null); // { docId, top, right }
+  const [renamingDoc, setRenamingDoc] = useState(null); // { id, name }
+  const [categoryMenuDocId, setCategoryMenuDocId] = useState(null);
+
+  useEffect(() => {
+    if (!orgId) return;
+    loadAll();
+  }, [id, orgId]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from('providers').select('name').eq('organization_id', orgId).order('name')
+      .then(({ data }) => setProviders(data?.map(p => p.name) || []));
+  }, [orgId]);
+
+  async function loadAll() {
+    const [{ data: c }, { data: d }, { data: types }, { data: p }, { data: priceChanges }] = await Promise.all([
+      supabase.from('contracts').select('*, purchases(id, object_name, brand)').eq('id', id).eq('organization_id', orgId).single(),
+      supabase.from('documents').select('*').eq('contract_id', id).order('created_at'),
+      listContractTypes(orgId),
+      supabase.from('purchases').select('id, object_name, brand').eq('organization_id', orgId).order('object_name'),
+      supabase.from('contract_price_changes').select('*').eq('contract_id', id).is('acknowledged_at', null).order('detected_at', { ascending: false }).limit(1),
+    ]);
+    if (!c) { navigate('/contracts'); return; }
+    setContract(c);
+    setEditData(c);
+    setDocuments(d || []);
+    setContractTypes(types || []);
+    setPurchases(p || []);
+    setLatestPriceChange(priceChanges?.[0] || null);
+
+    // Lien ancien ↔ nouveau contrat en cas de renouvellement — deux requêtes
+    // légères, l'une ou l'autre s'applique selon le sens de la relation.
+    if (c.renewed_from_contract_id) {
+      supabase.from('contracts').select('id, name').eq('id', c.renewed_from_contract_id).single()
+        .then(({ data }) => setRenewedFromContract(data || null));
+    }
+    if (c.renewed_at) {
+      supabase.from('contracts').select('id, name').eq('renewed_from_contract_id', id).maybeSingle()
+        .then(({ data }) => setRenewedByContract(data || null));
+    }
+
+    setLoading(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    await updateContract(id, {
+      name: editData.name,
+      provider: editData.provider,
+      contract_type: editData.contract_type,
+      reference_number: editData.reference_number,
+      start_date: editData.start_date || null,
+      end_date: editData.end_date,
+      notice_period_days: editData.notice_period_days ? parseInt(editData.notice_period_days) : null,
+      amount: editData.amount ? parseFloat(editData.amount) : null,
+      billing_period: editData.billing_period || null,
+      notice_method: editData.notice_method,
+      renewal_type: editData.renewal_type,
+      purchase_id: editData.purchase_id || null,
+      notes: editData.notes || null,
+      cancellation_terms: editData.cancellation_terms || null,
+    });
+    await loadAll();
+    setSaving(false);
+    setEditing(false);
+  }
+
+  async function handleDelete() {
+    await deleteContract(id);
+    navigate('/contracts');
+  }
+
+  async function handleConfirmCancel() {
+    await updateContract(id, { cancelled_at: new Date().toISOString() });
+    setShowCancelModal(false);
+    await loadAll();
+  }
+
+  async function toggleAlertDismissed() {
+    const next = !contract.alert_dismissed;
+    await supabase.from('contracts').update({ alert_dismissed: next }).eq('id', id);
+    setContract(c => ({ ...c, alert_dismissed: next }));
+  }
+
+  async function uploadFile(file) {
+    if (!file) return;
+    setUploading(true);
+    const { data } = await uploadDocument(file, orgId, null, null, id);
+    if (data) {
+      await supabase.from('documents').update({ document_category: uploadCategory }).eq('id', data.id);
+    }
+    await loadAll();
+    setUploading(false);
+  }
+
+  function handleUploadDoc(e) {
+    uploadFile(e.target.files?.[0]);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    uploadFile(e.dataTransfer.files?.[0]);
+  }
+
+  async function handleRenameDoc(docId, newName) {
+    if (!newName?.trim()) return;
+    await supabase.from('documents').update({ file_name: newName.trim() }).eq('id', docId);
+    await loadAll();
+  }
+
+  async function handleChangeCategory(docId, category) {
+    await supabase.from('documents').update({ document_category: category }).eq('id', docId);
+    await loadAll();
+  }
+
+  // Ouvre le menu d'actions d'un document, vers le bas ou le HAUT selon la
+  // place disponible — évite qu'il soit coupé par la barre de navigation.
+  function openDocActionMenu(e, docId) {
+    if (openDocMenu?.docId === docId) { setOpenDocMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const estimatedMenuHeight = 260;
+    const notEnoughRoomBelow = rect.bottom + estimatedMenuHeight > window.innerHeight;
+    const top = notEnoughRoomBelow
+      ? Math.max(8, rect.top - estimatedMenuHeight - 4)
+      : rect.bottom + 4;
+    setOpenDocMenu({ docId, top, right: window.innerWidth - rect.right });
+  }
+
+  async function openViewer(doc) {
+    if (doc.storage_provider === 'google_drive' && doc.external_file_url) {
+      window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (!doc.file_path) return;
+    const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 300);
+    if (!data?.signedUrl) return;
+    // Les WebView Android n'affichent pas les PDF en <iframe> — on les
+    // ouvre dans le lecteur système à la place.
+    if (Capacitor.isNativePlatform() && doc.file_type === 'application/pdf') {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+    setViewer({ url: data.signedUrl, type: doc.file_type, name: doc.file_name });
+  }
+
+  async function downloadFile(doc) {
+    if (doc.storage_provider === 'google_drive' && doc.external_file_url) {
+      window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (!doc.file_path) return;
+    const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
+    if (!data?.signedUrl) return;
+
+    // Sur mobile natif, le téléchargement automatique via lien invisible
+    // échoue silencieusement dans la WebView — on ouvre via le navigateur
+    // système à la place.
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: data.signedUrl });
+      return;
+    }
+
+    try {
+      const response = await fetch(data.signedUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.file_name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(data.signedUrl, '_blank');
+    }
+  }
+
+  async function handleDeleteDoc(docId, filePath) {
+    if (!window.confirm('Supprimer ce document ? Cette action est irréversible.')) return;
+    await supabase.storage.from('documents').remove([filePath]);
+    await supabase.from('documents').delete().eq('id', docId);
+    await loadAll();
+  }
+
+  if (loading) return <div style={{ padding: 32, textAlign: 'center', color: 'var(--ink-faint)' }}>Chargement…</div>;
+
+  const days = daysUntil(contract.end_date);
+  const expired = days !== null && days < 0;
+  const expiring = days !== null && days >= 0 && days <= 60;
+  const isCancelled = !!contract.cancelled_at;
+  const isRenewed = !!contract.renewed_at;
+  const statusColor = isRenewed ? 'var(--blue)' : isCancelled ? 'var(--ink-faint)' : expired ? 'var(--red)' : expiring ? 'var(--amber)' : 'var(--green)';
+  const statusLabel = isRenewed ? 'Renouvelé' : isCancelled ? 'Résilié' : expired ? 'Expiré' : expiring ? `Expire dans ${days} jours` : 'Actif';
+
+  const noticeDate = contract.notice_period_days && contract.end_date
+    ? new Date(new Date(contract.end_date).getTime() - contract.notice_period_days * 86400000)
+    : null;
+
+  return (
+    <>
+      {/* Hero header */}
+      <div className={`detail-hero ${expired ? 'expired' : expiring ? 'expiring' : 'active'}`}>
+        <div className="detail-hero-top">
+          <button onClick={() => navigate(-1)} className="detail-hero-back">
+            <Icon name="arrow-left" style={{ fontSize: 14 }} />
+          </button>
+          <div className="detail-hero-badges">
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 99, background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+              {statusLabel}
+            </span>
+            {contract.amount && (
+              <span style={{ fontSize: 13, fontWeight: 600, padding: '4px 10px', borderRadius: 99, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                {contract.amount} €{contract.billing_period ? ` / ${contract.billing_period}` : ''}
+              </span>
+            )}
+          </div>
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
+          {contract.contract_type || 'Contrat'}
+        </div>
+        <h1 className="detail-hero-title">{contract.name}</h1>
+        <div className="detail-hero-meta">
+          {contract.provider && <span><Icon name="briefcase" style={{ fontSize: 11 }} />{contract.provider}</span>}
+          {contract.end_date && <span><Icon name="calendar" style={{ fontSize: 11 }} />Fin le {formatDate(contract.end_date)}</span>}
+          {noticeDate && <span><Icon name="bell" style={{ fontSize: 11 }} />Préavis le {formatDate(noticeDate)}</span>}
+        </div>
+      </div>
+
+      <div className="tabs" style={{ marginBottom: 20 }}>
+        {[
+          { id: 'detail', label: 'Détail' },
+          { id: 'documents', label: `Documents (${documents.length})` },
+        ].map(t => (
+          <div key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} style={{ cursor: 'pointer' }} onClick={() => setTab(t.id)}>
+            {t.label}
+          </div>
+        ))}
+      </div>
+
+      {tab === 'detail' && (
+        <>
+          {renewedByContract && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+              background: 'var(--blue-pale)', color: 'var(--blue-dark)',
+              fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <Icon name="sparkles" />
+              Renouvelé — <Link to={`/contract/${renewedByContract.id}`} style={{ color: 'inherit', fontWeight: 700 }}>voir le nouveau contrat : {renewedByContract.name}</Link>
+            </div>
+          )}
+
+          {renewedFromContract && (
+            <div style={{
+              padding: '10px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+              background: 'var(--gray-pale)', color: 'var(--ink-soft)', fontSize: 12.5,
+            }}>
+              Renouvellement de <Link to={`/contract/${renewedFromContract.id}`} style={{ color: 'var(--blue)', fontWeight: 600 }}>{renewedFromContract.name}</Link>
+            </div>
+          )}
+
+          {!isCancelled && contract.renewal_type === 'aucun' && (expired || expiring) && (
+            <Link to={`/add-contract?renew_from=${contract.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{
+                padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                background: 'var(--green-pale)', color: 'var(--green-text)',
+                fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <Icon name="calendar-check" />
+                Ce contrat ne se renouvelle pas automatiquement — Renouveler maintenant
+              </div>
+            </Link>
+          )}
+
+          {latestPriceChange && latestPriceChange.new_amount > latestPriceChange.old_amount && (
+            isPremium ? (
+              <div style={{
+                padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                background: 'var(--red-pale)', border: '1px solid #FCA5A5',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="alert-triangle" style={{ color: 'var(--red-text)', marginTop: 2 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--red-text)', marginBottom: 4 }}>
+                      Hausse détectée
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.5 }}>
+                      Passé de <strong>{latestPriceChange.old_amount} €</strong> à <strong>{latestPriceChange.new_amount} €</strong>
+                      {' '}({latestPriceChange.old_amount > 0 ? `+${(((latestPriceChange.new_amount - latestPriceChange.old_amount) / latestPriceChange.old_amount) * 100).toFixed(1)}%` : ''})
+                      {contract.billing_period === 'mensuel' && (
+                        <> — soit <strong>+{((latestPriceChange.new_amount - latestPriceChange.old_amount) * 12).toFixed(2)} €/an</strong></>
+                      )}
+                    </div>
+                    <button
+                      type="button" onClick={handleAcknowledgePriceChange} disabled={acknowledgingPriceChange}
+                      style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--red-text)', textDecoration: 'underline', cursor: 'pointer' }}
+                    >
+                      J'ai vu, merci
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link to="/account/subscription" style={{ textDecoration: 'none' }}>
+                <div style={{
+                  padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                  background: 'var(--gray-pale)', border: '1px dashed var(--line)',
+                  fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <Icon name="lock" />
+                  <span>
+                    <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a détecté un changement de montant sur ce contrat.
+                  </span>
+                </div>
+              </Link>
+            )
+          )}
+
+          {!isCancelled && noticeDate && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+              background: 'var(--amber-pale)', color: 'var(--amber-text)',
+              fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <Icon name="bell" />
+              Préavis de résiliation à envoyer avant le <strong>{formatDate(noticeDate, true)}</strong>
+            </div>
+          )}
+
+          {!isCancelled && (
+            isPremium ? (
+              contract.cancellation_terms && (
+                <div style={{
+                  padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                  background: 'var(--blue-pale)', border: '1px solid var(--blue-pale-2)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <Icon name="sparkles" style={{ color: 'var(--blue-dark)' }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--blue-dark)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      Comment résilier
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13.5, color: 'var(--navy)', margin: 0, lineHeight: 1.6 }}>
+                    {contract.cancellation_terms}
+                  </p>
+                </div>
+              )
+            ) : (
+              contract.notice_period_days && (
+                <Link to="/account/subscription" style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
+                    background: 'var(--gray-pale)', border: '1px dashed var(--line)',
+                    fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 10,
+                  }}>
+                    <Icon name="lock" />
+                    <span>
+                      <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did a lu ce contrat en détail : marche à suivre exacte pour résilier, sans avoir à relire les petites lignes.
+                    </span>
+                  </div>
+                </Link>
+              )
+            )
+          )}
+
+          {/* Utile pour un vieux contrat expiré depuis longtemps — évite
+              d'être notifié indéfiniment une fois que ce n'est plus utile. */}
+          {expired && !isCancelled && (
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <button
+                onClick={toggleAlertDismissed}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 12.5, fontWeight: 600, color: contract.alert_dismissed ? 'var(--ink-faint)' : 'var(--blue)',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Icon name={contract.alert_dismissed ? 'bell' : 'bell-off'} style={{ fontSize: 13 }} />
+                {contract.alert_dismissed ? 'Alertes coupées — réactiver' : 'Ne plus m\'alerter sur ce contrat'}
+              </button>
+            </div>
+          )}
+
+          {contract.purchases ? (
+            <Link to={`/purchase/${contract.purchases.id}`} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+              borderRadius: 'var(--radius-m)', background: 'var(--blue-pale-2)', marginBottom: 16,
+              textDecoration: 'none', color: 'var(--blue-dark)', fontSize: 13.5, fontWeight: 600,
+            }}>
+              <Icon name="package" /> Lié à la garantie « {contract.purchases.object_name} »
+              <Icon name="chevron-down" style={{ transform: 'rotate(-90deg)', marginLeft: 'auto', fontSize: 14 }} />
+            </Link>
+          ) : (
+            <button onClick={() => setShowLinkModal(true)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
+              borderRadius: 'var(--radius-m)', background: 'var(--gray-pale)', marginBottom: 16,
+              textDecoration: 'none', color: 'var(--ink-soft)', fontSize: 13.5, fontWeight: 600,
+            }}>
+              <Icon name="plus" /> Lier ce contrat à une garantie
+            </button>
+          )}
+
+          {editing ? (
+            <div className="panel" style={{ marginBottom: 16 }}>
+              <div className="panel-header">
+                <h3>Modifier le contrat</h3>
+                <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setEditing(false)}>Annuler</button>
+              </div>
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div className="field">
+                  <label>Nom du contrat</label>
+                  <input type="text" value={editData.name || ''} onChange={e => setEditData(d => ({ ...d, name: e.target.value }))} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <SimilarSuggest
+                    orgId={orgId}
+                    table="providers"
+                    value={editData.provider}
+                    onChange={(v) => setEditData(d => ({ ...d, provider: v }))}
+                    options={providers}
+                    onOptionAdded={(v) => setProviders(prev => [...prev, v].sort())}
+                    placeholder="Ex : MAIF, Darty…"
+                    label="Prestataire"
+                  />
+                  <SimilarSuggest
+                    orgId={orgId}
+                    table="contract_types"
+                    value={editData.contract_type}
+                    onChange={(v) => setEditData(d => ({ ...d, contract_type: v }))}
+                    options={contractTypes.map(t => t.name)}
+                    onOptionAdded={(v) => setContractTypes(prev => [...prev, { name: v }].sort((a, b) => a.name.localeCompare(b.name)))}
+                    placeholder="Ex : Assurance, Abonnement…"
+                    label="Type de contrat"
+                  />
+                  <div className="field">
+                    <label>Référence</label>
+                    <input type="text" value={editData.reference_number || ''} onChange={e => setEditData(d => ({ ...d, reference_number: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label>Préavis (jours)</label>
+                    <input type="number" min="0" value={editData.notice_period_days || ''} onChange={e => setEditData(d => ({ ...d, notice_period_days: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label>Date de début</label>
+                    <input type="date" value={editData.start_date || ''} onChange={e => setEditData(d => ({ ...d, start_date: e.target.value }))} />
+                  </div>
+                  <div className="field">
+                    <label>Date de fin</label>
+                    <input type="date" value={editData.end_date || ''} onChange={e => setEditData(d => ({ ...d, end_date: e.target.value }))} />
+                  </div>
+                </div>
+                {isPremium && (
+                  <div className="field full">
+                    <label>Comment résilier <span style={{ fontWeight: 400, color: 'var(--ink-faint)' }}>(rempli automatiquement par Did si détecté dans le document scanné)</span></label>
+                    <textarea rows={3} value={editData.cancellation_terms || ''}
+                      onChange={e => setEditData(d => ({ ...d, cancellation_terms: e.target.value }))}
+                      placeholder="Ex : Lettre recommandée avec AR à envoyer 30 jours avant l'échéance…" style={{ resize: 'vertical' }} />
+                  </div>
+                )}
+                <div className="field">
+                  <label>Montant</label>
+                  <input type="number" step="0.01" min="0" value={editData.amount || ''}
+                    onChange={e => setEditData(d => ({ ...d, amount: e.target.value }))} placeholder="Ex : 24,90" />
+                </div>
+                <div className="field">
+                  <label>Périodicité</label>
+                  <select value={editData.billing_period || ''} onChange={e => setEditData(d => ({ ...d, billing_period: e.target.value }))}>
+                    <option value="">— Non précisé —</option>
+                    <option value="mensuel">Mensuel</option>
+                    <option value="bimestriel">Bimestriel</option>
+                    <option value="trimestriel">Trimestriel</option>
+                    <option value="semestriel">Semestriel</option>
+                    <option value="annuel">Annuel</option>
+                    <option value="unique">Paiement unique</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Mode de résiliation</label>
+                  <select value={editData.notice_method || 'email'} onChange={e => setEditData(d => ({ ...d, notice_method: e.target.value }))}>
+                    <option value="email">E-mail</option>
+                    <option value="telephone">Téléphone</option>
+                    <option value="courrier_recommande">Courrier recommandé</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Lié à une garantie</label>
+                  <select value={editData.purchase_id || ''} onChange={e => setEditData(d => ({ ...d, purchase_id: e.target.value }))}>
+                    <option value="">— Contrat indépendant —</option>
+                    {purchases.map(p => <option key={p.id} value={p.id}>{p.object_name}{p.brand ? ` · ${p.brand}` : ''}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Notes</label>
+                  <textarea rows={3} value={editData.notes || ''} onChange={e => setEditData(d => ({ ...d, notes: e.target.value }))}
+                    style={{ resize: 'vertical' }} />
+                </div>
+                <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ justifyContent: 'center' }}>
+                  <Icon name="check" /> {saving ? 'Enregistrement…' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="panel" style={{ marginBottom: 16 }}>
+              <div className="panel-header">
+                <h3><div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div>Informations</h3>
+                <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }} onClick={() => setEditing(true)}>
+                  <Icon name="edit" /> Modifier
+                </button>
+              </div>
+              <div className="panel-body" style={{ padding: 0 }}>
+                {[
+                  { k: 'Prestataire', v: contract.provider },
+                  { k: 'Numéro / référence', v: contract.reference_number },
+                  { k: 'Date de début', v: formatDate(contract.start_date, true) },
+                  { k: 'Date de fin', v: formatDate(contract.end_date, true) },
+                  { k: 'Préavis', v: contract.notice_period_days ? `${contract.notice_period_days} jours avant la fin` : null },
+                  { k: 'Mode de résiliation', v: noticeMethodLabels[contract.notice_method] },
+                  { k: 'Montant', v: contract.amount ? `${contract.amount} €` : null },
+                  { k: 'Périodicité', v: contract.billing_period },
+                  { k: 'Renouvellement', v: contract.renewal_type !== 'aucun' ? contract.renewal_type : null },
+                  { k: 'Notes', v: contract.notes },
+                ].filter(r => r.v).map(({ k, v }) => (
+                  <div key={k} className="kv-row" style={{ padding: '11px 20px' }}>
+                    <span className="k">{k}</span>
+                    <span className="v">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!isCancelled ? (
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: 16 }}
+              onClick={() => setShowCancelModal(true)}>
+              <Icon name="file-export" /> Préparer la résiliation
+            </button>
+          ) : (
+            <div style={{ padding: '12px 16px', borderRadius: 'var(--radius-m)', background: 'var(--gray-pale)', color: 'var(--ink-soft)', fontSize: 13, marginBottom: 16, textAlign: 'center' }}>
+              Résilié le {formatDate(contract.cancelled_at, true)}
+            </div>
+          )}
+
+          <div className="panel">
+            <div style={{ padding: 16 }}>
+              {!confirmDelete ? (
+                <button onClick={() => setConfirmDelete(true)} style={{
+                  width: '100%', padding: 13, borderRadius: 'var(--radius-m)',
+                  background: 'var(--red-pale)', color: 'var(--red-text)', border: 'none',
+                  fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                }}>
+                  <Icon name="x" /> Supprimer ce contrat
+                </button>
+              ) : (
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 14 }}>Confirmer la suppression ?</p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setConfirmDelete(false)}>Annuler</button>
+                    <button onClick={handleDelete} style={{ flex: 1, padding: 13, borderRadius: 'var(--radius-m)', background: 'var(--red)', color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Supprimer</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {tab === 'documents' && (
+        <>
+          {/* Choix de la catégorie AVANT l'ajout */}
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>Catégorie du document à ajouter</label>
+            <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)}>
+              {Object.entries(catLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              padding: 16, borderRadius: 'var(--radius-m)',
+              border: `2px dashed ${dragOver ? 'var(--blue-dark)' : 'var(--blue)'}`,
+              background: dragOver ? 'var(--blue-pale)' : 'var(--blue-pale-2)',
+              cursor: uploading ? 'wait' : 'pointer',
+              color: 'var(--blue-dark)', fontWeight: 600, fontSize: 14, marginBottom: 16,
+              transition: 'background 0.15s, border-color 0.15s',
+            }}>
+            <Icon name="upload" />
+            {uploading ? 'Upload en cours…' : dragOver ? 'Déposez le fichier ici' : 'Ajouter le contrat ou une annexe, ou glisser-déposer'}
+            <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} disabled={uploading} onChange={handleUploadDoc} />
+          </label>
+
+          {documents.length === 0 ? (
+            <div className="empty-state">
+              <div className="icon-circle"><Icon name="folder" /></div>
+              <div className="title">Aucun document</div>
+              <div className="sub">Ajoutez le contrat signé ou ses annexes</div>
+            </div>
+          ) : (
+            <div className="panel">
+              <div className="panel-body" style={{ padding: 0 }}>
+                {documents.map(doc => (
+                  <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--line)' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 8, flexShrink: 0, background: 'var(--blue-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue-dark)' }}>
+                      <Icon name={typeIcons[doc.file_type] || 'file-text'} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{doc.file_name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
+                        {catLabels[doc.document_category] || 'Autre'} · {doc.file_size_bytes ? Math.round(doc.file_size_bytes / 1024) + ' Ko' : ''}
+                      </div>
+                    </div>
+                    <button onClick={(e) => openDocActionMenu(e, doc.id)} style={{ ...DOC_BTN, color: 'var(--ink-soft)', fontSize: 20, fontWeight: 700, lineHeight: 1 }} aria-label="Actions">
+                      ⋯
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Menu d'actions document, rendu hors de .panel via un portail —
+              sinon coupé par son overflow:hidden (coins arrondis). */}
+          {openDocMenu && createPortal(
+            (() => {
+              const doc = documents.find(d => d.id === openDocMenu.docId);
+              if (!doc) return null;
+              return (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={() => setOpenDocMenu(null)} />
+                  <div className="sort-dropdown" style={{ position: 'fixed', top: openDocMenu.top, right: openDocMenu.right, minWidth: 200, zIndex: 2001 }}>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); openViewer(doc); }}>
+                      <Icon name="eye" style={{ fontSize: 14, color: 'var(--blue)' }} /> Visualiser
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); downloadFile(doc); }}>
+                      <Icon name="download" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Télécharger
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                      onClick={() => { setOpenDocMenu(null); setRenamingDoc({ id: doc.id, name: doc.file_name }); }}>
+                      <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}
+                        onClick={(e) => { e.stopPropagation(); setCategoryMenuDocId(categoryMenuDocId === doc.id ? null : doc.id); }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégorie
+                        </span>
+                        <Icon name="chevron-down" style={{ fontSize: 12, color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+                      </div>
+                      {categoryMenuDocId === doc.id && (
+                        <div style={{ background: 'var(--bg)' }}>
+                          {Object.entries(catLabels).map(([key, label]) => (
+                            <div key={key}
+                              className="sort-dropdown-item"
+                              style={{ paddingLeft: 34, fontSize: 12.5, fontWeight: doc.document_category === key ? 700 : 500, color: doc.document_category === key ? 'var(--blue)' : 'var(--ink-soft)' }}
+                              onClick={() => { setOpenDocMenu(null); setCategoryMenuDocId(null); handleChangeCategory(doc.id, key); }}>
+                              {label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', color: 'var(--red-text)' }}
+                      onClick={() => { setOpenDocMenu(null); handleDeleteDoc(doc.id, doc.file_path); }}>
+                      <Icon name="x" style={{ fontSize: 14 }} /> Supprimer
+                    </div>
+                  </div>
+                </>
+              );
+            })(),
+            document.body
+          )}
+        </>
+      )}
+
+      {renamingDoc && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setRenamingDoc(null)}>
+          <div className="modal-card" style={{ maxWidth: 400 }}>
+            <div className="modal-top">
+              <div className="modal-close" onClick={() => setRenamingDoc(null)}><Icon name="x" /></div>
+              <div className="modal-icon"><Icon name="edit" /></div>
+              <h3>Renommer le document</h3>
+            </div>
+            <div className="modal-body">
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label>Nom du fichier</label>
+                <input
+                  type="text"
+                  value={renamingDoc.name}
+                  onChange={(e) => setRenamingDoc(d => ({ ...d, name: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { handleRenameDoc(renamingDoc.id, renamingDoc.name); setRenamingDoc(null); } }}
+                  autoFocus
+                />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => { handleRenameDoc(renamingDoc.id, renamingDoc.name); setRenamingDoc(null); }}>
+                <Icon name="check" /> Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCancelModal && (
+        <CancelContractModal contract={contract} onClose={() => setShowCancelModal(false)} onConfirm={handleConfirmCancel} />
+      )}
+
+      {viewer && <DocumentViewer viewer={viewer} onClose={() => setViewer(null)} onDownload={downloadFile} />}
+
+      {showLinkModal && (
+        <LinkModal
+          type="purchase"
+          sourceId={id}
+          orgId={orgId}
+          onClose={() => setShowLinkModal(false)}
+          onLinked={loadAll}
+        />
+      )}
+    </>
+  );
+}
+
+function CancelContractModal({ contract, onClose, onConfirm }) {
+  const trapRef = useFocusTrap(onClose);
+
+  const methodText = {
+    email: "par e-mail à l'adresse indiquée sur votre contrat",
+    telephone: 'par téléphone au service client',
+    courrier_recommande: 'par courrier recommandé avec accusé de réception',
+    autre: 'selon les modalités prévues à votre contrat',
+  }[contract.notice_method] || 'selon les modalités prévues à votre contrat';
+
+  const letterText = `Objet : Résiliation du contrat ${contract.name}${contract.reference_number ? ` — Référence : ${contract.reference_number}` : ''}
+
+Madame, Monsieur,
+
+Je vous informe par la présente de ma décision de résilier le contrat ${contract.name} souscrit auprès de ${contract.provider || 'votre établissement'}${contract.reference_number ? `, référence ${contract.reference_number}` : ''}.
+
+Je vous remercie de bien vouloir prendre en compte cette résiliation à compter de la date d'échéance du contrat, soit le ${new Date(contract.end_date).toLocaleDateString('fr-FR')}, et de m'en confirmer la bonne réception.
+
+Cordialement.`;
+
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(letterText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card" ref={trapRef} tabIndex={-1} style={{ maxWidth: 480, width: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-top">
+          <div className="modal-close" onClick={onClose}><Icon name="x" /></div>
+          <div className="modal-icon"><Icon name="file-export" /></div>
+          <h3>Préparer la résiliation</h3>
+          <p>Envoyez ce courrier {methodText}</p>
+        </div>
+        <div className="modal-body">
+          <textarea readOnly value={letterText} rows={10}
+            style={{ width: '100%', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: 14, fontSize: 13, fontFamily: 'inherit', lineHeight: 1.6, color: 'var(--ink)', resize: 'vertical', marginBottom: 14 }} />
+          <button className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }} onClick={handleCopy}>
+            <Icon name={copied ? 'check' : 'paperclip'} /> {copied ? 'Copié !' : 'Copier le texte'}
+          </button>
+          <div style={{ fontSize: 12, color: 'var(--ink-faint)', textAlign: 'center', marginBottom: 16, lineHeight: 1.5 }}>
+            🚧 L'envoi automatique par e-mail ou courrier recommandé directement depuis l'application arrive prochainement.
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-primary" onClick={onConfirm}><Icon name="check" /> Marquer comme résilié</button>
+            <button className="btn btn-ghost" onClick={onClose}>Annuler</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
