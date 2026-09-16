@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -319,6 +319,16 @@ export default function SearchPage() {
   const contractResults = results.filter(r => r._type === 'contract');
   const isPremium = profile?.organizations?.plan === 'premium';
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [exportMenuPos, setExportMenuPos] = useState(null);
+  const exportButtonRef = useRef(null);
+
+  function toggleExportMenu() {
+    if (!exportMenuOpen && exportButtonRef.current) {
+      const rect = exportButtonRef.current.getBoundingClientRect();
+      setExportMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setExportMenuOpen((v) => !v);
+  }
 
   return (
     <>
@@ -332,15 +342,15 @@ export default function SearchPage() {
           <h3><div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="search" /></div>Recherche et filtres</h3>
           {(purchaseResults.length > 0 || contractResults.length > 0) && (
             <div style={{ position: 'relative', flexShrink: 0 }}>
-              <button className="btn btn-primary" style={{ fontSize: 12.5, padding: '7px 12px', gap: 6 }}
-                onClick={() => setExportMenuOpen((v) => !v)}>
+              <button ref={exportButtonRef} className="btn btn-primary" style={{ fontSize: 12.5, padding: '7px 12px', gap: 6 }}
+                onClick={toggleExportMenu}>
                 <Icon name="file-export" style={{ fontSize: 14 }} /> Export
               </button>
-              {exportMenuOpen && (
+              {exportMenuOpen && exportMenuPos && (
                 <>
                   <div onClick={() => setExportMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
                   <div style={{
-                    position: 'absolute', top: '110%', right: 0, zIndex: 11, background: '#fff',
+                    position: 'fixed', top: exportMenuPos.top, right: exportMenuPos.right, zIndex: 11, background: '#fff',
                     borderRadius: 'var(--radius-m)', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: 6, minWidth: 200,
                   }}>
                     <button
