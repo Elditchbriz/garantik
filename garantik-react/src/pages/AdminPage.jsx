@@ -1641,6 +1641,7 @@ export default function AdminPage() {
                       ))}
                     </select>
                   </th>
+                  <SortableTh label="Don total" sortKey="total_donated" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
                   <th style={thStyle}>
                     <div
                       onClick={() => handleSort('subscription_amount')}
@@ -1691,6 +1692,7 @@ export default function AdminPage() {
                     <td style={tdStyle}>{formatDateOrDash(org.last_sign_in_at)}</td>
                     <td style={tdStyle}>{formatDateOrDash(org.last_activity_at)}</td>
                     <td style={tdStyle}>{org.charity_name || '—'}</td>
+                    <td style={tdStyle}>{org.total_donated > 0 ? `${org.total_donated.toFixed(2)}€` : '—'}</td>
                     <td style={tdStyle}>
                       {org.subscription_amount != null
                         ? `${org.subscription_amount}€ / ${org.subscription_interval === 'year' ? 'an' : 'mois'}`
