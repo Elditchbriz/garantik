@@ -744,7 +744,7 @@ export default function DashboardPage() {
             <div className="l">Valeur protégée</div>
           </div>
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
-            <div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="repeat" /></div>
+            <div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="credit-card" /></div>
             <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
             <div className="l">Abos / mois</div>
           </div>
