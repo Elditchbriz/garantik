@@ -1,233 +1,74 @@
-// AdminPage.jsx
-// Console d'administration — accessible uniquement aux comptes
-// avec profiles.is_platform_admin = true.
-//
-// À intégrer dans le routeur existant, par exemple avec react-router :
-//   <Route path="/admin" element={<AdminPage />} />
-//
-// Suppose l'existence d'un client Supabase déjà initialisé,
-// importé ici depuis '../supabaseClient' — ajuste le chemin
-// selon ta structure de projet réelle.
+import React, { useEffect, useState, useRef } from 'react';
+import { useOutletContext, useNavigate, Link } from 'react-router-dom';
+import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox, monthlyEquivalent } from '../lib/supabaseClient.js';
+import Icon from '../components/Icon.jsx';
+import OnboardingWizard from '../components/OnboardingWizard.jsx';
+import AddTypeSheet from '../components/AddTypeSheet.jsx';
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabaseClient';
+const PAGE_SIZE = 5;
 
-const STATUS_LABELS = {
-  active: { label: 'Actif', color: '#16A34A', bg: '#F0FDF4' },
-  read_only: { label: 'Lecture seule', color: '#D97706', bg: '#FFFBEB' },
-  suspended: { label: 'Suspendu', color: '#DC2626', bg: '#FEF2F2' },
+function itemStatus(endDate) {
+  if (!endDate) return 'active';
+  const end = new Date(endDate);
+  const now = new Date();
+  const in60days = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
+  if (end < now) return 'expired';
+  if (end <= in60days) return 'expiring';
+  return 'active';
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const statusConfig = {
+  active:   { badge: 'green',  label: 'Active' },
+  expiring: { badge: 'amber',  label: 'Bientôt' },
+  expired:  { badge: 'red',    label: 'Expirée' },
 };
 
-async function callAdminApi(action, payload) {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+const SORT_OPTIONS = [
+  { id: 'date_desc',     label: 'Date (récent)' },
+  { id: 'date_asc',      label: 'Date (ancien)' },
+  { id: 'amount_desc',   label: 'Montant (décroissant)' },
+  { id: 'amount_asc',    label: 'Montant (croissant)' },
+  { id: 'end_date_asc',  label: 'Échéance (proche)' },
+];
 
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-api`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action, payload }),
-    }
-  );
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Erreur inconnue');
-  return json;
+function sortItems(items, sortId, dateField, amountField) {
+  const s = [...items];
+  switch (sortId) {
+    case 'date_asc':     return s.sort((a, b) => new Date(a[dateField]||0) - new Date(b[dateField]||0));
+    case 'amount_desc':  return s.sort((a, b) => (b[amountField]||0) - (a[amountField]||0));
+    case 'amount_asc':   return s.sort((a, b) => (a[amountField]||0) - (b[amountField]||0));
+    case 'end_date_asc': return s.sort((a, b) => new Date(a.warranty_end_date||a.end_date||'9999') - new Date(b.warranty_end_date||b.end_date||'9999'));
+    default:             return s.sort((a, b) => new Date(b[dateField]||0) - new Date(a[dateField]||0));
+  }
 }
 
-function StatusBadge({ status }) {
-  const s = STATUS_LABELS[status] || STATUS_LABELS.active;
+function SortBtn({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const current = SORT_OPTIONS.find(o => o.id === value);
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '3px 10px',
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 700,
-        color: s.color,
-        background: s.bg,
-      }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
-function AccessDenied() {
-  return (
-    <div style={{ maxWidth: 480, margin: '80px auto', textAlign: 'center', fontFamily: '-apple-system, sans-serif' }}>
-      <h2 style={{ color: '#0F172A' }}>Accès non autorisé</h2>
-      <p style={{ color: '#64748B' }}>Cette page est réservée à l'administration de Hey Did.</p>
-    </div>
-  );
-}
-
-function OrgDetailPanel({ organizationId, onClose, onChanged }) {
-  const [detail, setDetail] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [quotaInput, setQuotaInput] = useState('');
-  const [error, setError] = useState('');
-
-  const loadDetail = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { detail } = await callAdminApi('get_organization_detail', { organization_id: organizationId });
-      setDetail(detail);
-      setQuotaInput(detail.organization.quota_override ?? '');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    loadDetail();
-  }, [loadDetail]);
-
-  async function handleSetStatus(status) {
-    try {
-      await callAdminApi('set_status', { organization_id: organizationId, status });
-      await loadDetail();
-      onChanged();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleSaveQuota() {
-    try {
-      const value = quotaInput === '' ? null : parseInt(quotaInput, 10);
-      await callAdminApi('set_quota', { organization_id: organizationId, quota_override: value });
-      await loadDetail();
-      onChanged();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleSetManualPremium(enable) {
-    try {
-      await callAdminApi('set_manual_premium', { organization_id: organizationId, enable });
-      await loadDetail();
-      onChanged();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  return (
-    <div
-      style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0, width: 420,
-        background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
-        padding: 24, overflowY: 'auto', fontFamily: '-apple-system, sans-serif',
-        zIndex: 50,
-      }}
-    >
-      <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: 14, marginBottom: 16 }}>
-        ← Fermer
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(!open)} style={{
+        display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
+        background: 'var(--bg)', border: '1px solid var(--line)', borderRadius: 'var(--radius-s)',
+        fontSize: 12, fontWeight: 600, color: 'var(--ink-soft)', cursor: 'pointer', fontFamily: 'inherit',
+      }}>
+        <Icon name="arrows-sort" style={{ fontSize: 12 }} /> {current?.label}
       </button>
-
-      {loading && <p>Chargement...</p>}
-      {error && <p style={{ color: '#DC2626' }}>{error}</p>}
-
-      {detail && (
+      {open && (
         <>
-          <h2 style={{ fontSize: 18, color: '#0F172A', marginBottom: 4 }}>{detail.organization.name}</h2>
-          <div style={{ marginBottom: 20 }}>
-            <StatusBadge status={detail.organization.status} />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B' }}>Achats</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>{detail.purchases_count}</div>
-            </div>
-            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B' }}>Contrats</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>{detail.contracts_count}</div>
-            </div>
-            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B' }}>Parrainages envoyés</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>{detail.referrals_sent}</div>
-            </div>
-            <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, color: '#64748B' }}>Parrainages reçus</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>{detail.referrals_received}</div>
-            </div>
-          </div>
-
-          <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Membres</h3>
-          <ul style={{ listStyle: 'none', padding: 0, marginBottom: 24 }}>
-            {detail.profiles.map((p) => (
-              <li key={p.id} style={{ fontSize: 13, color: '#334155', padding: '6px 0', borderBottom: '1px solid #F1F5F9' }}>
-                {p.full_name || 'Sans nom'} — {p.email}
-              </li>
-            ))}
-          </ul>
-
-          <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Abonnement</h3>
-          <div style={{ marginBottom: 12, fontSize: 13, color: '#334155' }}>
-            Plan actuel : <strong>{detail.organization.plan === 'premium' ? 'Premium' : 'Gratuit'}</strong>
-            {detail.organization.plan === 'premium' && detail.organization.stripe_subscription_id && (
-              <span style={{ color: '#64748B' }}> (abonnement Stripe payant)</span>
-            )}
-            {detail.organization.plan === 'premium' && !detail.organization.stripe_subscription_id && (
-              <span style={{ color: '#64748B' }}> (accordé manuellement)</span>
-            )}
-            {detail.organization.plan === 'premium' && detail.organization.stripe_cancel_at_period_end && (
-              <div style={{ marginTop: 4, fontSize: 12, color: '#92400E' }}>
-                ⚠️ Résiliation programmée par le client
+          <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setOpen(false)} />
+          <div className="sort-dropdown">
+            {SORT_OPTIONS.map(o => (
+              <div key={o.id} className={`sort-dropdown-item ${value === o.id ? 'active' : ''}`}
+                onClick={() => { onChange(o.id); setOpen(false); }}>
+                {o.label} {value === o.id && <Icon name="check" style={{ fontSize: 12 }} />}
               </div>
-            )}
-          </div>
-
-          {detail.organization.stripe_subscription_id ? (
-            <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 24, lineHeight: 1.5 }}>
-              Ce compte a un abonnement Stripe actif — pour le résilier, passez par le portail Stripe
-              (Dashboard Stripe → Clients), pas par ici, sinon le compte redeviendra Hey Did+ au
-              prochain événement Stripe.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-              {detail.organization.plan !== 'premium' ? (
-                <button onClick={() => handleSetManualPremium(true)} style={btnStyle('#D97706')}>
-                  Accorder Hey Did+ manuellement
-                </button>
-              ) : (
-                <button onClick={() => handleSetManualPremium(false)} style={btnStyle('#64748B')}>
-                  Retirer Hey Did+ manuel
-                </button>
-              )}
-            </div>
-          )}
-
-          <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Statut du compte</h3>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-            <button onClick={() => handleSetStatus('active')} style={btnStyle('#16A34A')}>Activer</button>
-            <button onClick={() => handleSetStatus('read_only')} style={btnStyle('#D97706')}>Lecture seule</button>
-            <button onClick={() => handleSetStatus('suspended')} style={btnStyle('#DC2626')}>Suspendre</button>
-          </div>
-
-          <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Quota personnalisé</h3>
-          <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8 }}>
-            Laisser vide pour revenir au quota par défaut du plan.
-          </p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="number"
-              value={quotaInput}
-              onChange={(e) => setQuotaInput(e.target.value)}
-              placeholder="Défaut (10)"
-              style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
-            />
-            <button onClick={handleSaveQuota} style={btnStyle('#1E3A6E')}>Enregistrer</button>
+            ))}
           </div>
         </>
       )}
@@ -235,1507 +76,804 @@ function OrgDetailPanel({ organizationId, onClose, onChanged }) {
   );
 }
 
-function btnStyle(color) {
-  return {
-    background: color,
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    padding: '8px 14px',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-  };
-}
-
-const ACTION_LABELS = {
-  set_status: 'Changement de statut',
-  set_quota: 'Modification du quota',
-};
-
-function formatActionDetails(log) {
-  if (log.action === 'set_status') {
-    const s = STATUS_LABELS[log.details?.new_status];
-    return s ? `→ ${s.label}` : '';
-  }
-  if (log.action === 'set_quota') {
-    const v = log.details?.quota_override;
-    return v === null || v === undefined ? '→ quota par défaut' : `→ ${v} éléments`;
-  }
-  return '';
-}
-
-function AuditLogView() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { logs } = await callAdminApi('list_audit_log', { limit: 100 });
-        setLogs(logs);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
-  if (loading) return <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>;
-  if (error) return <p style={{ color: '#DC2626' }}>{error}</p>;
-  if (logs.length === 0) {
-    return <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune action enregistrée pour le moment.</p>;
-  }
-
+function QuotaBar({ used, quota }) {
+  const pct = Math.min(100, Math.round((used / quota) * 100));
+  const nearLimit = used >= quota - 2;
   return (
-    <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-        <thead>
-          <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
-            <th style={thStyle}>Date</th>
-            <th style={thStyle}>Admin</th>
-            <th style={thStyle}>Action</th>
-            <th style={thStyle}>Organisation</th>
-            <th style={thStyle}>Détail</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => (
-            <tr key={log.id} style={{ borderTop: '1px solid #F1F5F9' }}>
-              <td style={tdStyle}>
-                {new Date(log.created_at).toLocaleString('fr-FR', {
-                  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                })}
-              </td>
-              <td style={tdStyle}>{log.admin?.full_name || log.admin?.email || '—'}</td>
-              <td style={tdStyle}>{ACTION_LABELS[log.action] || log.action}</td>
-              <td style={tdStyle}>{log.organization?.name || '—'}</td>
-              <td style={tdStyle}>{formatActionDetails(log)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const GLOBAL_LIST_TABS = [
-  { table: 'global_categories', label: 'Catégories' },
-  { table: 'global_brands', label: 'Marques' },
-  { table: 'global_stores', label: 'Enseignes' },
-  { table: 'global_contract_types', label: 'Types de contrat' },
-  { table: 'global_providers', label: 'Prestataires' },
-];
-
-function GlobalListsView() {
-  const [activeTable, setActiveTable] = useState(GLOBAL_LIST_TABS[0].table);
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [newName, setNewName] = useState('');
-  const [adding, setAdding] = useState(false);
-
-  const loadItems = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { items } = await callAdminApi('list_global_items', { table: activeTable });
-      setItems(items);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTable]);
-
-  useEffect(() => { loadItems(); }, [loadItems]);
-
-  async function handleAdd() {
-    if (!newName.trim()) return;
-    setAdding(true);
-    try {
-      await callAdminApi('add_global_item', { table: activeTable, name: newName.trim() });
-      setNewName('');
-      await loadItems();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    try {
-      await callAdminApi('delete_global_item', { table: activeTable, id });
-      await loadItems();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  return (
-    <div>
-      <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16, lineHeight: 1.5 }}>
-        Ces valeurs sont copiées automatiquement dans chaque nouveau compte à l'inscription.
-        Modifier cette liste n'affecte pas les comptes déjà créés.
-      </p>
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-        {GLOBAL_LIST_TABS.map((t) => (
-          <button
-            key={t.table}
-            onClick={() => setActiveTable(t.table)}
-            style={{
-              padding: '7px 14px', borderRadius: 999, border: '1px solid #E2E8F0', cursor: 'pointer',
-              fontSize: 12.5, fontWeight: 600,
-              background: activeTable === t.table ? '#1E3A6E' : '#fff',
-              color: activeTable === t.table ? '#fff' : '#64748B',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {error && <p style={{ color: '#DC2626' }}>{error}</p>}
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, maxWidth: 420 }}>
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="Ajouter une valeur..."
-          style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5 }}
-        />
-        <button onClick={handleAdd} disabled={adding || !newName.trim()} style={btnStyle('#1E3A6E')}>
-          Ajouter
-        </button>
-      </div>
-
-      {loading ? (
-        <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>
-      ) : items.length === 0 ? (
-        <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune valeur pour l'instant.</p>
-      ) : (
-        <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 420 }}>
-          {items.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 16px', borderBottom: '1px solid #F1F5F9', fontSize: 13.5, color: '#334155',
-              }}
-            >
-              {item.name}
-              <button
-                onClick={() => handleDelete(item.id)}
-                style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}
-              >
-                Supprimer
-              </button>
-            </div>
-          ))}
+    <div style={{
+      background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)',
+      padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14,
+    }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--navy)' }}>
+            {used} / {quota} garanties et contrats utilisés
+          </span>
+          {nearLimit && (
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--amber-text)' }}>
+              Plus que {Math.max(0, quota - used)} disponible{quota - used > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
-      )}
+        <div style={{ height: 6, background: 'var(--gray-pale)', borderRadius: 99, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${pct}%`, borderRadius: 99,
+            background: nearLimit ? 'var(--amber)' : 'var(--blue)',
+            transition: 'width 0.3s ease',
+          }} />
+        </div>
+      </div>
+      <a href="/account#abonnement" style={{
+        flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue)', whiteSpace: 'nowrap',
+      }}>
+        Passer à Hey Did+
+      </a>
     </div>
   );
 }
 
-function MetricsView({ onSelectOrg }) {
-  const [metrics, setMetrics] = useState(null);
-  const [error, setError] = useState('');
-  const [selectedMetric, setSelectedMetric] = useState(null);
+// Un seul bloc Did — recap neutre (gratuit) + conseils actionnables
+// (Hey Did+) dans le MÊME panneau, plutôt que deux blocs distincts qui
+// donnaient une impression de doublon. Chaque conseil (hors hausse de
+// prix, qui a son propre mécanisme d'acquittement partagé avec la fiche
+// contrat) peut être ignoré durablement via "Ne pas traiter".
+function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreaseDetails, contracts, purchases, isPremium, dismissedKeys, onDismissAdvice, onAcknowledgePriceChange, accountCreatedAt }) {
+  const navigate = useNavigate();
+  const daysUntil = (dateStr) => Math.round((new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await callAdminApi('get_metrics');
-        setMetrics(data);
-      } catch (err) {
-        setError(err.message);
-      }
-    })();
-  }, []);
+  const expiring = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expiring');
+  const expired = surveillerItems.filter((i) => itemStatus(i.endDate) === 'expired');
 
-  if (error) return <p style={{ color: '#DC2626' }}>{error}</p>;
-  if (!metrics) return <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>;
+  // --- Conseils actionnables — construits même côté gratuit (pour savoir
+  // s'il y a de quoi teaser Hey Did+), affichés en détail seulement si premium.
+  const advices = [];
 
-  const last7 = metrics.signups_last_30_days.slice(-7);
-  const signups7d = last7.reduce((sum, d) => sum + d.count, 0);
-  const signups30d = metrics.signups_last_30_days.reduce((sum, d) => sum + d.count, 0);
-  const maxDayCount = Math.max(1, ...metrics.signups_last_30_days.map((d) => d.count));
+  priceIncreaseDetails.forEach((p) => {
+    const pct = p.oldAmount > 0 ? Math.round(((p.newAmount - p.oldAmount) / p.oldAmount) * 100) : null;
+    advices.push({
+      key: `price:${p.id}`, priority: 1, icon: '💰', title: `Hausse chez ${p.name}`,
+      text: `Passé de ${p.oldAmount} € à ${p.newAmount} €${pct != null ? ` (+${pct}%)` : ''}. C'est souvent le bon moment de comparer ou de négocier.`,
+      actionLabel: 'Voir le contrat', actionLink: `/contract/${p.contractId}`,
+      isPriceChange: true, priceChangeId: p.id,
+    });
+  });
 
-  const METRIC_CARDS = [
-    { key: 'all', label: 'Total comptes', value: metrics.total_organizations },
-    { key: 'signups_7d', label: 'Inscriptions (7j)', value: signups7d },
-    { key: 'signups_30d', label: 'Inscriptions (30j)', value: signups30d },
-    { key: 'premium', label: 'Comptes premium', value: metrics.plan_premium_count, sub: `${metrics.conversion_rate}% de conversion` },
-    { key: 'temp_premium', label: 'Hey Did+ temporaire', value: metrics.temp_premium_count, sub: 'via parrainage' },
-    { key: 'premium', label: 'MRR estimé', value: `${metrics.mrr_estimate.toFixed(2)} €`, sub: 'basé sur les abonnements payants', highlight: true },
+  contracts.filter((c) => c.renewal_type === 'aucun' && c.end_date).forEach((c) => {
+    const days = daysUntil(c.end_date);
+    if (days >= 0 && days <= 30) {
+      advices.push({
+        key: `renewal:${c.id}`, priority: 2, icon: '📄', title: `Renouveler ${c.name} ?`,
+        text: `Ce contrat n'a pas de reconduction automatique et arrive à échéance dans ${days} jour${days > 1 ? 's' : ''}. Sans action de votre part, la couverture s'arrête.`,
+        actionLabel: 'Renouveler', actionLink: `/add-contract?renew_from=${c.id}`,
+      });
+    }
+  });
+
+  purchases.filter((p) => p.warranty_end_date && !p.alert_dismissed).forEach((p) => {
+    const days = daysUntil(p.warranty_end_date);
+    if (days >= 0 && days <= 30) {
+      advices.push({
+        key: `warranty:${p.id}`, priority: 3, icon: '🔧', title: `Vérifiez ${p.object_name}`,
+        text: `Sa garantie expire dans ${days} jour${days > 1 ? 's' : ''}. Si un problème traîne depuis un moment, c'est le moment de le signaler avant qu'il soit trop tard.`,
+        actionLabel: 'Voir la garantie', actionLink: `/purchase/${p.id}`,
+      });
+    }
+  });
+
+  // Entretiens récurrents détectés par mot-clé sur le nom de l'objet — pas
+  // d'IA, pas de nouvelle donnée à saisir. La date d'échéance est estimée
+  // à partir de la date d'achat, à intervalle fixe (ex: tous les 6 mois) :
+  // on ne sait pas si l'entretien a déjà été fait entre-temps, donc c'est
+  // une estimation, pas une certitude — le texte reste formulé en conseil.
+  const stripAccents = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const MAINTENANCE_RULES = [
+    { keywords: ['poele a bois', 'poele bois', 'insert bois', 'cheminee'], icon: '🔥', intervalMonths: 6,
+      title: () => `Ramonage à prévoir ?`,
+      text: "Le ramonage est généralement obligatoire (souvent 2 fois par an selon votre commune) — sans attestation, votre assurance peut refuser de vous couvrir en cas d'incendie." },
+    { keywords: ['poele a pellets', 'poele granules', 'poele a granules'], icon: '🔥', intervalMonths: 12,
+      title: () => `Entretien annuel à prévoir ?`,
+      text: "Un entretien annuel par un professionnel est généralement requis pour les poêles à pellets/granulés — vérifiez les préconisations du fabricant et de votre assurance." },
+    { keywords: ['chaudiere'], icon: '🔧', intervalMonths: 12,
+      title: () => `Entretien annuel de la chaudière`,
+      text: "L'entretien annuel d'une chaudière est une obligation légale en France — vérifiez que le vôtre est à jour." },
+    { keywords: ['lave-linge', 'lave linge', 'machine a laver'], icon: '🧺', intervalMonths: 6,
+      title: (name) => `Détartrage du ${name} ?`,
+      text: "Un détartrage régulier prolonge la durée de vie de votre lave-linge et évite les mauvaises odeurs." },
+    { keywords: ['lave-vaisselle', 'lave vaisselle'], icon: '🍽️', intervalMonths: 6,
+      title: (name) => `Détartrage du ${name} ?`,
+      text: "Un détartrage régulier préserve les performances de votre lave-vaisselle." },
+    { keywords: ['machine a cafe', 'cafetiere', 'expresso', 'nespresso'], icon: '☕', intervalMonths: 3,
+      title: (name) => `Détartrage de la ${name} ?`,
+      text: "Un détartrage régulier évite les pannes et préserve le goût du café." },
+    { keywords: ['bouilloire'], icon: '☕', intervalMonths: 6,
+      title: () => `Détartrage de la bouilloire ?`,
+      text: "Détartrer régulièrement votre bouilloire évite le calcaire et prolonge sa durée de vie." },
+    { keywords: ['climatiseur', 'climatisation'], icon: '❄️', intervalMonths: 12,
+      title: () => `Entretien de la climatisation ?`,
+      text: "Un entretien annuel (nettoyage des filtres) maintient les performances et l'hygiène de votre climatiseur." },
+    { keywords: ['voiture', 'vehicule', 'automobile'], icon: '🚗', intervalMonths: 24,
+      title: () => `Contrôle technique à jour ?`,
+      text: "Le contrôle technique est obligatoire tous les 2 ans (4 ans après la première mise en circulation pour un véhicule neuf) — vérifiez la date exacte sur votre carte grise." },
   ];
 
-  const drilldownList = selectedMetric ? metrics.drilldown[selectedMetric] : null;
-  const drilldownLabel = METRIC_CARDS.find((c) => c.key === selectedMetric)?.label;
-
-  // Repères de dates sous le graphique (début, milieu, fin) pour donner une échelle sans surcharger
-  const dateLabels = metrics.signups_last_30_days;
-  const firstLabel = dateLabels[0]?.date;
-  const midLabel = dateLabels[Math.floor(dateLabels.length / 2)]?.date;
-  const lastLabel = dateLabels[dateLabels.length - 1]?.date;
-  const formatShortDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
-
-  return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {METRIC_CARDS.map((card, i) => (
-          <MetricCard
-            key={i}
-            label={card.label}
-            value={card.value}
-            sub={card.sub}
-            highlight={card.highlight}
-            active={selectedMetric === card.key}
-            onClick={() => setSelectedMetric(selectedMetric === card.key ? null : card.key)}
-          />
-        ))}
-      </div>
-
-      <p style={{ fontSize: 11.5, color: '#94A3B8', marginBottom: 16 }}>
-        Le MRR est une estimation à partir du prix affiché (24,99€/an) — remplacé par les données réelles une fois Stripe branché.
-        Cliquez sur une carte pour voir la liste des organisations concernées.
-      </p>
-
-      {drilldownList && (
-        <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', marginBottom: 24 }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>{drilldownLabel} ({drilldownList.length})</span>
-            <button onClick={() => setSelectedMetric(null)} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 12.5 }}>
-              Fermer ✕
-            </button>
-          </div>
-          {drilldownList.length === 0 ? (
-            <p style={{ padding: 16, color: '#94A3B8', fontSize: 13.5 }}>Aucune organisation dans cette catégorie.</p>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-              <tbody>
-                {drilldownList.map((org) => (
-                  <tr key={org.id} onClick={() => onSelectOrg(org.id)} style={{ borderTop: '1px solid #F1F5F9', cursor: 'pointer' }}>
-                    <td style={tdStyle}>{org.name || '—'}</td>
-                    <td style={tdStyle}>{org.owner_email || '—'}</td>
-                    <td style={tdStyle}><StatusBadge status={org.status} /></td>
-                    <td style={tdStyle}>{new Date(org.created_at).toLocaleDateString('fr-FR')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
-
-      <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 16 }}>Inscriptions — 30 derniers jours</h3>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {/* Axe Y : repères du nombre d'inscriptions */}
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: 100, fontSize: 10.5, color: '#94A3B8', textAlign: 'right', width: 18 }}>
-            <span>{maxDayCount}</span>
-            <span>{Math.ceil(maxDayCount / 2)}</span>
-            <span>0</span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 100, borderLeft: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0', paddingLeft: 4 }}>
-              {metrics.signups_last_30_days.map((d) => (
-                <div
-                  key={d.date}
-                  title={`${d.date} : ${d.count}`}
-                  style={{
-                    flex: 1, background: d.count > 0 ? '#5B5FEF' : '#F1F5F9',
-                    height: `${Math.max(4, (d.count / maxDayCount) * 100)}%`,
-                    borderRadius: 2,
-                  }}
-                />
-              ))}
-            </div>
-            {/* Axe X : repères de dates (début / milieu / fin) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10.5, color: '#94A3B8', paddingLeft: 4 }}>
-              <span>{formatShortDate(firstLabel)}</span>
-              <span>{formatShortDate(midLabel)}</span>
-              <span>{formatShortDate(lastLabel)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value, sub, highlight, active, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: highlight ? '#1E3A6E' : '#fff', borderRadius: 12, padding: 16,
-        boxShadow: active ? '0 0 0 2px #5B5FEF' : '0 1px 3px rgba(0,0,0,0.06)',
-        cursor: 'pointer', transition: 'box-shadow 0.15s',
-      }}
-    >
-      <div style={{ fontSize: 22, fontWeight: 800, color: highlight ? '#fff' : '#0F172A' }}>{value}</div>
-      <div style={{ fontSize: 12, color: highlight ? 'rgba(255,255,255,0.8)' : '#64748B', marginTop: 2 }}>{label}</div>
-      {sub && <div style={{ fontSize: 10.5, color: highlight ? 'rgba(255,255,255,0.6)' : '#94A3B8', marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-}
-
-function UpdatesAdminView() {
-  const [updates, setUpdates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [showAsPopup, setShowAsPopup] = useState(true);
-  const [sendEmail, setSendEmail] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [confirmSend, setConfirmSend] = useState(false);
-
-  const loadUpdates = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { updates } = await callAdminApi('list_updates');
-      setUpdates(updates);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  purchases.filter((p) => p.purchase_date && p.object_name).forEach((p) => {
+    let advice = null;
+    let intervalMonths = null;
+    if (p.maintenance_advice && p.maintenance_interval_months) {
+      advice = p.maintenance_advice;
+      intervalMonths = p.maintenance_interval_months;
+    } else {
+      const normalizedName = stripAccents(p.object_name.toLowerCase());
+      const rule = MAINTENANCE_RULES.find((r) => r.keywords.some((kw) => normalizedName.includes(kw)));
+      if (rule) { advice = rule.text; intervalMonths = rule.intervalMonths; }
     }
-  }, []);
+    if (!advice || !intervalMonths) return;
 
-  useEffect(() => { loadUpdates(); }, [loadUpdates]);
+    const purchaseDate = new Date(p.purchase_date);
+    let next = new Date(purchaseDate);
+    const now = new Date();
+    while (next <= now) next.setMonth(next.getMonth() + intervalMonths);
+    const daysToNext = Math.round((next - now) / (1000 * 60 * 60 * 24));
 
-  async function handlePublish() {
-    if (!title.trim() || !content.trim()) return;
-    // L'envoi email touche potentiellement tous les utilisateurs : on
-    // demande une confirmation explicite avant de partir, pas de retour possible.
-    if (sendEmail && !confirmSend) {
-      setConfirmSend(true);
-      return;
-    }
-    setPublishing(true);
-    setError('');
-    try {
-      await callAdminApi('create_update', { title, content, show_as_popup: showAsPopup, send_email: sendEmail });
-      setTitle('');
-      setContent('');
-      setShowAsPopup(true);
-      setSendEmail(false);
-      setConfirmSend(false);
-      setShowForm(false);
-      await loadUpdates();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Supprimer cette nouveauté ? Elle disparaîtra aussi des popups déjà envoyées.')) return;
-    try {
-      await callAdminApi('delete_update', { id });
-      await loadUpdates();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  return (
-    <div>
-      {error && <p style={{ color: '#DC2626', marginBottom: 12 }}>{error}</p>}
-
-      {!showForm ? (
-        <button onClick={() => setShowForm(true)} style={btnStyle('#1E3A6E')}>
-          + Publier une nouveauté
-        </button>
-      ) : (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 560 }}>
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Titre</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex : Nouveau : suivi du préavis de résiliation"
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, boxSizing: 'border-box' }}
-            />
-          </div>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Contenu</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={6}
-              placeholder="Décrivez la nouveauté en quelques lignes..."
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#334155', marginBottom: 8, cursor: 'pointer' }}>
-            <input type="checkbox" checked={showAsPopup} onChange={(e) => setShowAsPopup(e.target.checked)} />
-            Afficher en popup à la connexion des utilisateurs
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#334155', marginBottom: 16, cursor: 'pointer' }}>
-            <input type="checkbox" checked={sendEmail} onChange={(e) => { setSendEmail(e.target.checked); setConfirmSend(false); }} />
-            Envoyer un email à tous les utilisateurs
-          </label>
-
-          {confirmSend && (
-            <div style={{ padding: '10px 12px', borderRadius: 8, background: '#FFFBEB', color: '#92400E', fontSize: 12.5, marginBottom: 14 }}>
-              Cet email partira à <strong>tous les utilisateurs de Hey Did</strong>, sans possibilité d'annulation une fois lancé. Clique à nouveau sur "Publier" pour confirmer.
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => { setShowForm(false); setConfirmSend(false); }}
-              style={{ background: '#F1F5F9', color: '#334155', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Annuler
-            </button>
-            <button
-              onClick={handlePublish}
-              disabled={publishing || !title.trim() || !content.trim()}
-              style={btnStyle(confirmSend ? '#DC2626' : '#1E3A6E', publishing || !title.trim() || !content.trim())}
-            >
-              {publishing ? 'Publication...' : confirmSend ? 'Confirmer l\'envoi' : 'Publier'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>
-      ) : updates.length === 0 ? (
-        <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune nouveauté publiée pour l'instant.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 640 }}>
-          {updates.map((u) => (
-            <div key={u.id} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{u.title}</span>
-                <button onClick={() => handleDelete(u.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
-                  Supprimer
-                </button>
-              </div>
-              <p style={{ fontSize: 13, color: '#64748B', whiteSpace: 'pre-wrap', marginBottom: 10 }}>{u.content}</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 99, background: '#F1F5F9', color: '#64748B' }}>
-                  {new Date(u.created_at).toLocaleDateString('fr-FR')}
-                </span>
-                {u.show_as_popup && (
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 99, background: '#EEF2FF', color: '#1E3A6E' }}>
-                    Popup active
-                  </span>
-                )}
-                {u.email_sent_at && (
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 99, background: '#F0FDF4', color: '#16A34A' }}>
-                    Email envoyé le {new Date(u.email_sent_at).toLocaleDateString('fr-FR')}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const FEEDBACK_STATUS_CONFIG = {
-  new: { label: 'Nouveau', bg: '#EEF2FF', color: '#1E3A6E' },
-  read: { label: 'Lu', bg: '#F1F5F9', color: '#64748B' },
-  archived: { label: 'Archivé', bg: '#F8FAFC', color: '#94A3B8' },
-};
-
-function FeedbackAdminView() {
-  const [feedback, setFeedback] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
-
-  const loadFeedback = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { feedback } = await callAdminApi('list_feedback');
-      // Hey Did+ en premier (déjà triées par date récente à l'intérieur de
-      // chaque groupe côté serveur) — l'engagement "traité en priorité"
-      // se traduit ici, pas par un délai chiffré qu'on ne maîtrise pas.
-      const sorted = [...(feedback || [])].sort((a, b) => {
-        const aPremium = a.organization?.plan === 'premium' ? 1 : 0;
-        const bPremium = b.organization?.plan === 'premium' ? 1 : 0;
-        return bPremium - aPremium;
+    if (daysToNext >= 0 && daysToNext <= 30) {
+      advices.push({
+        key: `maintenance:${p.id}`, priority: 3, icon: '🔧', title: `Entretien à prévoir — ${p.object_name}`,
+        text: advice, actionLabel: 'Voir la fiche', actionLink: `/purchase/${p.id}`,
       });
-      setFeedback(sorted);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  });
 
-  useEffect(() => { loadFeedback(); }, [loadFeedback]);
-
-  async function handleSetStatus(id, status) {
-    try {
-      await callAdminApi('update_feedback_status', { id, status });
-      await loadFeedback();
-    } catch (err) {
-      setError(err.message);
-    }
+  // Détection de manque de couverture — priorité basse (4), jamais devant
+  // une hausse de prix ou une échéance urgente. Regroupé en catégories
+  // larges (assurance en général, téléphonie/internet) plutôt que des
+  // vérifications trop précises type par type — moins de messages, plus
+  // pertinents. Retardé de 14 jours après la création du compte : un
+  // nouvel utilisateur doit d'abord avoir le temps de déposer ses
+  // documents avant qu'on lui signale ce qui "manque".
+  const accountAgeDays = accountCreatedAt ? Math.floor((new Date() - new Date(accountCreatedAt)) / (1000 * 60 * 60 * 24)) : 0;
+  if (accountAgeDays >= 14) {
+    const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
+    const COMMON_COVERAGE_CHECKS = [
+      { key: 'coverage:assurance', keywords: ['assurance', 'mutuelle', 'complémentaire santé'], title: 'Aucune assurance suivie ?',
+        text: "On ne voit aucun contrat d'assurance dans votre foyer (habitation, auto, santé, vie…). Si vous en avez, ajoutez-les pour que Did surveille leurs échéances. Sinon, ignorez ce conseil.",
+        actionLabel: 'Ajouter une assurance', contractType: 'Assurance' },
+      { key: 'coverage:telecom', keywords: ['téléphonie', 'telephonie', 'internet', 'mobile', 'forfait', 'box'], title: 'Aucun contrat téléphonie/internet ?',
+        text: "On ne voit aucun contrat de téléphonie ou d'accès internet suivi. Si vous en avez, ajoutez-le — c'est souvent là qu'une hausse de prix passe inaperçue.",
+        actionLabel: 'Ajouter cet abonnement', contractType: 'Téléphonie / Internet' },
+    ];
+    COMMON_COVERAGE_CHECKS.forEach((check) => {
+      const found = check.keywords.some((kw) => contractsText.includes(kw));
+      if (!found) {
+        advices.push({ key: check.key, priority: 4, icon: '🛡️', title: check.title, text: check.text, actionLabel: check.actionLabel, actionLink: `/add-contract?type=${encodeURIComponent(check.contractType)}` });
+      }
+    });
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm('Supprimer cette remontée ?')) return;
-    try {
-      await callAdminApi('delete_feedback', { id });
-      await loadFeedback();
-    } catch (err) {
-      setError(err.message);
-    }
+  const visibleAdvices = advices.filter((a) => !dismissedKeys.has(a.key));
+  const topAdvices = visibleAdvices.sort((a, b) => a.priority - b.priority).slice(0, 3);
+
+  // --- Bullets neutres du récap (toujours visibles) ---
+  const bullets = [];
+  if (documentsThisMonth > 0) {
+    bullets.push({ icon: '✅', text: `J'ai classé ${documentsThisMonth} nouveau${documentsThisMonth > 1 ? 'x' : ''} document${documentsThisMonth > 1 ? 's' : ''} ce mois-ci.` });
+  }
+  if (expiring.length > 0) {
+    const first = expiring[0];
+    const days = Math.max(0, Math.round((new Date(first.endDate) - new Date()) / (1000 * 60 * 60 * 24)));
+    bullets.push({ icon: '⚠️', text: `${first.name} expire dans ${days} jour${days > 1 ? 's' : ''}${expiring.length > 1 ? `, et ${expiring.length - 1} autre${expiring.length > 2 ? 's' : ''} approche${expiring.length > 2 ? 'nt' : ''}` : ''}.` });
+  }
+  if (expired.length > 0) {
+    bullets.push({ icon: '🔴', text: `${expired[0].name}${expired.length > 1 ? ` et ${expired.length - 1} autre${expired.length > 2 ? 's' : ''}` : ''} déjà expiré${expired.length > 1 ? 's' : ''}.` });
+  }
+  if (inboxCount > 0) {
+    bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de votre validation.` });
+  }
+  if (bullets.length === 0 && !(isPremium && topAdvices.length > 0)) {
+    bullets.push({ icon: '👍', text: 'Rien à signaler, tout est sous contrôle.' });
   }
 
-  const filtered = filter === 'all' ? feedback : feedback.filter((f) => f.status === filter);
-  const newCount = feedback.filter((f) => f.status === 'new').length;
+  function handleDismiss(advice) {
+    if (advice.isPriceChange) onAcknowledgePriceChange(advice.priceChangeId);
+    else onDismissAdvice(advice.key);
+  }
 
   return (
-    <div>
-      {error && <p style={{ color: '#DC2626', marginBottom: 12 }}>{error}</p>}
-
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {[
-          { id: 'all', label: 'Toutes' },
-          { id: 'new', label: `Nouvelles${newCount > 0 ? ` (${newCount})` : ''}` },
-          { id: 'read', label: 'Lues' },
-          { id: 'archived', label: 'Archivées' },
-        ].map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            style={{
-              padding: '7px 14px', borderRadius: 999, border: '1px solid #E2E8F0', cursor: 'pointer',
-              fontSize: 12.5, fontWeight: 600,
-              background: filter === f.id ? '#1E3A6E' : '#fff',
-              color: filter === f.id ? '#fff' : '#64748B',
-            }}
-          >
-            {f.label}
-          </button>
+    <div className="didier-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="didier-avatar">
+          <img src="/didier-headshot.jpg" alt="Did" />
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+          Voici ce que j'ai préparé pour vous aujourd'hui :
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingLeft: 4 }}>
+        {bullets.map((b, i) => (
+          <div key={i} onClick={b.onClick} style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--navy)', lineHeight: 1.4, cursor: b.onClick ? 'pointer' : 'default' }}>
+            <span>{b.icon}</span><span>{b.text}</span>
+          </div>
         ))}
       </div>
 
-      {loading ? (
-        <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>
-      ) : filtered.length === 0 ? (
-        <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune remontée pour l'instant.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 640 }}>
-          {filtered.map((f) => {
-            const statusCfg = FEEDBACK_STATUS_CONFIG[f.status];
-            return (
-              <div key={f.id} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {f.profile?.full_name || f.profile?.email || 'Utilisateur inconnu'}
-                      {f.organization?.plan === 'premium' && (
-                        <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 99, background: '#EEF4FF', color: '#173B8F' }}>
-                          ⭐ Hey Did+
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11.5, color: '#94A3B8' }}>
-                      {f.organization?.name || '—'} · {new Date(f.created_at).toLocaleDateString('fr-FR')}
-                    </div>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: statusCfg.bg, color: statusCfg.color, flexShrink: 0 }}>
-                    {statusCfg.label}
-                  </span>
-                </div>
-                <p style={{ fontSize: 13.5, color: '#334155', whiteSpace: 'pre-wrap', marginBottom: 12 }}>{f.message}</p>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {f.status !== 'read' && (
-                    <button onClick={() => handleSetStatus(f.id, 'read')} style={btnStyle('#64748B')}>Marquer comme lu</button>
-                  )}
-                  {f.status !== 'archived' && (
-                    <button onClick={() => handleSetStatus(f.id, 'archived')} style={btnStyle('#94A3B8')}>Archiver</button>
-                  )}
-                  {f.status !== 'new' && (
-                    <button onClick={() => handleSetStatus(f.id, 'new')} style={btnStyle('#1E3A6E')}>Remettre en nouveau</button>
-                  )}
-                  <button onClick={() => handleDelete(f.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-                    Supprimer
+      {isPremium && topAdvices.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10, marginTop: 2 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 2, paddingLeft: 4 }}>
+            Conseils
+          </div>
+          {topAdvices.map((a, i) => (
+            <div key={a.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 4px', borderTop: i > 0 ? '1px solid var(--line)' : 'none' }}>
+              <span style={{ fontSize: 18 }}>{a.icon}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>{a.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '2px 0 8px', lineHeight: 1.5 }}>{a.text}</div>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                  <Link to={a.actionLink} style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue)' }}>{a.actionLabel} →</Link>
+                  <button
+                    onClick={() => handleDismiss(a)}
+                    style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Ne pas traiter
                   </button>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
-    </div>
-  );
-}
 
-function CharitiesAdminView() {
-  const [charities, setCharities] = useState([]);
-  const [summary, setSummary] = useState([]);
-  const [baseAmountMonthly, setBaseAmountMonthly] = useState(0.50);
-  const [baseAmountYearly, setBaseAmountYearly] = useState(6.00);
-  const [baseAmountMonthlyInput, setBaseAmountMonthlyInput] = useState('0.50');
-  const [baseAmountYearlyInput, setBaseAmountYearlyInput] = useState('6.00');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [newWebsiteUrl, setNewWebsiteUrl] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [adding, setAdding] = useState(false);
-  const [news, setNews] = useState([]);
-  const [newsCharityId, setNewsCharityId] = useState('');
-  const [newsHeadline, setNewsHeadline] = useState('');
-  const [addingNews, setAddingNews] = useState(false);
-
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const [{ charities }, { summary }, donationSettings, { news }] = await Promise.all([
-        callAdminApi('list_charities'),
-        callAdminApi('list_donations_summary'),
-        callAdminApi('get_donation_settings'),
-        callAdminApi('list_charity_news'),
-      ]);
-      setCharities(charities);
-      setSummary(summary);
-      setBaseAmountMonthly(donationSettings.base_amount_monthly);
-      setBaseAmountYearly(donationSettings.base_amount_yearly);
-      setBaseAmountMonthlyInput(String(donationSettings.base_amount_monthly));
-      setBaseAmountYearlyInput(String(donationSettings.base_amount_yearly));
-      setNews(news);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  async function handleAddCharity() {
-    if (!newName.trim()) return;
-    setAdding(true);
-    try {
-      if (editingId) {
-        await callAdminApi('update_charity', { id: editingId, name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim(), image_url: newImageUrl.trim() });
-      } else {
-        await callAdminApi('create_charity', { name: newName.trim(), description: newDescription.trim(), website_url: newWebsiteUrl.trim(), image_url: newImageUrl.trim() });
-      }
-      setNewName('');
-      setNewDescription('');
-      setNewWebsiteUrl('');
-      setNewImageUrl('');
-      setEditingId(null);
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  function handleStartEdit(charity) {
-    setEditingId(charity.id);
-    setNewName(charity.name);
-    setNewDescription(charity.description || '');
-    setNewWebsiteUrl(charity.website_url || '');
-    setNewImageUrl(charity.image_url || '');
-  }
-
-  function handleCancelEdit() {
-    setEditingId(null);
-    setNewName('');
-    setNewDescription('');
-    setNewWebsiteUrl('');
-    setNewImageUrl('');
-  }
-
-  async function handleToggleActive(charity) {
-    try {
-      await callAdminApi('update_charity', { id: charity.id, active: !charity.active });
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleDeleteCharity(id) {
-    if (!window.confirm("Supprimer cette association ? L'historique des dons déjà versés est conservé.")) return;
-    try {
-      await callAdminApi('delete_charity', { id });
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleSaveDonationBaseAmounts() {
-    const monthly = parseFloat(baseAmountMonthlyInput);
-    const yearly = parseFloat(baseAmountYearlyInput);
-    if (isNaN(monthly) || monthly < 0 || isNaN(yearly) || yearly < 0) return;
-    try {
-      await callAdminApi('set_donation_base_amounts', { base_amount_monthly: monthly, base_amount_yearly: yearly });
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleMarkPayoutDone(charityId, charityName, amount) {
-    if (!window.confirm(`Confirmer que le virement de ${amount.toFixed(2)}€ à "${charityName}" a bien été effectué ?\n\nCette action marque tous les dons en attente pour cette association comme réglés.`)) return;
-    try {
-      await callAdminApi('mark_charity_payout_done', { charity_id: charityId });
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleAddNews() {
-    if (!newsCharityId || !newsHeadline.trim()) return;
-    setAddingNews(true);
-    try {
-      await callAdminApi('create_charity_news', { charity_id: newsCharityId, headline: newsHeadline.trim() });
-      setNewsHeadline('');
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAddingNews(false);
-    }
-  }
-
-  async function handleDeleteNews(id) {
-    if (!window.confirm('Supprimer cette actualité ?')) return;
-    try {
-      await callAdminApi('delete_charity_news', { id });
-      await loadAll();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  if (loading) return <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>;
-
-  return (
-    <div>
-      {error && <p style={{ color: '#DC2626', marginBottom: 12 }}>{error}</p>}
-
-      {/* Réglage du montant fixe reversé */}
-      <div style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 480 }}>
-        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 8 }}>Montant fixe reversé</h3>
-        <p style={{ fontSize: 12, color: '#94A3B8', marginBottom: 12 }}>
-          Montant reversé à l'association choisie par le client, en plus de son abonnement (ne réduit jamais votre marge).
-          Actuel : <strong>{baseAmountMonthly}€/mois</strong> ou <strong>{baseAmountYearly}€/an</strong>.
-          Le client peut choisir de donner davantage lors du paiement (supplément additif, géré côté Stripe).
-        </p>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 11.5, color: '#64748B', marginBottom: 4 }}>Mensuel</label>
-            <input
-              type="number" min="0" max="20" step="0.05"
-              value={baseAmountMonthlyInput}
-              onChange={(e) => setBaseAmountMonthlyInput(e.target.value)}
-              style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 11.5, color: '#64748B', marginBottom: 4 }}>Annuel</label>
-            <input
-              type="number" min="0" max="200" step="0.5"
-              value={baseAmountYearlyInput}
-              onChange={(e) => setBaseAmountYearlyInput(e.target.value)}
-              style={{ width: 100, padding: '8px 12px', borderRadius: 8, border: '1px solid #E2E8F0' }}
-            />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={handleSaveDonationBaseAmounts} style={btnStyle('#1E3A6E')}>Enregistrer</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Montants à verser */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 10 }}>Montants collectés par association</h3>
-        {summary.length === 0 ? (
-          <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucun don enregistré pour l'instant.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
-            {summary.map((s) => (
-              <div key={s.charity_id} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{s.charity_name}</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
-                    Déjà versé : {s.paid_amount.toFixed(2)}€
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: s.pending_amount > 0 ? '#D97706' : '#94A3B8' }}>
-                    {s.pending_amount.toFixed(2)}€
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>en attente de virement</div>
-                  {s.pending_amount > 0 && (
-                    <button onClick={() => handleMarkPayoutDone(s.charity_id, s.charity_name, s.pending_amount)} style={btnStyle('#16A34A')}>
-                      Marquer comme viré
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Gestion de la liste des associations */}
-      <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 10 }}>Associations proposées aux clients</h3>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 480 }}>
-        <input
-          type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
-          placeholder="Nom de l'association"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8, boxSizing: 'border-box' }}
-        />
-        <input
-          type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
-          placeholder="Description courte (optionnel)"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8, boxSizing: 'border-box' }}
-        />
-        <input
-          type="text" value={newWebsiteUrl} onChange={(e) => setNewWebsiteUrl(e.target.value)}
-          placeholder="Lien du site (ex : https://...)"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8, boxSizing: 'border-box' }}
-        />
-        <input
-          type="text" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)}
-          placeholder="URL d'une vraie photo (optionnel — sinon dégradé coloré automatique)"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 10, boxSizing: 'border-box' }}
-        />
-        <button onClick={handleAddCharity} disabled={adding || !newName.trim()} style={btnStyle('#1E3A6E')}>
-          {adding ? (editingId ? 'Enregistrement...' : 'Ajout...') : editingId ? 'Enregistrer les modifications' : '+ Ajouter l\'association'}
-        </button>
-        {editingId && (
-          <button onClick={handleCancelEdit} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: 12.5, marginLeft: 10 }}>
-            Annuler
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 480 }}>
-        {charities.map((c) => (
-          <div key={c.id} style={{ background: '#fff', borderRadius: 10, padding: '12px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: c.active ? '#0F172A' : '#94A3B8' }}>
-                {c.name} {!c.active && <span style={{ fontSize: 11, color: '#94A3B8' }}>(masquée)</span>}
-              </div>
-              {c.description && <div style={{ fontSize: 11.5, color: '#94A3B8', marginTop: 2 }}>{c.description}</div>}
-              {c.website_url && <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{c.website_url}</div>}
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button onClick={() => handleStartEdit(c)} style={btnStyle('#1E3A6E')}>
-                Modifier
-              </button>
-              <button onClick={() => handleToggleActive(c)} style={btnStyle(c.active ? '#94A3B8' : '#16A34A')}>
-                {c.active ? 'Masquer' : 'Réactiver'}
-              </button>
-              <button onClick={() => handleDeleteCharity(c.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
-                Supprimer
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Actualités par association — de vraies infos publiées par toi,
-          affichées sur la page "Mon compte" côté client, sans rien inventer */}
-      <h3 style={{ fontSize: 14, color: '#0F172A', margin: '32px 0 10px' }}>Actualités des associations</h3>
-      <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 560 }}>
-        <select
-          value={newsCharityId}
-          onChange={(e) => setNewsCharityId(e.target.value)}
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8 }}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 4 }}>
+        <span style={{ fontSize: 12, color: 'var(--ink-faint)', fontStyle: 'italic' }}>— Did</span>
+        <button
+          onClick={() => navigate('/discussions')}
+          style={{
+            background: 'var(--blue)', color: '#fff', border: 'none',
+            borderRadius: 'var(--radius-s)', padding: '9px 16px', fontSize: 12.5, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
+          }}
         >
-          <option value="">— Choisir une association —</option>
-          {charities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <textarea
-          value={newsHeadline} onChange={(e) => setNewsHeadline(e.target.value)}
-          placeholder="Ex : 2 500 enfants ont eu accès à l'eau potable cette semaine grâce à vos dons"
-          rows={2}
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
-        />
-        <button onClick={handleAddNews} disabled={addingNews || !newsCharityId || !newsHeadline.trim()} style={btnStyle('#1E3A6E')}>
-          {addingNews ? 'Publication...' : '+ Publier'}
+          <Icon name="sparkles" style={{ fontSize: 13 }} /> Demander à Did
         </button>
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
-        {news.length === 0 ? (
-          <p style={{ color: '#94A3B8', fontSize: 14 }}>Aucune actualité publiée pour l'instant.</p>
-        ) : news.map((n) => (
-          <div key={n.id} style={{ background: '#fff', borderRadius: 10, padding: '12px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#1E3A6E', marginBottom: 2 }}>{n.charities?.name}</div>
-              <div style={{ fontSize: 13, color: '#334155' }}>{n.headline}</div>
-              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{new Date(n.published_at).toLocaleDateString('fr-FR')}</div>
-            </div>
-            <button onClick={() => handleDeleteNews(n.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, flexShrink: 0 }}>
-              Supprimer
-            </button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
 
-function FaqAdminView() {
-  const [faqs, setFaqs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [saving, setSaving] = useState(false);
+export default function DashboardPage() {
+  const { profile, alertCount } = useOutletContext();
+  const navigate = useNavigate();
 
-  const loadFaqs = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { faqs } = await callAdminApi('list_faqs');
-      setFaqs(faqs);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [purchases, setPurchases]   = useState([]);
+  const [contracts, setContracts]   = useState([]);
+  const [stats, setStats]           = useState({ all: 0, active: 0, expiring: 0, expired: 0 });
+  const [loading, setLoading]       = useState(true);
+  const [inboxItems, setInboxItems]  = useState([]);
+  const [priceIncreaseCount, setPriceIncreaseCount] = useState(0);
+  const [totalDonated, setTotalDonated] = useState(null);
+  const [priceIncreaseDetails, setPriceIncreaseDetails] = useState([]);
+  const [dismissedAdviceKeys, setDismissedAdviceKeys] = useState(new Set());
 
-  useEffect(() => { loadFaqs(); }, [loadFaqs]);
+  const [documentsCount, setDocumentsCount] = useState(0);
+  const [documentsThisMonth, setDocumentsThisMonth] = useState(0);
+  // Pilote quel bloc de liste est affiché : par défaut "garanties" (les 5
+  // derniers achats), et change pour refléter la carte cliquée juste au-dessus.
+  const [categoryView, setCategoryView] = useState('garanties'); // 'garanties' | 'contrat' | 'abonnement'
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [onboardingStarted, setOnboardingStarted] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const surveillerRef = useRef(null);
+  const listsRef = useRef(null);
 
-  function resetForm() {
-    setQuestion('');
-    setAnswer('');
-    setEditingId(null);
-  }
+  const orgId = profile?.organization_id;
 
-  function startEdit(faq) {
-    setEditingId(faq.id);
-    setQuestion(faq.question);
-    setAnswer(faq.answer);
-  }
-
-  async function handleSave() {
-    if (!question.trim() || !answer.trim()) return;
-    setSaving(true);
-    try {
-      if (editingId) {
-        await callAdminApi('update_faq', { id: editingId, question: question.trim(), answer: answer.trim() });
-      } else {
-        const nextPosition = faqs.length > 0 ? Math.max(...faqs.map((f) => f.position)) + 1 : 1;
-        await callAdminApi('create_faq', { question: question.trim(), answer: answer.trim(), position: nextPosition });
-      }
-      resetForm();
-      await loadFaqs();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleToggleActive(faq) {
-    try {
-      await callAdminApi('update_faq', { id: faq.id, active: !faq.active });
-      await loadFaqs();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Supprimer cette question ?')) return;
-    try {
-      await callAdminApi('delete_faq', { id });
-      await loadFaqs();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function handleMove(faq, direction) {
-    const sorted = [...faqs].sort((a, b) => a.position - b.position);
-    const index = sorted.findIndex((f) => f.id === faq.id);
-    const swapIndex = direction === 'up' ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= sorted.length) return;
-    const other = sorted[swapIndex];
-    try {
-      await Promise.all([
-        callAdminApi('update_faq', { id: faq.id, position: other.position }),
-        callAdminApi('update_faq', { id: other.id, position: faq.position }),
-      ]);
-      await loadFaqs();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  if (loading) return <p style={{ color: '#64748B', fontSize: 14 }}>Chargement...</p>;
-
-  const sortedFaqs = [...faqs].sort((a, b) => a.position - b.position);
-
-  return (
-    <div>
-      {error && <p style={{ color: '#DC2626', marginBottom: 12 }}>{error}</p>}
-
-      <div style={{ background: '#fff', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', maxWidth: 560 }}>
-        <h3 style={{ fontSize: 14, color: '#0F172A', marginBottom: 12 }}>{editingId ? 'Modifier la question' : 'Ajouter une question'}</h3>
-        <input
-          type="text" value={question} onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Question"
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, marginBottom: 8, boxSizing: 'border-box' }}
-        />
-        <textarea
-          value={answer} onChange={(e) => setAnswer(e.target.value)}
-          placeholder="Réponse"
-          rows={4}
-          style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
-        />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleSave} disabled={saving || !question.trim() || !answer.trim()} style={btnStyle('#1E3A6E')}>
-            {saving ? 'Enregistrement...' : editingId ? 'Enregistrer' : '+ Ajouter'}
-          </button>
-          {editingId && (
-            <button onClick={resetForm} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: 12.5 }}>
-              Annuler
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
-        {sortedFaqs.map((faq, i) => (
-          <div key={faq.id} style={{ background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: faq.active ? '#0F172A' : '#94A3B8' }}>
-                {faq.question} {!faq.active && <span style={{ fontSize: 11, color: '#94A3B8' }}>(masquée)</span>}
-              </span>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <button onClick={() => handleMove(faq, 'up')} disabled={i === 0} style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? '#E2E8F0' : '#64748B', fontSize: 14 }}>▲</button>
-                <button onClick={() => handleMove(faq, 'down')} disabled={i === sortedFaqs.length - 1} style={{ background: 'none', border: 'none', cursor: i === sortedFaqs.length - 1 ? 'default' : 'pointer', color: i === sortedFaqs.length - 1 ? '#E2E8F0' : '#64748B', fontSize: 14 }}>▼</button>
-              </div>
-            </div>
-            <p style={{ fontSize: 13, color: '#64748B', marginBottom: 10 }}>{faq.answer}</p>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => startEdit(faq)} style={btnStyle('#1E3A6E')}>Modifier</button>
-              <button onClick={() => handleToggleActive(faq)} style={btnStyle(faq.active ? '#94A3B8' : '#16A34A')}>
-                {faq.active ? 'Masquer' : 'Réactiver'}
-              </button>
-              <button onClick={() => handleDelete(faq.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
-                Supprimer
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function AdminPage() {
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [organizations, setOrganizations] = useState([]);
-  const [search, setSearch] = useState('');
-  const [selectedOrgId, setSelectedOrgId] = useState(null);
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('metrics');
-  const [sortKey, setSortKey] = useState('created_at');
-  const [sortDir, setSortDir] = useState('desc');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [planFilter, setPlanFilter] = useState('all');
-  const [charityFilter, setCharityFilter] = useState('all');
-  const [intervalFilter, setIntervalFilter] = useState('all');
-
+  // Total déjà reversé aux associations — fonction sécurisée créée avec
+  // le système de dons, ne renvoie que le total de SA PROPRE organisation.
   useEffect(() => {
-    async function checkAccess() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) {
-        setCheckingAccess(false);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_platform_admin')
-        .eq('id', userData.user.id)
-        .single();
-
-      setIsAdmin(!!profile?.is_platform_admin);
-      setCheckingAccess(false);
-    }
-    checkAccess();
-  }, []);
-
-  const loadOrganizations = useCallback(async () => {
-    try {
-      const { organizations } = await callAdminApi('list_organizations');
-      setOrganizations(organizations);
-    } catch (err) {
-      setError(err.message);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAdmin) loadOrganizations();
-  }, [isAdmin, loadOrganizations]);
-
-  if (checkingAccess) return null;
-  if (!isAdmin) return <AccessDenied />;
-
-  const charityOptions = Array.from(new Set(organizations.map((o) => o.charity_name).filter(Boolean))).sort();
-
-  const filtered = organizations
-    .filter((org) => {
-      const q = search.toLowerCase();
-      const matchesSearch = org.name?.toLowerCase().includes(q) || org.owner_email?.toLowerCase().includes(q);
-      const matchesStatus = statusFilter === 'all' || org.status === statusFilter;
-      const matchesPlan = planFilter === 'all' || (org.plan || 'free') === planFilter;
-      const matchesCharity = charityFilter === 'all'
-        || (charityFilter === 'none' ? !org.charity_name : org.charity_name === charityFilter);
-      const matchesInterval = intervalFilter === 'all'
-        || (intervalFilter === 'none' ? !org.subscription_interval : org.subscription_interval === intervalFilter);
-      return matchesSearch && matchesStatus && matchesPlan && matchesCharity && matchesInterval;
-    })
-    .sort((a, b) => {
-      let va = a[sortKey];
-      let vb = b[sortKey];
-      // Valeurs manquantes toujours en fin de liste, quel que soit le sens du tri
-      if (va === null || va === undefined) return 1;
-      if (vb === null || vb === undefined) return -1;
-      if (typeof va === 'string') va = va.toLowerCase();
-      if (typeof vb === 'string') vb = vb.toLowerCase();
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ? 1 : -1;
-      return 0;
+    if (!orgId) return;
+    supabase.rpc('get_my_donation_total').then(({ data, error }) => {
+      if (!error && data != null) setTotalDonated(Number(data));
     });
+  }, [orgId]);
 
-  function handleSort(key) {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
+  useEffect(() => {
+    if (!orgId) return;
+    supabase.from('dismissed_advice').select('advice_key').eq('organization_id', orgId)
+      .then(({ data, error }) => {
+        if (!error && data) setDismissedAdviceKeys(new Set(data.map((d) => d.advice_key)));
+      });
+  }, [orgId]);
+
+  async function handleDismissAdvice(key) {
+    setDismissedAdviceKeys((prev) => new Set(prev).add(key)); // optimiste
+    const { error } = await supabase.rpc('dismiss_advice', { p_advice_key: key });
+    if (error) {
+      console.error('Erreur dismiss_advice:', error);
+      setDismissedAdviceKeys((prev) => { const next = new Set(prev); next.delete(key); return next; });
     }
   }
 
-  function formatDateOrDash(value) {
-    if (!value) return '—';
-    return new Date(value).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  async function handleAcknowledgePriceChange(id) {
+    // Optimiste : retire immédiatement de la liste affichée
+    setPriceIncreaseDetails((prev) => prev.filter((p) => p.id !== id));
+    setPriceIncreaseCount((prev) => Math.max(0, prev - 1));
+    const { error } = await supabase.rpc('acknowledge_price_change', { p_id: id });
+    if (error) console.error('Erreur acknowledge_price_change:', error);
+  }
+
+  const purchaseSortKey = orgId ? `garantik_sort_purchases_${orgId}` : null;
+  const contractSortKey = orgId ? `garantik_sort_contracts_${orgId}` : null;
+
+  const [purchaseSort, setPurchaseSortState] = useState(() =>
+    (orgId && localStorage.getItem(`garantik_sort_purchases_${orgId}`)) || 'date_desc'
+  );
+  const [contractSort, setContractSortState] = useState(() =>
+    (orgId && localStorage.getItem(`garantik_sort_contracts_${orgId}`)) || 'end_date_asc'
+  );
+
+  function setPurchaseSort(value) {
+    setPurchaseSortState(value);
+    if (purchaseSortKey) localStorage.setItem(purchaseSortKey, value);
+  }
+  function setContractSort(value) {
+    setContractSortState(value);
+    if (contractSortKey) localStorage.setItem(contractSortKey, value);
+  }
+
+  useEffect(() => {
+    if (!orgId) return;
+    const savedPurchaseSort = localStorage.getItem(`garantik_sort_purchases_${orgId}`);
+    const savedContractSort = localStorage.getItem(`garantik_sort_contracts_${orgId}`);
+    if (savedPurchaseSort) setPurchaseSortState(savedPurchaseSort);
+    if (savedContractSort) setContractSortState(savedContractSort);
+  }, [orgId]);
+
+  const [purchaseLimit, setPurchaseLimit] = useState(PAGE_SIZE);
+  const [contractLimit, setContractLimit] = useState(PAGE_SIZE);
+
+  function dismissOnboarding() {
+    if (orgId) localStorage.setItem(`garantik_onboarding_done_${orgId}`, '1');
+    if (orgId) sessionStorage.removeItem(`garantik_onboarding_started_${orgId}`);
+    setOnboardingDismissed(true);
+  }
+
+  useEffect(() => {
+    if (!orgId) return;
+    if (localStorage.getItem(`garantik_onboarding_done_${orgId}`) === '1') {
+      setOnboardingDismissed(true);
+    }
+    if (sessionStorage.getItem(`garantik_onboarding_started_${orgId}`) === '1') {
+      setOnboardingStarted(true);
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      const [{ data: pd }, sd, { data: cd }, { data: inbox }] = await Promise.all([
+        listPurchases(orgId),
+        countPurchasesByStatus(orgId),
+        supabase.from('contracts').select('*').eq('organization_id', orgId).is('cancelled_at', null).order('end_date'),
+        getEmailInbox(orgId),
+      ]);
+      setPurchases(pd || []);
+      setContracts(cd || []);
+      setInboxItems(inbox || []);
+      setStats(sd);
+      setLoading(false);
+    })();
+  }, [orgId]);
+
+  // Hausses de prix détectées pas encore vues — filtré à la fois par
+  // organisation (RLS) et par new_amount > old_amount côté client, la
+  // table peut aussi contenir des baisses qu'on ne veut pas compter ici.
+  useEffect(() => {
+    if (!orgId) return;
+    supabase
+      .from('contract_price_changes')
+      .select('id, contract_id, old_amount, new_amount, contracts(name)')
+      .eq('organization_id', orgId)
+      .is('acknowledged_at', null)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const increases = data.filter((c) => c.new_amount > c.old_amount);
+          setPriceIncreaseCount(increases.length);
+          setPriceIncreaseDetails(increases.map((c) => ({
+            id: c.id, contractId: c.contract_id, name: c.contracts?.name || 'Contrat',
+            oldAmount: c.old_amount, newAmount: c.new_amount,
+          })));
+        }
+      });
+  }, [orgId]);
+
+  // Comptage des documents — utilisé par la carte "Documents" du tableau
+  // de bord (n'existait pas avant, jamais interrogé sur cette page).
+  useEffect(() => {
+    if (!orgId) return;
+    (async () => {
+      const firstOfMonth = new Date();
+      firstOfMonth.setDate(1);
+      firstOfMonth.setHours(0, 0, 0, 0);
+      const [{ count: total }, { count: thisMonth }] = await Promise.all([
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('organization_id', orgId),
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('organization_id', orgId).gte('created_at', firstOfMonth.toISOString()),
+      ]);
+      setDocumentsCount(total || 0);
+      setDocumentsThisMonth(thisMonth || 0);
+    })();
+  }, [orgId]);
+
+  const filteredPurchases = purchases;
+  const filteredContracts = contracts;
+
+  const sortedPurchases  = sortItems(filteredPurchases, purchaseSort, 'purchase_date', 'total_amount');
+  const sortedContracts  = sortItems(filteredContracts, contractSort, 'start_date', null);
+  const visiblePurchases = sortedPurchases.slice(0, purchaseLimit);
+  const visibleContracts = sortedContracts.slice(0, contractLimit);
+  const expiringSoon     = stats.expiring + contracts.filter(c => itemStatus(c.end_date) === 'expiring').length;
+
+  const isPremium = profile?.organizations?.plan === 'premium';
+  const quota = profile?.organizations?.quota_override ?? 10;
+  const usedItems = purchases.length + contracts.length;
+
+  const surveillerItems = [
+    ...purchases.filter(p => itemStatus(p.warranty_end_date) !== 'active' && !p.alert_dismissed).map(p => ({
+      id: p.id, type: 'purchase', name: p.object_name, endDate: p.warranty_end_date,
+      meta: [p.brand, p.store].filter(Boolean).join(' · '),
+    })),
+    ...contracts.filter(c => itemStatus(c.end_date) !== 'active' && !c.alert_dismissed).map(c => ({
+      id: c.id, type: 'contract', name: c.name, endDate: c.end_date,
+      meta: [c.provider, c.contract_type].filter(Boolean).join(' · '),
+    })),
+  ]
+    .sort((a, b) => new Date(a.endDate || '9999') - new Date(b.endDate || '9999'))
+    .slice(0, 5);
+
+  const totalProtectedValue = purchases.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+  // Équivalent mensuel correct pour TOUTES les périodicités — l'ancien code
+  // ne testait que 'annual' (anglais), qui ne correspond à aucune valeur
+  // réellement stockée ('annuel', en français) : tous les contrats,
+  // annuels compris, étaient donc comptés comme s'ils étaient mensuels.
+  const monthlySpend = contracts.reduce((sum, c) => sum + monthlyEquivalent(c.amount, c.billing_period), 0);
+
+  function scrollSurveiller(direction) {
+    const el = surveillerRef.current;
+    if (!el) return;
+    // Défile d'un "lot" (la largeur visible), quel que soit le nombre de
+    // cartes à taille fixe qui y tiennent selon la largeur d'écran.
+    el.scrollBy({ left: direction * el.clientWidth * 0.9, behavior: 'smooth' });
   }
 
   return (
-    <div style={{ padding: '32px 24px', fontFamily: '-apple-system, sans-serif', maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1E3A6E', marginBottom: 4 }}>Console admin</h1>
-      <p style={{ color: '#64748B', fontSize: 14, marginBottom: 24 }}>
-        {organizations.length} organisation{organizations.length > 1 ? 's' : ''}
-      </p>
+    <>
+      <div className="ph">
+        <div className="ph-left">
+          <div>
+            <h1 className="ph-title" style={{ fontSize: 19 }}>Bonjour {profile?.full_name?.split(' ')[0] || ''} 👋</h1>
+          </div>
+        </div>
+      </div>
 
-      {error && <p style={{ color: '#DC2626' }}>{error}</p>}
+      {!loading && (
+        <DidCard
+          surveillerItems={surveillerItems}
+          documentsThisMonth={documentsThisMonth}
+          inboxCount={inboxItems.length}
+          priceIncreaseDetails={priceIncreaseDetails}
+          contracts={contracts}
+          purchases={purchases}
+          isPremium={isPremium}
+          dismissedKeys={dismissedAdviceKeys}
+          onDismissAdvice={handleDismissAdvice}
+          onAcknowledgePriceChange={handleAcknowledgePriceChange}
+          accountCreatedAt={profile?.organizations?.created_at}
+        />
+      )}
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, background: '#F1F5F9', borderRadius: 10, padding: 4, width: 'fit-content' }}>
-        <button
-          onClick={() => setActiveTab('metrics')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'metrics' ? '#fff' : 'transparent',
-            color: activeTab === 'metrics' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'metrics' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+      {!loading && !isPremium && <QuotaBar used={usedItems} quota={quota} />}
+
+      {!onboardingDismissed && !loading && (onboardingStarted || (purchases.length === 0 && contracts.length === 0)) && (
+        <OnboardingWizard
+          onDismiss={dismissOnboarding}
+          onStart={() => {
+            if (orgId) sessionStorage.setItem(`garantik_onboarding_started_${orgId}`, '1');
+            setOnboardingStarted(true);
           }}
-        >
-          Métriques
+          purchaseCount={purchases.length}
+          contractCount={contracts.length}
+          orgId={orgId}
+        />
+      )}
+
+      <div className="dash-add-row">
+        <button className="dash-add-btn primary" onClick={() => setAddSheetOpen(true)}>
+          <div className="dash-add-icon"><Icon name="plus" /></div>
+          <div>
+            <div className="dash-add-label">Ajouter</div>
+            <div className="dash-add-sub">Garantie, contrat ou abonnement</div>
+          </div>
         </button>
-        <button
-          onClick={() => setActiveTab('organizations')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'organizations' ? '#fff' : 'transparent',
-            color: activeTab === 'organizations' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'organizations' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Organisations
-        </button>
-        <button
-          onClick={() => setActiveTab('audit')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'audit' ? '#fff' : 'transparent',
-            color: activeTab === 'audit' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'audit' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Historique
-        </button>
-        <button
-          onClick={() => setActiveTab('global_lists')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'global_lists' ? '#fff' : 'transparent',
-            color: activeTab === 'global_lists' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'global_lists' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Paramétrage
-        </button>
-        <button
-          onClick={() => setActiveTab('updates')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'updates' ? '#fff' : 'transparent',
-            color: activeTab === 'updates' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'updates' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Nouveautés
-        </button>
-        <button
-          onClick={() => setActiveTab('feedback')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'feedback' ? '#fff' : 'transparent',
-            color: activeTab === 'feedback' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'feedback' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Retours
-        </button>
-        <button
-          onClick={() => setActiveTab('charities')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'charities' ? '#fff' : 'transparent',
-            color: activeTab === 'charities' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'charities' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          Associations
-        </button>
-        <button
-          onClick={() => setActiveTab('faq')}
-          style={{
-            padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: activeTab === 'faq' ? '#fff' : 'transparent',
-            color: activeTab === 'faq' ? '#1E3A6E' : '#64748B',
-            boxShadow: activeTab === 'faq' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-          }}
-        >
-          FAQ
+        <button className="dash-add-btn secondary" onClick={() => navigate('/inbox')} style={{ position: 'relative' }}>
+          {inboxItems.length > 0 && (
+            <span style={{
+              position: 'absolute', top: 10, right: 10, background: 'var(--red)', color: '#fff',
+              fontSize: 10.5, fontWeight: 800, width: 20, height: 20, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {inboxItems.length}
+            </span>
+          )}
+          <div className="dash-add-icon"><Icon name="mail" /></div>
+          <div>
+            <div className="dash-add-label">Docs en attente</div>
+            <div className="dash-add-sub">Reçus par email, à valider</div>
+          </div>
         </button>
       </div>
 
-      {activeTab === 'metrics' ? (
-        <MetricsView onSelectOrg={setSelectedOrgId} />
-      ) : activeTab === 'audit' ? (
-        <AuditLogView />
-      ) : activeTab === 'global_lists' ? (
-        <GlobalListsView />
-      ) : activeTab === 'updates' ? (
-        <UpdatesAdminView />
-      ) : activeTab === 'feedback' ? (
-        <FeedbackAdminView />
-      ) : activeTab === 'charities' ? (
-        <CharitiesAdminView />
-      ) : activeTab === 'faq' ? (
-        <FaqAdminView />
-      ) : (
-        <>
-          <input
-            type="text"
-            placeholder="Rechercher par nom ou email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%', maxWidth: 360, padding: '10px 14px', borderRadius: 8,
-              border: '1px solid #E2E8F0', marginBottom: 20, fontSize: 14,
-            }}
-          />
+      {addSheetOpen && <AddTypeSheet onClose={() => setAddSheetOpen(false)} />}
 
-          <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
-                  <SortableTh label="Organisation" sortKey="name" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortableTh label="Email" sortKey="owner_email" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <th style={thStyle}>
-                    <div style={{ marginBottom: 4 }}>Plan</div>
-                    <select
-                      value={planFilter}
-                      onChange={(e) => setPlanFilter(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={filterSelectStyle}
-                    >
-                      <option value="all">Tous</option>
-                      <option value="free">Gratuit</option>
-                      <option value="premium">Hey Did+</option>
-                    </select>
-                  </th>
-                  <th style={thStyle}>
-                    <div style={{ marginBottom: 4 }}>Statut</div>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={filterSelectStyle}
-                    >
-                      <option value="all">Tous</option>
-                      <option value="active">Actif</option>
-                      <option value="read_only">Lecture seule</option>
-                      <option value="suspended">Suspendu</option>
-                    </select>
-                  </th>
-                  <SortableTh label="Usage" sortKey="item_count" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortableTh label="Créé le" sortKey="created_at" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortableTh label="Dernière connexion" sortKey="last_sign_in_at" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortableTh label="Dernier ajout" sortKey="last_activity_at" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <th style={thStyle}>
-                    <div style={{ marginBottom: 4 }}>Association</div>
-                    <select
-                      value={charityFilter}
-                      onChange={(e) => setCharityFilter(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={filterSelectStyle}
-                    >
-                      <option value="all">Toutes</option>
-                      <option value="none">Aucune</option>
-                      {charityOptions.map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))}
-                    </select>
-                  </th>
-                  <SortableTh label="Don total" sortKey="total_donated" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                  <th style={thStyle}>
-                    <div
-                      onClick={() => handleSort('subscription_amount')}
-                      style={{ cursor: 'pointer', userSelect: 'none', marginBottom: 4 }}
-                    >
-                      Abonnement {sortKey === 'subscription_amount' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                    </div>
-                    <select
-                      value={intervalFilter}
-                      onChange={(e) => setIntervalFilter(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={filterSelectStyle}
-                    >
-                      <option value="all">Tous</option>
-                      <option value="month">Mensuel</option>
-                      <option value="year">Annuel</option>
-                      <option value="none">Aucun</option>
-                    </select>
-                  </th>
-                  <SortableTh label="Déjà versé" sortKey="total_donated" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((org) => (
-                  <tr
-                    key={org.id}
-                    onClick={() => setSelectedOrgId(org.id)}
-                    style={{ borderTop: '1px solid #F1F5F9', cursor: 'pointer' }}
-                  >
-                    <td style={tdStyle}>{org.name || '—'}</td>
-                    <td style={tdStyle}>{org.owner_email || '—'}</td>
-                    <td style={tdStyle}>{org.plan === 'premium' ? 'Premium' : 'Gratuit'}</td>
-                    <td style={tdStyle}>
-                      <StatusBadge status={org.status} />
-                      {org.plan === 'premium' && org.stripe_cancel_at_period_end && (
-                        <span style={{
-                          marginLeft: 6, fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                          background: '#FFFBEB', color: '#92400E', whiteSpace: 'nowrap',
-                        }}>
-                          En cours de résiliation
-                        </span>
-                      )}
-                    </td>
-                    <td style={tdStyle}>
-                      {org.item_count} / {org.quota_override ?? 10}
-                    </td>
-                    <td style={tdStyle}>{formatDateOrDash(org.created_at)}</td>
-                    <td style={tdStyle}>{formatDateOrDash(org.last_sign_in_at)}</td>
-                    <td style={tdStyle}>{formatDateOrDash(org.last_activity_at)}</td>
-                    <td style={tdStyle}>{org.charity_name || '—'}</td>
-                    <td style={tdStyle}>{org.total_donated > 0 ? `${org.total_donated.toFixed(2)}€` : '—'}</td>
-                    <td style={tdStyle}>
-                      {org.subscription_amount != null
-                        ? `${org.subscription_amount}€ / ${org.subscription_interval === 'year' ? 'an' : 'mois'}`
-                        : '—'}
-                    </td>
-                    <td style={tdStyle}>
-                      {org.total_donated > 0 ? `${Number(org.total_donated).toFixed(2)}€` : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="dash-stats">
+        {(() => {
+          const abonnementsCount = contracts.filter(c => c.contract_type === 'Abonnement').length;
+          const contratsCount = contracts.length - abonnementsCount;
+          const expiringPurchases = purchases.filter(p => itemStatus(p.warranty_end_date) === 'expiring').length;
+          const expiringContrats = contracts.filter(c => c.contract_type !== 'Abonnement' && itemStatus(c.end_date) === 'expiring').length;
+          const expiringAbonnements = contracts.filter(c => c.contract_type === 'Abonnement' && itemStatus(c.end_date) === 'expiring').length;
+
+          const cards = [
+            {
+              key: 'garanties',
+              label: expiringPurchases > 0 ? 'expirent bientôt' : 'Garanties',
+              num: expiringPurchases > 0 ? expiringPurchases : purchases.length,
+              icon: expiringPurchases > 0 ? 'alert-triangle' : 'shield-check',
+              color: expiringPurchases > 0 ? 'amber' : 'blue',
+              flag: expiringPurchases > 0 ? `${purchases.length} garanties protégées` : (purchases.length > 0 ? 'Tout est à jour' : null),
+              flagColor: 'var(--ink-soft)',
+              onClick: () => {
+                setCategoryView('garanties');
+                setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              },
+              active: categoryView === 'garanties',
+            },
+            {
+              key: 'contrats',
+              label: (expiringContrats + expiringAbonnements) > 0 ? 'à renouveler' : 'Contrats & abonnements',
+              num: (expiringContrats + expiringAbonnements) > 0 ? (expiringContrats + expiringAbonnements) : contracts.length,
+              icon: (expiringContrats + expiringAbonnements) > 0 ? 'alert-triangle' : 'file-text',
+              color: (expiringContrats + expiringAbonnements) > 0 ? 'amber' : 'green',
+              flag: (expiringContrats + expiringAbonnements) > 0 ? `${contracts.length} au total` : (contracts.length > 0 ? 'Tous actifs' : null),
+              flagColor: 'var(--ink-soft)',
+              onClick: () => {
+                setCategoryView('contrat');
+                setTimeout(() => listsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              },
+              active: categoryView === 'contrat',
+            },
+            {
+              key: 'documents',
+              label: documentsThisMonth > 0 ? 'nouveaux documents' : 'Documents',
+              num: documentsThisMonth > 0 ? documentsThisMonth : documentsCount,
+              icon: 'folder',
+              color: 'red',
+              flag: documentsThisMonth > 0 ? `${documentsCount} documents au total` : null,
+              flagColor: 'var(--ink-soft)',
+              onClick: () => navigate('/documents'),
+            },
+          ];
+
+          return cards.map(s => (
+            <div key={s.key}
+              className={`dash-stat dash-stat-${s.color}${s.active ? ' active' : ''}`}
+              style={{ cursor: 'pointer' }}
+              onClick={s.onClick}>
+              <div className="stat-arrow"><Icon name={s.active ? 'x' : 'arrow-up-right'} /></div>
+              <div className="stat-icon-circle"><Icon name={s.icon} /></div>
+              <span className="dash-stat-num">{s.num}</span>
+              <span className="dash-stat-label">{s.label}</span>
+              {s.flag && <span style={{ fontSize: 10.5, fontWeight: 700, color: s.flagColor, marginTop: 4 }}>{s.flag}</span>}
+            </div>
+          ));
+        })()}
+      </div>
+
+      {!loading && surveillerItems.length > 0 && (
+        <>
+          <div className="dash-list-head" style={{ marginBottom: 10 }}>
+            <div className="dash-list-title">
+              <span className="dash-list-dot amber"></span>
+              À surveiller
+            </div>
           </div>
+          <div className="carousel" ref={surveillerRef}>
+            {surveillerItems.map((item) => {
+              const s = itemStatus(item.endDate);
+              const sc = statusConfig[s];
+              return (
+                <div
+                  key={`${item.type}-${item.id}`}
+                  className="item-card"
+                  style={{ cursor: 'pointer', marginBottom: 0 }}
+                  onClick={() => navigate(item.type === 'purchase' ? `/purchase/${item.id}` : `/contract/${item.id}`)}
+                >
+                  <div className="dash-item-body">
+                    <div className="dash-item-name">{item.name}</div>
+                    <div className="dash-item-meta">
+                      {item.meta}{item.endDate && <> · fin {formatDate(item.endDate)}</>}
+                    </div>
+                  </div>
+                  <div className="dash-item-right">
+                    <span className={`badge ${sc.badge}`}>{sc.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {surveillerItems.length > 2 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 18 }}>
+              <button
+                onClick={() => scrollSurveiller(-1)}
+                aria-label="Précédent"
+                style={{
+                  width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--line)',
+                  background: '#fff', color: 'var(--navy)', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <Icon name="chevron-left" style={{ fontSize: 14 }} />
+              </button>
+              <button
+                onClick={() => scrollSurveiller(1)}
+                aria-label="Suivant"
+                style={{
+                  width: 30, height: 30, borderRadius: '50%', border: '1px solid var(--line)',
+                  background: '#fff', color: 'var(--navy)', cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}
+              >
+                <Icon name="chevron-down" style={{ fontSize: 14, transform: 'rotate(-90deg)' }} />
+              </button>
+            </div>
+          )}
         </>
       )}
 
-      {selectedOrgId && (
-        <OrgDetailPanel
-          organizationId={selectedOrgId}
-          onClose={() => setSelectedOrgId(null)}
-          onChanged={loadOrganizations}
-        />
+      {!loading && (totalProtectedValue > 0 || monthlySpend > 0) && (
+        <div className="chiffres-grid">
+          <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
+            <div className="ic" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div>
+            <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
+            <div className="l">Valeur protégée</div>
+          </div>
+          <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
+            <div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="credit-card" /></div>
+            <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
+            <div className="l">Abos / mois</div>
+          </div>
+          {isPremium && (
+            <div className="chiffre-mini" onClick={() => navigate('/account/subscription#association')} style={{ cursor: 'pointer' }}>
+              <div className="ic" style={{ background: '#FEE2E2', color: '#DC2626' }}><Icon name="heart-handshake" /></div>
+              <div className="v">{totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '0 €'}</div>
+              <div className="l">Mon impact</div>
+            </div>
+          )}
+        </div>
       )}
-    </div>
-  );
-}
 
-const thStyle = { padding: '10px 16px', fontSize: 12, color: '#64748B', fontWeight: 700 };
-const tdStyle = { padding: '12px 16px', color: '#334155', whiteSpace: 'nowrap' };
+      {/* La bannière "documents en attente" a été retirée : le bouton
+          "Docs en attente" ci-dessus (avec badge de comptage) couvre
+          désormais ce besoin, sans dupliquer l'information. */}
 
-const filterSelectStyle = {
-  fontSize: 11.5, fontWeight: 600, color: '#334155', border: '1px solid #E2E8F0',
-  borderRadius: 6, padding: '3px 6px', background: '#fff', cursor: 'pointer',
-};
 
-function SortableTh({ label, sortKey, currentKey, dir, onSort }) {
-  const isActive = currentKey === sortKey;
-  return (
-    <th
-      onClick={() => onSort(sortKey)}
-      style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
-    >
-      {label} {isActive ? (dir === 'asc' ? '▲' : '▼') : ''}
-    </th>
+      <div ref={listsRef}>
+        {categoryView === 'garanties' ? (
+          <div className="dash-list-block">
+            <div className="dash-list-head">
+              <div className="dash-list-title">
+                <span className="dash-list-dot blue"></span>
+                Garanties <span className="dash-list-count">{purchases.length}</span>
+              </div>
+              {purchases.length > 0 && <SortBtn value={purchaseSort} onChange={setPurchaseSort} />}
+            </div>
+
+            {loading ? (
+              <div className="dash-list-empty">Chargement…</div>
+            ) : purchases.length === 0 ? (
+              <div className="dash-list-empty">
+                <Icon name="package" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
+                Aucune garantie enregistrée
+              </div>
+            ) : (
+              <div className="dash-list-items">
+                {visiblePurchases.map(p => {
+                  const s = itemStatus(p.warranty_end_date);
+                  const sc = statusConfig[s];
+                  return (
+                    <div key={p.id} className="dash-item" onClick={() => navigate(`/purchase/${p.id}`)}>
+                      <div className="dash-item-body">
+                        <div className="dash-item-name">{p.object_name}</div>
+                        <div className="dash-item-meta">
+                          {[p.brand, p.store].filter(Boolean).join(' · ')}
+                          {p.warranty_end_date && <> · fin {formatDate(p.warranty_end_date)}</>}
+                        </div>
+                      </div>
+                      <div className="dash-item-right">
+                        {p.total_amount && (
+                          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>
+                            {Number(p.total_amount).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+                          </span>
+                        )}
+                        <span className={`badge ${sc.badge}`}>{sc.label}</span>
+                        <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/purchase/${p.id}`); }}>
+                          <Icon name="edit" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {sortedPurchases.length > purchaseLimit && (
+                  <button className="dash-show-more" onClick={() => setPurchaseLimit(l => l + PAGE_SIZE)}>
+                    Voir {Math.min(PAGE_SIZE, sortedPurchases.length - purchaseLimit)} de plus
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="dash-list-block">
+            <div className="dash-list-head">
+              <div className="dash-list-title">
+                <span className="dash-list-dot amber"></span>
+                Contrats & abonnements
+                {' '}<span className="dash-list-count">{filteredContracts.length}</span>
+                <button onClick={() => setCategoryView('garanties')} style={{
+                  marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--blue)', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit',
+                }}>
+                  ← Garanties
+                </button>
+              </div>
+              {filteredContracts.length > 0 && <SortBtn value={contractSort} onChange={setContractSort} />}
+            </div>
+
+            {loading ? (
+              <div className="dash-list-empty">Chargement…</div>
+            ) : filteredContracts.length === 0 ? (
+              <div className="dash-list-empty">
+                <Icon name="shield-check" style={{ fontSize: 28, color: 'var(--line)', display: 'block', margin: '0 auto 10px' }} />
+                Aucun contrat ni abonnement enregistré
+              </div>
+            ) : (
+              <div className="dash-list-items">
+                {visibleContracts.map(c => {
+                  const s = itemStatus(c.end_date);
+                  const sc = statusConfig[s];
+                  return (
+                    <div key={c.id} className="dash-item" onClick={() => navigate(`/contract/${c.id}`)}>
+                      <div className="dash-item-body">
+                        <div className="dash-item-name">{c.name}</div>
+                        <div className="dash-item-meta">
+                          {[c.provider, c.contract_type].filter(Boolean).join(' · ')}
+                          {c.end_date && <> · fin {formatDate(c.end_date)}</>}
+                        </div>
+                      </div>
+                      <div className="dash-item-right">
+                        <span className={`badge ${sc.badge}`}>{sc.label}</span>
+                        <button className="dash-item-edit" onClick={e => { e.stopPropagation(); navigate(`/contract/${c.id}`); }}>
+                          <Icon name="edit" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {sortedContracts.length > contractLimit && (
+                  <button className="dash-show-more" onClick={() => setContractLimit(l => l + PAGE_SIZE)}>
+                    Voir {Math.min(PAGE_SIZE, sortedContracts.length - contractLimit)} de plus
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
