@@ -49,6 +49,20 @@ jobs:
           cp splash.png assets/splash.png
           ls -la assets/
 
+      - name: Générer le fichier .env pour le build web
+        # Sans cette étape, Vite ne trouve aucune de ces variables et le
+        # build web les intègre comme "undefined" — l'app native ne peut
+        # alors plus du tout se connecter à Supabase/Stripe, même si le
+        # build réussit sans erreur apparente.
+        run: |
+          cat > .env << EOF
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_DROPBOX_APP_KEY=${{ secrets.VITE_DROPBOX_APP_KEY }}
+          EOF
+
       - name: Construire l'app web
         run: npm run build
 
