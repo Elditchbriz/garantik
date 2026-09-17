@@ -227,14 +227,31 @@ export default function SearchPage() {
 
     const qLower = query.trim().toLowerCase();
 
+    // ---------- Documents complémentaires (nom de fichier + contenu OCR) ----------
+    // Un document ajouté après coup sur une garantie/un contrat n'a pas
+    // forcément de mot correspondant dans les champs de la garantie/du
+    // contrat lui-même — sans cette étape, il resterait invisible à la
+    // recherche même si son contenu matche. On récupère donc d'abord les
+    // garanties/contrats concernés par un document correspondant, pour
+    // les inclure explicitement ci-dessous.
+    let matchedPurchaseIds = [];
+    let matchedContractIds = [];
+    if (qLower) {
+      const { data: matchedDocs } = await supabase.from('documents').select('purchase_id, contract_id')
+        .eq('organization_id', orgId)
+        .or(`file_name.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%`);
+      matchedPurchaseIds = [...new Set((matchedDocs || []).map((d) => d.purchase_id).filter(Boolean))];
+      matchedContractIds = [...new Set((matchedDocs || []).map((d) => d.contract_id).filter(Boolean))];
+    }
+
     // ---------- Achats — ignorés si le périmètre est "Contrats" ----------
     let purchasePromise = Promise.resolve({ data: [] });
     if (scope !== 'contract') {
       let purchaseQuery = supabase.from('purchases').select('*').eq('organization_id', orgId);
       if (qLower) {
-        purchaseQuery = purchaseQuery.or(
-          `object_name.ilike.%${qLower}%,brand.ilike.%${qLower}%,store.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`
-        );
+        let orClause = `object_name.ilike.%${qLower}%,brand.ilike.%${qLower}%,store.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`;
+        if (matchedPurchaseIds.length > 0) orClause += `,id.in.(${matchedPurchaseIds.join(',')})`;
+        purchaseQuery = purchaseQuery.or(orClause);
       }
       if (filterBrand) purchaseQuery = purchaseQuery.eq('brand', filterBrand);
       if (filterStore) purchaseQuery = purchaseQuery.eq('store', filterStore);
@@ -249,9 +266,9 @@ export default function SearchPage() {
     if (scope !== 'purchase') {
       let contractQuery = supabase.from('contracts').select('*').eq('organization_id', orgId).is('cancelled_at', null);
       if (qLower) {
-        contractQuery = contractQuery.or(
-          `name.ilike.%${qLower}%,provider.ilike.%${qLower}%,contract_type.ilike.%${qLower}%,reference_number.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`
-        );
+        let orClause = `name.ilike.%${qLower}%,provider.ilike.%${qLower}%,contract_type.ilike.%${qLower}%,reference_number.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`;
+        if (matchedContractIds.length > 0) orClause += `,id.in.(${matchedContractIds.join(',')})`;
+        contractQuery = contractQuery.or(orClause);
       }
       if (filterProvider) contractQuery = contractQuery.eq('provider', filterProvider);
       if (filterContractType) contractQuery = contractQuery.eq('contract_type', filterContractType);
