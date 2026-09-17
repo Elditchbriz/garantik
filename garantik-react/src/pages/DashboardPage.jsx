@@ -824,12 +824,6 @@ export default function DashboardPage() {
                 <span className="dash-list-dot amber"></span>
                 Contrats & abonnements
                 {' '}<span className="dash-list-count">{filteredContracts.length}</span>
-                <button onClick={() => setCategoryView('garanties')} style={{
-                  marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--blue)', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit',
-                }}>
-                  ← Garanties
-                </button>
               </div>
               {filteredContracts.length > 0 && <SortBtn value={contractSort} onChange={setContractSort} />}
             </div>
