@@ -401,23 +401,31 @@ export default function SubscriptionPage() {
             <>
               {totalDonated !== null && totalDonated > 0 && (
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 16, padding: 22, marginBottom: 12,
+                  padding: 22, marginBottom: 12,
                   borderRadius: 'var(--radius-m)', background: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 100%)',
                   boxShadow: '0 8px 24px rgba(37,99,235,0.25)',
                 }}>
-                  <div style={{
-                    width: 52, height: 52, borderRadius: 14, flexShrink: 0,
-                    background: 'rgba(255,255,255,0.2)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-                  }}>
-                    <Icon name="heart-handshake" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
-                      {totalDonated.toFixed(2)}€
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{
+                      width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                      background: 'rgba(255,255,255,0.2)', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                    }}>
+                      <Icon name="heart-handshake" />
                     </div>
-                    <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
+                    <div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
+                        {totalDonated.toFixed(2)}€
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
+                    </div>
+                  </div>
+                  <div style={{
+                    marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.2)',
+                    fontSize: 12, color: 'rgba(255,255,255,0.85)',
+                  }}>
+                    {(donationBaseMonthly + currentDonationExtraMonthly).toFixed(2)}€ reversés chaque mois par votre abonnement actif
                   </div>
                 </div>
               )}
@@ -426,7 +434,7 @@ export default function SubscriptionPage() {
                 background: 'var(--blue-pale-2)', marginBottom: 16,
               }}>
                 <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
-                  🤝 Association soutenue
+                  🤝 Mon impact
                 </div>
                 <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
                   Choisissez une association : <strong>{donationBaseYearly.toFixed(2)}€ par an</strong> (ou{' '}
@@ -517,10 +525,15 @@ export default function SubscriptionPage() {
                       Actualité
                     </div>
                     {charityNews.map((n) => (
-                      <div key={n.id} style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 12.5, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 1 }}>
-                          {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                      <div key={n.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+                        {n.image_url && (
+                          <img src={n.image_url} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                        )}
+                        <div>
+                          <div style={{ fontSize: 12.5, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 1 }}>
+                            {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -633,10 +646,15 @@ export default function SubscriptionPage() {
                                 Actualité
                               </div>
                               {charityNews.map((n) => (
-                                <div key={n.id} style={{ marginBottom: 6 }}>
-                                  <div style={{ fontSize: 12, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
-                                  <div style={{ fontSize: 10.5, color: 'var(--ink-faint)', marginTop: 1 }}>
-                                    {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                <div key={n.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8 }}>
+                                  {n.image_url && (
+                                    <img src={n.image_url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                                  )}
+                                  <div>
+                                    <div style={{ fontSize: 12, color: 'var(--navy)', lineHeight: 1.4 }}>{n.headline}</div>
+                                    <div style={{ fontSize: 10.5, color: 'var(--ink-faint)', marginTop: 1 }}>
+                                      {new Date(n.published_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                                    </div>
                                   </div>
                                 </div>
                               ))}
