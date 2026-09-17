@@ -194,6 +194,41 @@ export async function applyPendingHouseholdInviteIfAny() {
   }
 }
 
+// Déclenche l'OCR d'un document complémentaire (pas le scan initial d'un
+// achat/contrat, qui a sa propre extraction structurée) — pour qu'il
+// devienne cherchable par mot-clé. Best-effort volontaire : si l'OCR
+// échoue (type de fichier non supporté, erreur réseau...), le document
+// reste simplement cherchable par son nom de fichier, rien de plus grave.
+// Ne bloque jamais l'upload : à appeler sans attendre son résultat.
+export async function triggerDocumentOcr(documentId, file) {
+  try {
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+      'text/plain', // .txt
+    ];
+    if (!allowedTypes.includes(file.type)) return; // pas grave, juste pas d'OCR pour ce type
+
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const { data: { session } } = await supabase.auth.getSession();
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ocr-document`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ document_id: documentId, image_base64: base64, media_type: file.type }),
+    });
+  } catch (err) {
+    console.error('OCR document complémentaire — échec silencieux (le document reste cherchable par son nom) :', err);
+  }
+}
+
 export async function getCurrentUserProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -355,6 +390,12 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
         .select('*')
         .eq('id', uploadData.document_id)
         .single();
+      // Ici on garde un déclenchement immédiat (contrairement au stockage
+      // Supabase ci-dessous, différé par lot) : le fichier re-télécharger
+      // depuis Drive/Dropbox plus tard demanderait de rejouer l'auth
+      // OAuth de l'organisation depuis un cron, plus complexe pour un cas
+      // minoritaire — alors qu'on a déjà le fichier ici, sous la main.
+      triggerDocumentOcr(uploadData.document_id, file); // en arrière-plan, ne bloque pas l'upload
       return { data: docData, error: null };
     }
     console.error(`Erreur upload ${storageConn.provider}, fallback Supabase:`, uploadError);
@@ -373,7 +414,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
     return { data: null, error: uploadError };
   }
 
-  return supabase
+  const { data: insertedDoc, error: insertError } = await supabase
     .from('documents')
     .insert({
       organization_id: organizationId,
@@ -384,9 +425,16 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
       file_type: fileType,
       file_size_bytes: fileSize,
       storage_provider: 'supabase',
+      // Pas d'appel OCR immédiat ici : un cron (process-pending-ocr) le
+      // traite par lot un peu plus tard — un document qu'on vient de
+      // déposer est très rarement recherché dans la minute qui suit, pas
+      // besoin de ralentir quoi que ce soit au moment de l'upload.
+      ocr_status: 'pending',
     })
     .select()
     .single();
+
+  return { data: insertedDoc, error: insertError };
 }
 
 export async function listContractTypes(organizationId) {
