@@ -100,6 +100,10 @@ export default function SubscriptionPage() {
       setDonationAddonError('Le supplément doit être de 0,50€ minimum, ou 0 pour le retirer');
       return;
     }
+    if (value > 0 && !profile?.organizations?.charity_id) {
+      setDonationAddonError('Choisissez une association dans "Mon impact" ci-dessus avant d\'ajouter un supplément — sinon il ne serait reversé à personne.');
+      return;
+    }
     setSavingDonationAddon(true);
     setDonationAddonError('');
     setDonationAddonSaved(false);
@@ -181,6 +185,10 @@ export default function SubscriptionPage() {
   async function handleCheckout(billingPeriod) {
     if (donationExtraMonthly > 0 && donationExtraMonthly < 0.5) {
       setCheckoutError('Le supplément de don doit être de 0,50€ minimum, ou 0 pour ne rien ajouter');
+      return;
+    }
+    if (donationExtraMonthly > 0 && !charityId) {
+      setCheckoutError('Choisissez une association avant d\'ajouter un supplément de don — sinon il ne serait reversé à personne.');
       return;
     }
     setCheckoutLoading(billingPeriod);
@@ -304,61 +312,6 @@ export default function SubscriptionPage() {
               </div>
             );
           })()}
-
-          {isPremium && (
-            <div style={{
-              padding: '16px 18px', borderRadius: 'var(--radius-m)',
-              background: 'var(--blue-pale-2)', marginBottom: 16,
-            }}>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
-                💙 Donner davantage
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                Ajoutez le supplément mensuel de votre choix à votre don (0,50€ minimum). Il s'ajoute à votre facture et part
-                intégralement à l'association — le prix de votre abonnement Hey Did+ lui-même ne change jamais. Modifiable à tout moment.
-              </p>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number" min="0" max="50" step="0.25"
-                    value={donationExtraCurrentInput}
-                    onChange={(e) => setDonationExtraCurrentInput(e.target.value)}
-                    disabled={savingDonationAddon}
-                    style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
-                  />
-                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
-                </div>
-                <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
-                <button
-                  type="button"
-                  onClick={handleUpdateDonationAddon}
-                  disabled={savingDonationAddon}
-                  className="btn btn-secondary"
-                  style={{ padding: '8px 16px', fontSize: 12.5 }}
-                >
-                  {savingDonationAddon ? 'Enregistrement…' : 'Mettre à jour'}
-                </button>
-              </div>
-              {currentDonationExtraMonthly > 0 && (
-                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
-                  Supplément actuellement actif : {currentDonationExtraMonthly.toFixed(2)}€/mois
-                </div>
-              )}
-              {donationAddonSaved && (
-                <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Icon name="circle-check" />
-                  {currentDonationExtraMonthly > 0
-                    ? `Merci ! Prélèvement effectué, votre supplément de ${currentDonationExtraMonthly.toFixed(2)}€/mois est confirmé.`
-                    : 'Supplément retiré — votre don revient au montant de base.'}
-                </div>
-              )}
-              {donationAddonError && (
-                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 6 }}>
-                  ⚠️ {donationAddonError}
-                </div>
-              )}
-            </div>
-          )}
 
           {isPremium && (
             <div style={{
@@ -541,6 +494,61 @@ export default function SubscriptionPage() {
                 )}
               </div>
             </>
+          )}
+
+          {isPremium && (
+            <div style={{
+              padding: '16px 18px', borderRadius: 'var(--radius-m)',
+              background: 'var(--blue-pale-2)', marginBottom: 16,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>
+                💙 Donner davantage
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
+                Ajoutez le supplément mensuel de votre choix à votre don (0,50€ minimum). Il s'ajoute à votre facture et part
+                intégralement à l'association — le prix de votre abonnement Hey Did+ lui-même ne change jamais. Modifiable à tout moment.
+              </p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number" min="0" max="50" step="0.25"
+                    value={donationExtraCurrentInput}
+                    onChange={(e) => setDonationExtraCurrentInput(e.target.value)}
+                    disabled={savingDonationAddon}
+                    style={{ width: 90, padding: '8px 24px 8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5 }}
+                  />
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12.5, color: 'var(--ink-faint)' }}>€</span>
+                </div>
+                <span style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>par mois</span>
+                <button
+                  type="button"
+                  onClick={handleUpdateDonationAddon}
+                  disabled={savingDonationAddon}
+                  className="btn btn-secondary"
+                  style={{ padding: '8px 16px', fontSize: 12.5 }}
+                >
+                  {savingDonationAddon ? 'Enregistrement…' : 'Mettre à jour'}
+                </button>
+              </div>
+              {currentDonationExtraMonthly > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>
+                  Supplément actuellement actif : {currentDonationExtraMonthly.toFixed(2)}€/mois
+                </div>
+              )}
+              {donationAddonSaved && (
+                <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="circle-check" />
+                  {currentDonationExtraMonthly > 0
+                    ? `Merci ! Prélèvement effectué, votre supplément de ${currentDonationExtraMonthly.toFixed(2)}€/mois est confirmé.`
+                    : 'Supplément retiré — votre don revient au montant de base.'}
+                </div>
+              )}
+              {donationAddonError && (
+                <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 6 }}>
+                  ⚠️ {donationAddonError}
+                </div>
+              )}
+            </div>
           )}
 
           {!isPremium ? (
