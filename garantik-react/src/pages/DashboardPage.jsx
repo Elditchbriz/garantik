@@ -143,7 +143,7 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
     if (days >= 0 && days <= 30) {
       advices.push({
         key: `renewal:${c.id}`, priority: 2, icon: '📄', title: `Renouveler ${c.name} ?`,
-        text: `Ce contrat n'a pas de reconduction automatique et arrive à échéance dans ${days} jour${days > 1 ? 's' : ''}. Sans action de votre part, la couverture s'arrête.`,
+        text: `Ce contrat n'a pas de reconduction automatique et arrive à échéance dans ${days} jour${days > 1 ? 's' : ''}. Sans action de ta part, la couverture s'arrête.`,
         actionLabel: 'Renouveler', actionLink: `/add-contract?renew_from=${c.id}`,
       });
     }
@@ -169,31 +169,31 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
   const MAINTENANCE_RULES = [
     { keywords: ['poele a bois', 'poele bois', 'insert bois', 'cheminee'], icon: '🔥', intervalMonths: 6,
       title: () => `Ramonage à prévoir ?`,
-      text: "Le ramonage est généralement obligatoire (souvent 2 fois par an selon votre commune) — sans attestation, votre assurance peut refuser de vous couvrir en cas d'incendie." },
+      text: "Le ramonage est généralement obligatoire (souvent 2 fois par an selon ta commune) — sans attestation, ton assurance peut refuser de te couvrir en cas d'incendie." },
     { keywords: ['poele a pellets', 'poele granules', 'poele a granules'], icon: '🔥', intervalMonths: 12,
       title: () => `Entretien annuel à prévoir ?`,
-      text: "Un entretien annuel par un professionnel est généralement requis pour les poêles à pellets/granulés — vérifiez les préconisations du fabricant et de votre assurance." },
+      text: "Un entretien annuel par un professionnel est généralement requis pour les poêles à pellets/granulés — vérifiez les préconisations du fabricant et de ton assurance." },
     { keywords: ['chaudiere'], icon: '🔧', intervalMonths: 12,
       title: () => `Entretien annuel de la chaudière`,
       text: "L'entretien annuel d'une chaudière est une obligation légale en France — vérifiez que le vôtre est à jour." },
     { keywords: ['lave-linge', 'lave linge', 'machine a laver'], icon: '🧺', intervalMonths: 6,
       title: (name) => `Détartrage du ${name} ?`,
-      text: "Un détartrage régulier prolonge la durée de vie de votre lave-linge et évite les mauvaises odeurs." },
+      text: "Un détartrage régulier prolonge la durée de vie de ton lave-linge et évite les mauvaises odeurs." },
     { keywords: ['lave-vaisselle', 'lave vaisselle'], icon: '🍽️', intervalMonths: 6,
       title: (name) => `Détartrage du ${name} ?`,
-      text: "Un détartrage régulier préserve les performances de votre lave-vaisselle." },
+      text: "Un détartrage régulier préserve les performances de ton lave-vaisselle." },
     { keywords: ['machine a cafe', 'cafetiere', 'expresso', 'nespresso'], icon: '☕', intervalMonths: 3,
       title: (name) => `Détartrage de la ${name} ?`,
       text: "Un détartrage régulier évite les pannes et préserve le goût du café." },
     { keywords: ['bouilloire'], icon: '☕', intervalMonths: 6,
       title: () => `Détartrage de la bouilloire ?`,
-      text: "Détartrer régulièrement votre bouilloire évite le calcaire et prolonge sa durée de vie." },
+      text: "Détartrer régulièrement ta bouilloire évite le calcaire et prolonge sa durée de vie." },
     { keywords: ['climatiseur', 'climatisation'], icon: '❄️', intervalMonths: 12,
       title: () => `Entretien de la climatisation ?`,
-      text: "Un entretien annuel (nettoyage des filtres) maintient les performances et l'hygiène de votre climatiseur." },
+      text: "Un entretien annuel (nettoyage des filtres) maintient les performances et l'hygiène de ton climatiseur." },
     { keywords: ['voiture', 'vehicule', 'automobile'], icon: '🚗', intervalMonths: 24,
       title: () => `Contrôle technique à jour ?`,
-      text: "Le contrôle technique est obligatoire tous les 2 ans (4 ans après la première mise en circulation pour un véhicule neuf) — vérifiez la date exacte sur votre carte grise." },
+      text: "Le contrôle technique est obligatoire tous les 2 ans (4 ans après la première mise en circulation pour un véhicule neuf) — vérifiez la date exacte sur ta carte grise." },
   ];
 
   purchases.filter((p) => p.purchase_date && p.object_name).forEach((p) => {
@@ -235,10 +235,10 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
     const contractsText = contracts.map((c) => `${c.contract_type || ''} ${c.name || ''}`.toLowerCase()).join(' | ');
     const COMMON_COVERAGE_CHECKS = [
       { key: 'coverage:assurance', keywords: ['assurance', 'mutuelle', 'complémentaire santé'], title: 'Aucune assurance suivie ?',
-        text: "On ne voit aucun contrat d'assurance dans votre foyer (habitation, auto, santé, vie…). Si vous en avez, ajoutez-les pour que Did surveille leurs échéances. Sinon, ignorez ce conseil.",
+        text: "Je ne vois aucun contrat d'assurance dans ton foyer (habitation, auto, santé, vie…). Si tu en as déjà, ajoute-les pour que je surveille leurs échéances. Sinon, ignore ce conseil.",
         actionLabel: 'Ajouter une assurance', contractType: 'Assurance' },
       { key: 'coverage:telecom', keywords: ['téléphonie', 'telephonie', 'internet', 'mobile', 'forfait', 'box'], title: 'Aucun contrat téléphonie/internet ?',
-        text: "On ne voit aucun contrat de téléphonie ou d'accès internet suivi. Si vous en avez, ajoutez-le — c'est souvent là qu'une hausse de prix passe inaperçue.",
+        text: "Je ne vois aucun contrat de téléphonie ou d'accès internet suivi. Si tu en as un, ajoute-le — c'est souvent là qu'une hausse de prix passe inaperçue.",
         actionLabel: 'Ajouter cet abonnement', contractType: 'Téléphonie / Internet' },
     ];
     COMMON_COVERAGE_CHECKS.forEach((check) => {
@@ -266,7 +266,7 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
     bullets.push({ icon: '🔴', text: `${expired[0].name}${expired.length > 1 ? ` et ${expired.length - 1} autre${expired.length > 2 ? 's' : ''}` : ''} déjà expiré${expired.length > 1 ? 's' : ''}.` });
   }
   if (inboxCount > 0) {
-    bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de votre validation.` });
+    bullets.push({ icon: '📬', text: `${inboxCount} document${inboxCount > 1 ? 's' : ''} reçu${inboxCount > 1 ? 's' : ''} par email, en attente de ta validation.` });
   }
   if (bullets.length === 0 && !(isPremium && topAdvices.length > 0)) {
     bullets.push({ icon: '👍', text: 'Rien à signaler, tout est sous contrôle.' });
@@ -284,7 +284,7 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
           <img src="/didier-headshot.jpg" alt="Did" />
         </div>
         <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
-          Voici ce que j'ai préparé pour vous aujourd'hui :
+          Voici ce que j'ai préparé pour toi aujourd'hui :
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, paddingLeft: 4 }}>
