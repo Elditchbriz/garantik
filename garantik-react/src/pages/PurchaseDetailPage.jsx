@@ -188,6 +188,7 @@ export default function PurchaseDetailPage() {
         file_type: file.type,
         file_size_bytes: file.size,
         document_category: uploadCategory,
+        ocr_status: 'pending', // traité par lot en différé (cron process-pending-ocr), pas dans l'immédiat
       });
       await loadAll();
     }
