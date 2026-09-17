@@ -752,7 +752,7 @@ export default function DashboardPage() {
             <div className="chiffre-mini" onClick={() => navigate('/account/subscription#association')} style={{ cursor: 'pointer' }}>
               <div className="ic" style={{ background: '#FEE2E2', color: '#DC2626' }}><Icon name="heart-handshake" /></div>
               <div className="v">{totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '0 €'}</div>
-              <div className="l">Donnés</div>
+              <div className="l">Mon impact</div>
             </div>
           )}
         </div>
