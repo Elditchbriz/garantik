@@ -5,7 +5,7 @@ import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
 export default function HouseholdPage() {
-  const { profile } = useOutletContext();
+  const { profile, setProfile } = useOutletContext();
   const isPremium = profile?.organizations?.plan === 'premium';
 
   const [householdMembers, setHouseholdMembers] = useState([]);
@@ -14,6 +14,11 @@ export default function HouseholdPage() {
   const [invitingMember, setInvitingMember] = useState(false);
   const [householdError, setHouseholdError] = useState('');
   const [householdActionId, setHouseholdActionId] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
+  const [resendMessage, setResendMessage] = useState('');
+  const [orgName, setOrgName] = useState(profile?.organizations?.name || '');
+  const [editingOrgName, setEditingOrgName] = useState(false);
+  const [savingOrgName, setSavingOrgName] = useState(false);
 
   const isHouseholdOwner = householdMembers.length > 0 && householdMembers[0].id === profile?.id;
 
@@ -63,6 +68,37 @@ export default function HouseholdPage() {
       setHouseholdError(err.message || "Impossible d'envoyer l'invitation.");
     } finally {
       setInvitingMember(false);
+    }
+  }
+
+  async function handleResendInvite(inviteId) {
+    setResendingId(inviteId);
+    setHouseholdError('');
+    setResendMessage('');
+    try {
+      const result = await callEdgeFunction('invite-household-member', { action: 'resend', invite_id: inviteId });
+      if (result.email_sent) {
+        setResendMessage('Email renvoyé.');
+        setTimeout(() => setResendMessage(''), 4000);
+      } else {
+        setHouseholdError(result.email_error || "L'email n'a pas pu être renvoyé.");
+      }
+    } catch (err) {
+      setHouseholdError(err.message || "Impossible de renvoyer l'invitation.");
+    } finally {
+      setResendingId(null);
+    }
+  }
+
+  async function handleSaveOrgName() {
+    setSavingOrgName(true);
+    const { error } = await supabase.from('organizations').update({ name: orgName }).eq('id', profile.organization_id);
+    setSavingOrgName(false);
+    if (!error) {
+      setProfile((p) => ({ ...p, organizations: { ...p.organizations, name: orgName } }));
+      setEditingOrgName(false);
+    } else {
+      setHouseholdError(error.message || 'Impossible de mettre à jour le nom du foyer.');
     }
   }
 
@@ -118,6 +154,29 @@ export default function HouseholdPage() {
     <div>
       <PageHeader backTo="/account" title="Membres du foyer" subtitle="Jusqu'à 5 proches, accès complet" showHelp={false} />
 
+      <div className="panel" style={{ padding: 20, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+          Nom du foyer
+        </div>
+        {editingOrgName ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)}
+              placeholder="Ex : Famille Dupont"
+              style={{ flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 13.5, fontFamily: 'inherit' }}
+            />
+            <button onClick={handleSaveOrgName} disabled={savingOrgName} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: 12.5, flexShrink: 0 }}>
+              {savingOrgName ? '…' : 'Enregistrer'}
+            </button>
+          </div>
+        ) : (
+          <div onClick={() => isHouseholdOwner && setEditingOrgName(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isHouseholdOwner ? 'pointer' : 'default' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>{orgName || 'Mon foyer'}</div>
+            {isHouseholdOwner && <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-faint)' }} />}
+          </div>
+        )}
+      </div>
+
       <div className="panel" style={{ padding: 20 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
           {householdMembers.map((m, i) => (
@@ -152,13 +211,22 @@ export default function HouseholdPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>Invitation en attente</div>
               </div>
               {isHouseholdOwner && (
-                <button
-                  onClick={() => handleCancelInvite(inv.id)}
-                  disabled={householdActionId === inv.id}
-                  style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  {householdActionId === inv.id ? '…' : 'Annuler'}
-                </button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button
+                    onClick={() => handleResendInvite(inv.id)}
+                    disabled={resendingId === inv.id}
+                    style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--blue)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+                  >
+                    {resendingId === inv.id ? 'Envoi…' : 'Renvoyer'}
+                  </button>
+                  <button
+                    onClick={() => handleCancelInvite(inv.id)}
+                    disabled={householdActionId === inv.id}
+                    style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {householdActionId === inv.id ? '…' : 'Annuler'}
+                  </button>
+                </div>
               )}
             </div>
           ))}
@@ -178,6 +246,9 @@ export default function HouseholdPage() {
         )}
         {isHouseholdOwner && (householdMembers.length - 1 + householdInvites.length) >= 5 && (
           <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Votre foyer a atteint la limite de 5 membres.</div>
+        )}
+        {resendMessage && (
+          <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 8 }}>✓ {resendMessage}</div>
         )}
         {householdError && (
           <div style={{ fontSize: 12, color: 'var(--red-text)', fontWeight: 600, marginTop: 8 }}>⚠️ {householdError}</div>
