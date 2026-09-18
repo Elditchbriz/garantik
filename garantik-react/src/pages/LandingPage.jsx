@@ -220,7 +220,7 @@ export default function LandingPage() {
         <div className="lp-hero-items">
           <div className="item"><div className="ic" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div><span>Garanties</span></div>
           <div className="item"><div className="ic" style={{ background: 'var(--green-pale)', color: 'var(--green-text)' }}><Icon name="file-text" /></div><span>Contrats</span></div>
-          <div className="item"><div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="repeat" /></div><span>Abonnements</span></div>
+          <div className="item"><div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="credit-card" /></div><span>Abonnements</span></div>
           <div className="item"><div className="ic" style={{ background: '#F1EEFF', color: '#6D4AFF' }}><Icon name="folder" /></div><span>Documents</span></div>
         </div>
 
