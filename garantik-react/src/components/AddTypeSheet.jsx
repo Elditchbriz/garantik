@@ -48,7 +48,7 @@ export default function AddTypeSheet({ onClose }) {
           </div>
           <div className="item-card" onClick={() => go('/add-contract?type=Abonnement')} style={{ cursor: 'pointer', marginTop: 10 }}>
             <div className="dash-add-icon" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}>
-              <Icon name="repeat" />
+              <Icon name="credit-card" />
             </div>
             <div className="dash-item-body">
               <div className="dash-item-name">Un abonnement</div>
