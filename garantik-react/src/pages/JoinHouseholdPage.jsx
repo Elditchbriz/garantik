@@ -63,7 +63,7 @@ export default function JoinHouseholdPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--bg)' }}>
       <div style={{ background: '#fff', borderRadius: 'var(--radius-l)', padding: 36, maxWidth: 420, width: '100%', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-          <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #1E3A6E, #3B6FD4)', borderRadius: 8 }} />
+          <img src="/logo-icon.png" alt="Hey Did" width={32} height={32} style={{ borderRadius: 9 }} />
           <span style={{ fontSize: 20, fontWeight: 800, color: '#173B8F' }}>Hey Did</span>
         </div>
 
