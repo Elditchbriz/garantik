@@ -1,6 +1,7 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
+import PageHeader from '../components/PageHeader.jsx';
 
 const LEGAL_CONTENT = {
   hebergement: {
@@ -169,36 +170,25 @@ Les données des utilisateurs sont stockées exclusivement sur des serveurs situ
 export default function LegalPage() {
   const { page } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const content = LEGAL_CONTENT[page];
+  // D'où vient-on ? Transmis explicitement par la page d'origine (ex :
+  // l'onglet "À propos" des paramètres) plutôt que de se fier à
+  // navigate(-1), peu fiable ici : ce lien peut aussi être ouvert
+  // directement (partagé, favori) sans historique de navigation cohérent.
+  // Par défaut, on retombe sur l'accueil du site (visiteur non connecté).
+  const backTo = searchParams.get('from') || '/';
 
   if (!content) return (
     <div style={{ padding: 32, textAlign: 'center' }}>
       <p>Page introuvable</p>
-      <button onClick={() => navigate(-1)} className="btn btn-ghost" style={{ marginTop: 16 }}>Retour</button>
+      <button onClick={() => navigate(backTo)} className="btn btn-ghost" style={{ marginTop: 16 }}>Retour</button>
     </div>
   );
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 20px 60px' }}>
-      <button onClick={() => navigate(-1)} style={{
-        display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none',
-        cursor: 'pointer', color: 'var(--ink-soft)', fontSize: 14, fontWeight: 500, marginBottom: 24, padding: 0,
-      }}>
-        <Icon name="arrow-left" /> Retour
-      </button>
-
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, overflow: 'hidden' }}>
-          <div className="mark" style={{ width: 34, height: 34 }}></div>
-        </div>
-        <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 19, fontWeight: 800, color: 'var(--navy)' }}>Hey Did</span>
-      </div>
-
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)', marginBottom: 8 }}>{content.title}</h1>
-      <p style={{ fontSize: 13.5, color: 'var(--ink-faint)', marginBottom: 32 }}>
-        Dernière mise à jour : juin 2026 · Conçu et hébergé en France 🇫🇷
-      </p>
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 20px 60px' }}>
+      <PageHeader backTo={backTo} title={content.title} subtitle="Dernière mise à jour : juin 2026 · Conçu et hébergé en France 🇫🇷" />
 
       {content.sections.map((section, i) => (
         <div key={i} style={{ marginBottom: 28 }}>
