@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams, Link } from 'react-router-dom';
 import { supabase, listContractTypes, findSimilarListItems } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import StorageConnector from '../components/StorageConnector.jsx';
@@ -17,10 +17,12 @@ const TABS = [
 export default function SettingsPage() {
   const { profile } = useOutletContext();
   const orgId = profile?.organization_id;
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState(
-    // Rester sur l'onglet storage si on revient du callback OAuth Drive
-    searchParams.get('code') ? 'storage' : 'preferences'
+    // Rester sur l'onglet storage si on revient du callback OAuth Drive,
+    // ou sur l'onglet demandé explicitement dans l'URL (ex : ?tab=about,
+    // pour qu'un retour depuis une page légale retombe au bon endroit).
+    searchParams.get('code') ? 'storage' : (searchParams.get('tab') || 'preferences')
   );
 
   // Un changement d'onglet ici ne change pas l'URL — donc le correctif
@@ -43,7 +45,7 @@ export default function SettingsPage() {
         {TABS.map(t => (
           <div key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`}
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-            onClick={() => setTab(t.id)}>
+            onClick={() => { setTab(t.id); setSearchParams({ tab: t.id }, { replace: true }); }}>
             <Icon name={t.icon} style={{ fontSize: 14 }} /> {t.label}
           </div>
         ))}
@@ -432,13 +434,13 @@ function AboutTab() {
           { label: 'Politique de confidentialité', to: '/legal/confidentialite' },
           { label: 'Mentions légales', to: '/legal/mentions' },
         ].map(({ label, to }) => (
-          <a key={to} href={to} style={{
+          <Link key={to} to={`${to}?from=${encodeURIComponent('/settings?tab=about')}`} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', borderBottom: '1px solid var(--line)',
             fontSize: 14, color: 'var(--navy)', textDecoration: 'none',
           }}>
             {label} <Icon name="chevron-down" style={{ transform: 'rotate(-90deg)', color: 'var(--ink-faint)' }} />
-          </a>
+          </Link>
         ))}
         <div style={{ padding: '16px' }}>
           <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 4 }}>Hey Did v1.0</div>
