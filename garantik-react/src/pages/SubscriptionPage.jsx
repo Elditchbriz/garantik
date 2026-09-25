@@ -24,6 +24,16 @@ function loadStripeJs() {
   return stripeJsPromise;
 }
 
+// Filet de sécurité : si une erreur brute de l'API Stripe remonte jusqu'ici
+// (au lieu d'un message déjà propre renvoyé par nos Edge Functions), on
+// évite d'exposer le mot "Stripe" ou du jargon technique à l'utilisateur.
+function friendlyError(message) {
+  if (!message || /stripe/i.test(message)) {
+    return "Impossible d'effectuer cette action — il est possible que vous n'ayez pas l'abonnement Hey Did+, ou pas la bonne version. Contactez le support si le problème persiste.";
+  }
+  return message;
+}
+
 export default function SubscriptionPage() {
   const { profile, setProfile } = useOutletContext();
   const navigate = useNavigate();
@@ -130,7 +140,7 @@ export default function SubscriptionPage() {
       setTimeout(() => setDonationAddonSaved(false), 4000);
       setDonationExtraCurrentInput(String(result.donation_addon_extra_monthly));
     } catch (err) {
-      setDonationAddonError(err.message || 'Impossible de mettre à jour votre supplément — réessayez.');
+      setDonationAddonError(friendlyError(err.message) || 'Impossible de mettre à jour votre supplément — réessayez.');
     } finally {
       setSavingDonationAddon(false);
     }
@@ -197,7 +207,7 @@ export default function SubscriptionPage() {
       const { url } = await callEdgeFunction('create-checkout-session', { billing_period: billingPeriod, donation_addon_extra_monthly: donationExtraMonthly, charity_id: charityId || null });
       window.location.href = url;
     } catch (err) {
-      setCheckoutError(err.message);
+      setCheckoutError(friendlyError(err.message));
       setCheckoutLoading(null);
     }
   }
@@ -209,7 +219,7 @@ export default function SubscriptionPage() {
       const { url } = await callEdgeFunction('create-portal-session');
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
-      setCheckoutError(err.message);
+      setCheckoutError(friendlyError(err.message));
     } finally {
       setCheckoutLoading(null);
     }
@@ -220,6 +230,12 @@ export default function SubscriptionPage() {
   const subscriptionInterval = profile?.organizations?.subscription_interval || 'month';
   const isPremium = plan === 'premium';
   const renewalDate = profile?.organizations?.plan_renewal_date;
+  // Un accès Hey Did+ accordé manuellement par l'admin (pas via un vrai
+  // paiement Stripe) n'a pas d'abonnement Stripe derrière — le don et la
+  // gestion d'abonnement, qui reposent tous les deux dessus, ne peuvent
+  // alors pas fonctionner. Mieux vaut le dire clairement que de laisser
+  // ces actions échouer avec une erreur technique incompréhensible.
+  const hasStripeSubscription = !!profile?.organizations?.stripe_subscription_id;
 
   return (
     <>
@@ -286,6 +302,16 @@ export default function SubscriptionPage() {
               </div>
             )}
           </div>
+
+          {isPremium && !hasStripeSubscription && (
+            <div style={{
+              padding: '14px 16px', borderRadius: 'var(--radius-m)',
+              background: 'var(--blue-pale)', marginBottom: 16, fontSize: 12.5, color: 'var(--blue-dark)', lineHeight: 1.5,
+            }}>
+              ℹ️ Ton accès Hey Did+ a été activé directement par l'équipe Hey Did, sans abonnement payant associé.
+              Le don et la gestion d'abonnement ne sont donc pas disponibles dans ce cas précis.
+            </div>
+          )}
 
           {isPremium && (() => {
             const isYearly = subscriptionInterval === 'year';
@@ -460,7 +486,7 @@ export default function SubscriptionPage() {
             </>
           )}
 
-          {isPremium && (
+          {isPremium && hasStripeSubscription && (
             <div style={{
               padding: '16px 18px', borderRadius: 'var(--radius-m)',
               background: 'var(--blue-pale-2)', marginBottom: 16,
@@ -728,7 +754,7 @@ export default function SubscriptionPage() {
                 </div>
               )}
             </div>
-          ) : (
+          ) : hasStripeSubscription ? (
             <button
               className="btn btn-ghost"
               style={{ width: '100%', justifyContent: 'center' }}
@@ -737,7 +763,7 @@ export default function SubscriptionPage() {
             >
               <Icon name="settings" /> {checkoutLoading === 'portal' ? 'Redirection…' : 'Gérer mon abonnement'}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </>
