@@ -211,18 +211,18 @@ export default function HouseholdPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>Invitation en attente</div>
               </div>
               {isHouseholdOwner && (
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                   <button
                     onClick={() => handleResendInvite(inv.id)}
                     disabled={resendingId === inv.id}
-                    style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--blue)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+                    style={{ background: 'var(--blue-pale)', border: 'none', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--blue-dark)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, whiteSpace: 'nowrap' }}
                   >
                     {resendingId === inv.id ? 'Envoi…' : 'Renvoyer'}
                   </button>
                   <button
                     onClick={() => handleCancelInvite(inv.id)}
                     disabled={householdActionId === inv.id}
-                    style={{ background: 'none', border: 'none', padding: '4px 8px', fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ background: 'none', border: 'none', padding: '6px 8px', fontSize: 12, color: 'var(--ink-faint)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
                   >
                     {householdActionId === inv.id ? '…' : 'Annuler'}
                   </button>
