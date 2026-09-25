@@ -33,16 +33,32 @@ export default function QuickSearchOverlay({ orgId, onClose }) {
   async function doSearch() {
     setLoading(true);
     const q = query.trim().toLowerCase();
+
+    // Un document complémentaire ajouté après coup (pas le ticket scanné
+    // au départ) a son propre ocr_content, stocké à part — sans cette
+    // étape, une garantie/un contrat resterait introuvable ici alors que
+    // la recherche avancée le trouve bien (elle, fait déjà cette étape).
+    const { data: matchedDocs } = await supabase.from('documents').select('purchase_id, contract_id')
+      .eq('organization_id', orgId)
+      .or(`file_name.ilike.%${q}%,ocr_content.ilike.%${q}%`);
+    const matchedPurchaseIds = [...new Set((matchedDocs || []).map((d) => d.purchase_id).filter(Boolean))];
+    const matchedContractIds = [...new Set((matchedDocs || []).map((d) => d.contract_id).filter(Boolean))];
+
+    let purchaseOr = `object_name.ilike.%${q}%,brand.ilike.%${q}%,store.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%`;
+    if (matchedPurchaseIds.length > 0) purchaseOr += `,id.in.(${matchedPurchaseIds.join(',')})`;
+    let contractOr = `name.ilike.%${q}%,provider.ilike.%${q}%,reference_number.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%,contract_type.ilike.%${q}%`;
+    if (matchedContractIds.length > 0) contractOr += `,id.in.(${matchedContractIds.join(',')})`;
+
     // Le champ notes (bloc-notes libre) est désormais inclus, pour les
     // achats comme pour les contrats — cohérent avec la recherche avancée.
     const [{ data: purchases }, { data: contracts }] = await Promise.all([
       supabase.from('purchases').select('id, object_name, brand, store, warranty_end_date')
         .eq('organization_id', orgId)
-        .or(`object_name.ilike.%${q}%,brand.ilike.%${q}%,store.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%`)
+        .or(purchaseOr)
         .limit(6),
       supabase.from('contracts').select('id, name, provider, end_date')
         .eq('organization_id', orgId)
-        .or(`name.ilike.%${q}%,provider.ilike.%${q}%,reference_number.ilike.%${q}%,ocr_content.ilike.%${q}%,notes.ilike.%${q}%,contract_type.ilike.%${q}%`)
+        .or(contractOr)
         .limit(6),
     ]);
     setPurchaseResults(purchases || []);
