@@ -38,7 +38,7 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
     sections: [
       {
         heading: "1. Présentation du service",
-        content: `Hey Did est un service de gestion de garanties et de documents, édité par [Nom de l'éditeur], dont le siège social est situé à Antibes (06600), France. Le service est accessible à l'adresse hey-did.fr et permet aux utilisateurs de stocker, suivre et gérer leurs garanties produits, tickets de caisse et documents associés.`
+        content: `Hey Did est un service de gestion de garanties et de documents, édité par Didier BRISACK, entrepreneur individuel (micro-entreprise), dont le siège est situé à Antibes (06600), France. Le service est accessible à l'adresse hey-did.fr et permet aux utilisateurs de stocker, suivre et gérer leurs garanties produits, tickets de caisse et documents associés.`
       },
       {
         heading: "2. Acceptation des conditions",
@@ -74,13 +74,25 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
       },
       {
         heading: "10. Don aux associations partenaires (abonnement Hey Did+)",
-        content: `Les abonnés à Hey Did+ peuvent choisir, parmi une liste d'associations proposée dans l'application, une association à laquelle ils souhaitent apporter leur soutien. Un pourcentage de leur redevance d'abonnement (mensuelle ou annuelle), déterminé librement par Hey Did et pouvant évoluer, est alors mis de côté à cet effet.
+        content: `Chaque abonnement Hey Did+ inclut, sans coût supplémentaire pour l'utilisateur, un montant fixe reversé à une association partenaire : 0,50€ par mois pour un abonnement mensuel, ou 6€ par an pour un abonnement annuel. Ce montant est déjà compris dans le prix affiché de l'abonnement ; il ne s'ajoute pas à la facture.
 
-Ce don n'est pas effectué directement par l'utilisateur : c'est Hey Did qui collecte l'ensemble des montants ainsi affectés et se charge de les reverser périodiquement à l'association concernée, par virement bancaire. Hey Did reste seul responsable vis-à-vis de l'association du bon versement des sommes collectées en son nom.
+L'utilisateur choisit librement, parmi une liste d'associations proposée dans l'application, celle à laquelle ce montant sera reversé. Ce choix peut être modifié à tout moment depuis la page de gestion de l'abonnement, sans incidence sur le prix payé.
 
-Ce mécanisme ne constitue pas un don direct de l'utilisateur à l'association au sens fiscal du terme : il n'ouvre donc droit à aucun reçu fiscal ni à aucune réduction ou crédit d'impôt pour l'utilisateur. Le choix d'association peut être modifié à tout moment depuis la page de gestion de l'abonnement, sans incidence sur le prix de l'abonnement.
+L'utilisateur peut également, s'il le souhaite, ajouter un supplément de don mensuel de son choix (0,50€ minimum), qui s'ajoute alors distinctement à sa facture et est intégralement reversé à l'association — sans jamais modifier le prix de l'abonnement Hey Did+ lui-même. Ce supplément est modifiable ou supprimable à tout moment.
+
+Ce don n'est pas effectué directement par l'utilisateur : c'est Hey Did qui collecte l'ensemble des montants ainsi affectés (montant fixe inclus et supplément éventuel) et se charge de les reverser périodiquement à l'association concernée, par virement bancaire. Hey Did reste seul responsable vis-à-vis de l'association du bon versement des sommes collectées en son nom.
+
+Ce mécanisme ne constitue pas un don direct de l'utilisateur à l'association au sens fiscal du terme : il n'ouvre donc droit à aucun reçu fiscal ni à aucune réduction ou crédit d'impôt pour l'utilisateur.
 
 Hey Did se réserve le droit de modifier la liste des associations proposées, notamment en cas de fin de partenariat avec l'une d'entre elles.`
+      },
+      {
+        heading: "11. Droit de rétractation",
+        content: `Conformément aux articles L.221-18 et suivants du Code de la consommation, l'utilisateur consommateur dispose d'un délai de 14 jours à compter de la souscription à l'abonnement Hey Did+ pour exercer son droit de rétractation, sans avoir à justifier de motif ni à supporter de pénalité.
+
+Pour exercer ce droit, l'utilisateur peut contacter contact@hey-did.fr en indiquant clairement sa décision de rétractation. Le remboursement intervient dans un délai de 14 jours suivant la réception de cette demande.
+
+Conformément à l'article L.221-28 du Code de la consommation, l'utilisateur qui demande expressément à bénéficier du service Hey Did+ dès la souscription, avant l'expiration du délai de rétractation, et qui reconnaît que l'exécution du contrat a alors commencé, perd son droit de rétractation une fois le service pleinement exécuté. S'il exerce sa rétractation après avoir commencé à utiliser le service mais avant la fin du délai de 14 jours, il devra s'acquitter du prix correspondant à la période d'utilisation déjà effectuée, calculé au prorata.`
       },
     ]
   },
@@ -89,7 +101,7 @@ Hey Did se réserve le droit de modifier la liste des associations proposées, n
     sections: [
       {
         heading: "1. Responsable du traitement",
-        content: `Le responsable du traitement des données personnelles est [Nom de l'éditeur], domicilié à Antibes (06600), France. Pour toute question relative à vos données, vous pouvez contacter : privacy@hey-did.fr`
+        content: `Le responsable du traitement des données personnelles est Didier BRISACK, entrepreneur individuel (micro-entreprise), domicilié à Antibes (06600), France. Pour toute question relative à vos données, vous pouvez contacter : privacy@hey-did.fr`
       },
       {
         heading: "2. Données collectées",
@@ -133,11 +145,12 @@ Vous pouvez à tout moment demander la suppression anticipée de vos fichiers de
     sections: [
       {
         heading: "Éditeur du site",
-        content: `Hey Did est édité par [Nom / Raison sociale]
-Forme juridique : [à compléter]
+        content: `Hey Did est édité par Didier BRISACK
+Forme juridique : Entreprise individuelle (micro-entreprise)
+SIRET : en cours d'attribution (immatriculation en cours)
 Siège social : Antibes (06600), France
 E-mail : contact@hey-did.fr
-Directeur de la publication : [Nom du directeur]`
+Directeur de la publication : Didier BRISACK`
       },
       {
         heading: "Hébergement",
