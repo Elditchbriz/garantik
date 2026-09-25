@@ -3,6 +3,49 @@ import { supabase } from '../lib/supabaseClient.js';
 import Icon from './Icon.jsx';
 
 // ============================================================
+// Vrais logos multicolores (pas l'icône monochrome générique du reste de
+// l'app — ces marques ont des couleurs qui leur sont propres, essentielles
+// à leur reconnaissance immédiate).
+// ============================================================
+function GoogleDriveLogo({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 87.3 78">
+      <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA" />
+      <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00AC47" />
+      <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#EA4335" />
+      <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D" />
+      <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC" />
+      <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00" />
+    </svg>
+  );
+}
+function DropboxLogo({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 43 40">
+      <path d="M12.6 0 0 8.2l8.8 7.1 12.7-7.9z" fill="#0061FE" />
+      <path d="M0 22.4l12.6 8.2 8.9-7.4-12.7-7.9z" fill="#0061FE" />
+      <path d="M21.5 23.2l8.9 7.4 12.6-8.2-8.8-7.1z" fill="#0061FE" />
+      <path d="M43 8.2 30.4 0l-8.9 7.4 12.7 7.9z" fill="#0061FE" />
+      <path d="M21.55 24.9l-8.9 7.3v3.6l8.9-5.9 8.9 5.9v-3.6z" fill="#0061FE" />
+    </svg>
+  );
+}
+function OneDriveLogo({ size = 24 }) {
+  return (
+    <svg width={size} height={size * 20 / 32} viewBox="0 0 32 20">
+      <path d="M12.7 4.2a7.6 7.6 0 0 1 7 4.9 5.3 5.3 0 0 1 1.5-.2 5.6 5.6 0 0 1 0 11.1H9.2a6.7 6.7 0 0 1-1.4-13.2 7.6 7.6 0 0 1 4.9-2.6z" fill="#0364B8" />
+      <path d="M20.2 9.1a5.6 5.6 0 0 1 5.5 5.6c0 .5-.07 1-.2 1.4a5.6 5.6 0 0 0 -2.4-10.4c-.5 0-1 .06-1.5.2.24.66.42 1.36.55 2.08.02.02.03.06.05.1z" fill="#0F78D4" opacity="0.75" />
+    </svg>
+  );
+}
+function ProviderLogo({ provider, size = 24 }) {
+  if (provider === 'google_drive') return <GoogleDriveLogo size={size} />;
+  if (provider === 'dropbox') return <DropboxLogo size={size} />;
+  if (provider === 'onedrive') return <OneDriveLogo size={size} />;
+  return <Icon name="cloud" style={{ fontSize: size }} />;
+}
+
+// ============================================================
 // StorageConnector — Connexion aux espaces de stockage externes
 // Actuellement : Google Drive
 // À venir : OneDrive, Dropbox
@@ -184,7 +227,7 @@ export default function StorageConnector({ orgId }) {
                   background: `${providerColor(conn.provider)}15`,
                   color: providerColor(conn.provider),
                 }}>
-                  <Icon name={providerIcon(conn.provider)} />
+                  <ProviderLogo provider={conn.provider} size={20} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>
@@ -244,7 +287,7 @@ export default function StorageConnector({ orgId }) {
               width: 40, height: 40, borderRadius: 10, background: '#4285F415',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
             }}>
-              🗂️
+              <GoogleDriveLogo size={22} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>
@@ -271,7 +314,7 @@ export default function StorageConnector({ orgId }) {
             width: 40, height: 40, borderRadius: 10, background: '#0078D415',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
           }}>
-            ☁️
+            <OneDriveLogo size={22} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>
@@ -301,7 +344,7 @@ export default function StorageConnector({ orgId }) {
               width: 40, height: 40, borderRadius: 10, background: '#0061FF15',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
             }}>
-              📦
+              <DropboxLogo size={22} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>
