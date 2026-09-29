@@ -147,7 +147,7 @@ Vous pouvez à tout moment demander la suppression anticipée de vos fichiers de
         heading: "Éditeur du site",
         content: `Hey Did est édité par Didier BRISACK
 Forme juridique : Entreprise individuelle (micro-entreprise)
-SIRET : en cours d'attribution (immatriculation en cours)
+SIRET : 750 087 959 00029
 Siège social : Antibes (06600), France
 E-mail : contact@hey-did.fr
 Directeur de la publication : Didier BRISACK`
