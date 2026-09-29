@@ -594,13 +594,29 @@ export default function SubscriptionPage() {
                   <Icon name="check" style={{ color: 'var(--green)' }} /> {f}
                 </div>
               ))}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 4px' }}>
-                <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>2,08€</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>/ mois, facturé 24,99€ par an</span>
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 16 }}>
-                Dont 0,50€/mois (6€/an) déjà reversés à l'association de votre choix — inclus dans ce prix, rien à ajouter.
-              </div>
+              {(() => {
+                // Avant tout choix, on montre l'offre annuelle (mise en avant
+                // par le bouton principal juste en dessous) — dès que
+                // l'utilisateur choisit explicitement mensuel, ce prix doit
+                // refléter ce choix, pas rester figé sur l'annuel.
+                const isYearly = pendingBillingPeriod !== 'monthly';
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '16px 0 4px' }}>
+                      <span style={{ fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontSize: 28, fontWeight: 800, color: 'var(--navy)' }}>
+                        {isYearly ? '2,08€' : '2,99€'}
+                      </span>
+                      <span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
+                        {isYearly ? '/ mois, facturé 24,99€ par an' : '/ mois, sans engagement'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 16 }}>
+                      Dont {donationBaseMonthly.toFixed(2)}€/mois
+                      {isYearly && ` (${donationBaseYearly.toFixed(2)}€/an)`} déjà reversés à l'association de votre choix — inclus dans ce prix, rien à ajouter.
+                    </div>
+                  </>
+                );
+              })()}
 
               {!pendingBillingPeriod ? (
                 <>
@@ -725,11 +741,11 @@ export default function SubscriptionPage() {
                     <div style={{ fontSize: 12, color: 'var(--blue-dark)', fontWeight: 600, marginTop: 10, background: 'var(--blue-pale)', borderRadius: 8, padding: '8px 10px' }}>
                       {(() => {
                         const isYearly = pendingBillingPeriod === 'annual';
-                        const basePrice = isYearly ? 24.99 : 2.99;
+                        const basePrice = isYearly ? 24.99 : 2.99; // le don de base est déjà inclus dedans
                         const baseDonation = isYearly ? donationBaseYearly : donationBaseMonthly;
                         const extraDonation = isYearly ? donationExtraMonthly * 12 : donationExtraMonthly;
-                        const totalDonationToCharity = baseDonation + extraDonation;
-                        const totalToPay = basePrice + totalDonationToCharity;
+                        const totalDonationToCharity = baseDonation + extraDonation; // pour l'affichage "Dont X€ reversés" seulement
+                        const totalToPay = basePrice + extraDonation; // seul le supplément vient s'ajouter au prix affiché plus haut
                         const chosenCharity = charities.find((c) => c.id === charityId);
                         return (
                           <>
