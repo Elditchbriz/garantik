@@ -318,7 +318,10 @@ export default function SubscriptionPage() {
             const subAmount = subscriptionAmount;
             const donationBaseAmount = isYearly ? donationBaseYearly : donationBaseMonthly;
             const extraAmount = isYearly ? currentDonationExtraMonthly * 12 : currentDonationExtraMonthly;
-            const totalAmount = subAmount != null ? subAmount + donationBaseAmount + extraAmount : null;
+            // Le don de base est déjà compris dans subAmount (c'est le
+            // prix affiché et facturé par Stripe) — seul le supplément
+            // volontaire vient réellement s'ajouter par-dessus.
+            const totalAmount = subAmount != null ? subAmount + extraAmount : null;
             if (totalAmount == null) return null;
             const totalMonthlyEquiv = isYearly ? totalAmount / 12 : totalAmount;
             return (
@@ -330,9 +333,8 @@ export default function SubscriptionPage() {
                   💳 {isYearly ? 'Ce que vous payez, une fois par an' : 'Ce que vous payez par mois'}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.7 }}>
-                  {subAmount.toFixed(2)}€ abonnement + {donationBaseAmount.toFixed(2)}€ don de base
-                  {extraAmount > 0 && <> + {extraAmount.toFixed(2)}€ supplément</>}
-                  {' '}= <strong style={{ color: 'var(--navy)' }}>{totalAmount.toFixed(2)}€</strong>
+                  {subAmount.toFixed(2)}€ abonnement (dont {donationBaseAmount.toFixed(2)}€ de don déjà inclus)
+                  {extraAmount > 0 && <> + {extraAmount.toFixed(2)}€ de supplément {'='} <strong style={{ color: 'var(--navy)' }}>{totalAmount.toFixed(2)}€</strong></>}
                   {isYearly && <span style={{ color: 'var(--ink-faint)' }}> prélevés en une fois, soit l'équivalent de {totalMonthlyEquiv.toFixed(2)}€/mois</span>}
                 </div>
               </div>
