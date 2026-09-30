@@ -9,7 +9,9 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
   const isConfirmed = searchParams.get('confirmed') === 'true';
-  const referralCode = searchParams.get('ref') || null;
+  const [referralCode, setReferralCode] = useState(searchParams.get('ref') || null);
+  const [showManualRefInput, setShowManualRefInput] = useState(false);
+  const [manualRefInput, setManualRefInput] = useState('');
   const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const [fullName, setFullName] = useState('');
@@ -256,13 +258,46 @@ export default function AuthPage() {
             <>
               <h1>Créer votre compte</h1>
               <p className="sub-text">10 suivis offerts, sans carte bancaire</p>
-              {referralCode && (
+              {referralCode ? (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
                   padding: '10px 14px', borderRadius: 'var(--radius-m)',
                   background: 'var(--amber-pale)', color: 'var(--amber-text)', fontSize: 13, fontWeight: 600,
                 }}>
                   🎁 1 mois de Hey Did+ offert grâce à votre invitation !
+                </div>
+              ) : !showManualRefInput ? (
+                <button
+                  type="button"
+                  onClick={() => setShowManualRefInput(true)}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 10,
+                    color: 'var(--blue)', fontSize: 12.5, fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit',
+                  }}
+                >
+                  Vous avez un code de parrainage ?
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <input
+                    type="text"
+                    value={manualRefInput}
+                    onChange={(e) => setManualRefInput(e.target.value.toUpperCase())}
+                    placeholder="Code de parrainage"
+                    style={{
+                      flex: 1, padding: '9px 12px', borderRadius: 'var(--radius-s)',
+                      border: '1px solid var(--line)', fontSize: 13, fontFamily: 'monospace', letterSpacing: '0.05em',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { if (manualRefInput.trim()) setReferralCode(manualRefInput.trim()); }}
+                    disabled={!manualRefInput.trim()}
+                    className="btn btn-secondary"
+                    style={{ padding: '9px 16px', fontSize: 12.5 }}
+                  >
+                    Appliquer
+                  </button>
                 </div>
               )}
             </>
