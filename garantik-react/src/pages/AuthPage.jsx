@@ -271,14 +271,14 @@ export default function AuthPage() {
                   type="button"
                   onClick={() => setShowManualRefInput(true)}
                   style={{
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 10,
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 10, marginBottom: 20, display: 'block',
                     color: 'var(--blue)', fontSize: 12.5, fontWeight: 600, textDecoration: 'underline', fontFamily: 'inherit',
                   }}
                 >
                   Vous avez un code de parrainage ?
                 </button>
               ) : (
-                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, marginBottom: 20 }}>
                   <input
                     type="text"
                     value={manualRefInput}
