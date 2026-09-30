@@ -37,7 +37,7 @@ export default function BlogListPage() {
         <div className="lp-header-inner">
           <Link to="/" className="lp-logo">
             <div className="mark" style={{ width: 32, height: 32 }}></div>
-            <div className="word">Garantik</div>
+            <div className="word">Hey Did</div>
           </Link>
           <nav className="lp-nav">
             <Link to="/">Accueil</Link>
@@ -54,7 +54,7 @@ export default function BlogListPage() {
         {/* Titre */}
         <div style={{ marginBottom: 40, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', background: '#EEF2FF', color: '#4338CA', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '5px 12px', borderRadius: 99, marginBottom: 14 }}>
-            Le blog Garantik
+            Le blog Hey Did
           </div>
           <h1 style={{ fontSize: 36, fontFamily: 'Fraunces, serif', color: 'var(--navy)', marginBottom: 12 }}>
             Vos droits. Vos garanties. Vos contrats.
@@ -176,7 +176,7 @@ export default function BlogListPage() {
       {/* Footer simple */}
       <footer style={{ borderTop: '1px solid var(--line)', padding: '28px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 13, color: 'var(--ink-faint)' }}>
-          © 2026 Garantik · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
+          © 2026 Hey Did · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
         </p>
       </footer>
     </div>
