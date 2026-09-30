@@ -26,7 +26,7 @@ function NotificationBell({ alertCount, alertItems, notifOpen, setNotifOpen, nav
       {notifOpen && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 25 }} onClick={() => setNotifOpen(false)} />
-          <div className="sort-dropdown" style={{ minWidth: 280, right: 0 }}>
+          <div className="sort-dropdown" style={{ minWidth: 280, maxWidth: 'calc(100vw - 32px)', right: 0 }}>
             <div style={{ padding: '12px 14px 8px', fontSize: 12.5, fontWeight: 800, color: 'var(--navy)', borderBottom: '1px solid var(--line)' }}>
               Échéances
             </div>
