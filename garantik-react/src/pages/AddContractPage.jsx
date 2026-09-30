@@ -401,7 +401,7 @@ export default function AddContractPage() {
               <div className="modal-close" onClick={() => setShowLimitModal(false)}><Icon name="x" /></div>
               <div className="modal-icon"><Icon name="lock" /></div>
               <h3>Limite du plan gratuit</h3>
-              <p>Vous avez atteint la limite de 10 garanties et contrats</p>
+              <p>Tu as atteint la limite de 10 garanties et contrats</p>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.6 }}>

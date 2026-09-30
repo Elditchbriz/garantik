@@ -109,7 +109,7 @@ export default function ReferralPage() {
         <div style={{ fontSize: 38, marginBottom: 8 }}>🎁</div>
         <h2 style={{ color: '#fff', fontSize: 19, marginBottom: 6 }}>1 mois offert, pour vous deux</h2>
         <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.85)', marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
-          Votre proche reçoit 1 mois de Hey Did+ gratuit dès son inscription. Vous recevez votre mois
+          Ton proche reçoit 1 mois de Hey Did+ gratuit dès son inscription. Tu reçois ton mois
           dès qu'il passe à Hey Did+ à son tour.
         </p>
 
@@ -233,14 +233,14 @@ export default function ReferralPage() {
             <div className="panel-header-icon" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}>
               <Icon name="heart-handshake" />
             </div>
-            Vos invitations
+            Tes invitations
           </h3>
         </div>
         {info.referrals.length === 0 ? (
           <div className="empty-state">
             <div className="icon-circle"><Icon name="heart-handshake" /></div>
             <div className="title">Aucune invitation pour l'instant</div>
-            <div className="sub">Partagez votre lien pour commencer à gagner des mois de Hey Did+</div>
+            <div className="sub">Partage ton lien pour commencer à gagner des mois de Hey Did+</div>
           </div>
         ) : (
           <div className="panel-body" style={{ padding: 0 }}>

@@ -29,7 +29,7 @@ function loadStripeJs() {
 // évite d'exposer le mot "Stripe" ou du jargon technique à l'utilisateur.
 function friendlyError(message) {
   if (!message || /stripe/i.test(message)) {
-    return "Impossible d'effectuer cette action — il est possible que vous n'ayez pas l'abonnement Hey Did+, ou pas la bonne version. Contactez le support si le problème persiste.";
+    return "Impossible d'effectuer cette action — il est possible que tu n'aies pas l'abonnement Hey Did+, ou pas la bonne version. Contacte le support si le problème persiste.";
   }
   return message;
 }
@@ -140,7 +140,7 @@ export default function SubscriptionPage() {
       setTimeout(() => setDonationAddonSaved(false), 4000);
       setDonationExtraCurrentInput(String(result.donation_addon_extra_monthly));
     } catch (err) {
-      setDonationAddonError(friendlyError(err.message) || 'Impossible de mettre à jour votre supplément — réessayez.');
+      setDonationAddonError(friendlyError(err.message) || 'Impossible de mettre à jour ton supplément — réessaie.');
     } finally {
       setSavingDonationAddon(false);
     }
@@ -172,7 +172,7 @@ export default function SubscriptionPage() {
     setSavingCharity(false);
     if (error) {
       console.error('Erreur enregistrement association:', error);
-      setCharityError(error.message || 'Impossible d\'enregistrer votre choix — réessayez.');
+      setCharityError(error.message || 'Impossible d\'enregistrer ton choix — réessaie.');
       return;
     }
     setProfile(p => ({ ...p, organizations: { ...p.organizations, charity_id: charityId || null } }));
@@ -258,7 +258,7 @@ export default function SubscriptionPage() {
           background: 'var(--gray-pale)', color: 'var(--ink-soft)', borderRadius: 'var(--radius-m)',
           padding: '12px 16px', marginBottom: 16, fontSize: 13.5,
         }}>
-          Paiement annulé — vous pouvez réessayer à tout moment.
+          Paiement annulé — tu peux réessayer à tout moment.
         </div>
       )}
       {donationResult === 'success' && (
@@ -266,7 +266,7 @@ export default function SubscriptionPage() {
           background: 'var(--green-pale)', color: 'var(--green-text)', borderRadius: 'var(--radius-m)',
           padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 500,
         }}>
-          <Icon name="circle-check" /> Merci ! Votre supplément de don est confirmé (peut prendre quelques secondes à se mettre à jour ci-dessous).
+          <Icon name="circle-check" /> Merci ! Ton supplément de don est confirmé (peut prendre quelques secondes à se mettre à jour ci-dessous).
         </div>
       )}
       {checkoutError && (
@@ -330,7 +330,7 @@ export default function SubscriptionPage() {
                 border: '1px dashed var(--line)', marginBottom: 16,
               }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)', marginBottom: 6 }}>
-                  💳 {isYearly ? 'Ce que vous payez, une fois par an' : 'Ce que vous payez par mois'}
+                  💳 {isYearly ? 'Ce que tu payes, une fois par an' : 'Ce que tu payes par mois'}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', lineHeight: 1.7 }}>
                   {subAmount.toFixed(2)}€ abonnement (dont {donationBaseAmount.toFixed(2)}€ de don déjà inclus)
@@ -359,18 +359,18 @@ export default function SubscriptionPage() {
                       <Icon name="heart-handshake" />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à vous</div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Grâce à toi</div>
                       <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '2px 0 2px' }}>
                         {totalDonated.toFixed(2)}€
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à vos associations préférées 🎉</div>
+                      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>reversés à tes associations préférées 🎉</div>
                     </div>
                   </div>
                   <div style={{
                     marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.2)',
                     fontSize: 12, color: 'rgba(255,255,255,0.85)',
                   }}>
-                    {(donationBaseMonthly + currentDonationExtraMonthly).toFixed(2)}€ reversés chaque mois par votre abonnement actif
+                    {(donationBaseMonthly + currentDonationExtraMonthly).toFixed(2)}€ reversés chaque mois par ton abonnement actif
                   </div>
                 </div>
               )}
@@ -384,8 +384,8 @@ export default function SubscriptionPage() {
                 <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.5 }}>
                   Choisissez une association : <strong>{donationBaseYearly.toFixed(2)}€ par an</strong> (ou{' '}
                   <strong>{donationBaseMonthly.toFixed(2)}€/mois</strong> en mensuel) lui sont reversés
-                  automatiquement, sans frais supplémentaire pour vous — en plus de votre abonnement.
-                  {' '}Vous pourrez choisir de donner davantage si vous le souhaitez.
+                  automatiquement, sans frais supplémentaire pour toi — en plus de ton abonnement.
+                  {' '}Tu pourras choisir de donner davantage si tu le souhaites.
                 </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
@@ -497,8 +497,8 @@ export default function SubscriptionPage() {
                 💙 Donner davantage
               </div>
               <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                Ajoutez le supplément mensuel de votre choix à votre don (0,50€ minimum). Il s'ajoute à votre facture et part
-                intégralement à l'association — le prix de votre abonnement Hey Did+ lui-même ne change jamais. Modifiable à tout moment.
+                Ajoute le supplément mensuel de ton choix à ton don (0,50€ minimum). Il s'ajoute à ta facture et part
+                intégralement à l'association — le prix de ton abonnement Hey Did+ lui-même ne change jamais. Modifiable à tout moment.
               </p>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative' }}>
@@ -531,8 +531,8 @@ export default function SubscriptionPage() {
                 <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Icon name="circle-check" />
                   {currentDonationExtraMonthly > 0
-                    ? `Merci ! Prélèvement effectué, votre supplément de ${currentDonationExtraMonthly.toFixed(2)}€/mois est confirmé.`
-                    : 'Supplément retiré — votre don revient au montant de base.'}
+                    ? `Merci ! Prélèvement effectué, ton supplément de ${currentDonationExtraMonthly.toFixed(2)}€/mois est confirmé.`
+                    : 'Supplément retiré — ton don revient au montant de base.'}
                 </div>
               )}
               {donationAddonError && (
@@ -552,7 +552,7 @@ export default function SubscriptionPage() {
                 ✨ Analyser mes contrats existants
               </div>
               <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 12px', lineHeight: 1.5 }}>
-                Did relit vos contrats enregistrés avant votre passage à Hey Did+ pour en extraire le préavis,
+                Did relit tes contrats enregistrés avant ton passage à Hey Did+ pour en extraire le préavis,
                 le mode de reconduction et la marche à suivre pour résilier — sans avoir à les rescanner.
               </p>
               <button
@@ -590,7 +590,7 @@ export default function SubscriptionPage() {
                 'Détection des hausses de prix',
                 'Conseils personnalisés de Did',
                 'Export PDF et Excel',
-                'Don à une association de votre choix, inclus',
+                'Don à une association de ton choix, inclus',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13.5 }}>
                   <Icon name="check" style={{ color: 'var(--green)' }} /> {f}
@@ -614,7 +614,7 @@ export default function SubscriptionPage() {
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-faint)', marginBottom: 16 }}>
                       Dont {donationBaseMonthly.toFixed(2)}€/mois
-                      {isYearly && ` (${donationBaseYearly.toFixed(2)}€/an)`} déjà reversés à l'association de votre choix — inclus dans ce prix, rien à ajouter.
+                      {isYearly && ` (${donationBaseYearly.toFixed(2)}€/an)`} déjà reversés à l'association de ton choix — inclus dans ce prix, rien à ajouter.
                     </div>
                   </>
                 );
@@ -671,7 +671,7 @@ export default function SubscriptionPage() {
                       ))}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6 }}>
-                      Modifiable à tout moment depuis votre compte, une fois abonné.
+                      Modifiable à tout moment depuis ton compte, une fois abonné.
                     </div>
 
                     {(() => {

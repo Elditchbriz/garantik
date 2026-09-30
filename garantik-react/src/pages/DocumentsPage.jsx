@@ -164,7 +164,7 @@ export default function DocumentsPage() {
 
   return (
     <>
-      <PageHeader title="Mes documents" subtitle="Retrouvez tous vos documents achats et contrats en sécurité" />
+      <PageHeader title="Mes documents" subtitle="Retrouve tous tes documents achats et contrats en sécurité" />
 
       <div className="pill-group" style={{ marginBottom: 20 }}>
         {Object.keys(catLabels).map(c => (
@@ -181,7 +181,7 @@ export default function DocumentsPage() {
         <div className="empty-state">
           <div className="icon-circle"><Icon name="folder" /></div>
           <div className="title">Aucun document</div>
-          <div className="sub">Vos tickets et documents scannés apparaîtront ici automatiquement</div>
+          <div className="sub">Tes tickets et documents scannés apparaîtront ici automatiquement</div>
         </div>
       ) : (
         <div className="panel">

@@ -9,7 +9,7 @@ const SK_DONE = (orgId) => `garantik_onboarding_done_${orgId}`;
 const STEPS = [
   {
     icon: 'scan',
-    title: 'Scannez votre premier ticket',
+    title: 'Scanne ton premier ticket',
     description: 'Prenez en photo un ticket de caisse ou une facture. Notre IA extrait automatiquement le produit, la date et la durée de garantie.',
     cta: 'Scanner un ticket',
     route: '/add-purchase',
@@ -18,15 +18,15 @@ const STEPS = [
   {
     icon: 'shield-check',
     title: 'Ajoutez un contrat ou abonnement',
-    description: 'Assurance, téléphonie, salle de sport… Garantik vous alerte avant chaque échéance pour ne jamais rater une résiliation.',
+    description: 'Assurance, téléphonie, salle de sport… Hey Did t\'alerte avant chaque échéance pour ne jamais rater une résiliation.',
     cta: 'Ajouter un contrat',
     route: '/add-contract',
     completedWhen: (purchases, contracts) => contracts > 0,
   },
   {
     icon: 'bell',
-    title: 'Activez vos alertes email',
-    description: 'Recevez un rappel automatique avant l\'expiration de vos garanties et vos dates de résiliation.',
+    title: 'Active tes alertes email',
+    description: 'Reçois un rappel automatique avant l\'expiration de tes garanties et tes dates de résiliation.',
     cta: 'Configurer les alertes',
     route: '/settings',
     completedWhen: () => false, // étape manuelle, toujours proposée
@@ -99,10 +99,10 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
       }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
         <h2 style={{ color: '#fff', fontSize: 22, marginBottom: 10 }}>
-          Vous êtes prêt !
+          Tu es prêt !
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, lineHeight: 1.6, marginBottom: 24, maxWidth: 380, margin: '0 auto 24px' }}>
-          Votre espace Garantik est configuré. Fini les garanties perdues et les contrats oubliés — on s'occupe de tout.
+          Ton espace Hey Did est configuré. Fini les garanties perdues et les contrats oubliés — on s'occupe de tout.
         </p>
 
         <div style={{
@@ -110,8 +110,8 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
           padding: '16px 20px', marginBottom: 24, textAlign: 'left',
         }}>
           <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.8 }}>
-            <div>💡 Scannez vos achats dès réception du ticket</div>
-            <div>📅 Vérifiez vos échéances depuis le tableau de bord</div>
+            <div>💡 Scanne tes achats dès réception du ticket</div>
+            <div>📅 Vérifie tes échéances depuis le tableau de bord</div>
             <div>📧 Les alertes arrivent automatiquement par email</div>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>
-            Bienvenue sur Garantik 🎉
+            Bienvenue sur Hey Did 🎉
           </div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
             3 étapes pour démarrer
@@ -183,7 +183,7 @@ export default function OnboardingWizard({ onDismiss, onStart, purchaseCount = 0
             {isCompleted ? `${step.title} — fait !` : step.title}
           </h3>
           <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
-            {isCompleted ? 'Étape complétée. Passez à la suivante ou explorez votre tableau de bord.' : step.description}
+            {isCompleted ? 'Étape complétée. Passe à la suivante ou explore ton tableau de bord.' : step.description}
           </p>
         </div>
       </div>

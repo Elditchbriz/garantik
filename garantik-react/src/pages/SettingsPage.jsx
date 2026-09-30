@@ -38,7 +38,7 @@ export default function SettingsPage() {
       <PageHeader
         backTo="/account"
         title="Paramètres"
-        subtitle="Personnalisez vos alertes, vos listes et votre hébergement"
+        subtitle="Personnalise tes alertes, tes listes et ton hébergement"
       />
 
       <div className="tabs" style={{ marginBottom: 20 }}>
@@ -137,7 +137,7 @@ function PreferencesTab({ orgId }) {
         <div className="setting-row">
           <div className="label-group">
             <div className="t">Alerte avant expiration</div>
-            <div className="d">Nombre de mois avant la fin de garantie pour vous prévenir</div>
+            <div className="d">Nombre de mois avant la fin de garantie pour te prévenir</div>
           </div>
           <select value={settings.alert_months_before}
             onChange={(e) => setSettings(s => ({ ...s, alert_months_before: parseInt(e.target.value) }))}
@@ -154,7 +154,7 @@ function PreferencesTab({ orgId }) {
           }}>
             <Icon name="info-circle" style={{ fontSize: 14, color: 'var(--blue-dark)', flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 12, color: 'var(--ink-soft)', lineHeight: 1.6 }}>
-              Vous ne recevez <strong>pas un email chaque jour</strong>. Avec ce réglage, un rappel est
+              Tu ne reçois <strong>pas un email chaque jour</strong>. Avec ce réglage, un rappel est
               envoyé uniquement lorsqu'une échéance atteint l'un de ces paliers :{' '}
               <strong>{thresholds.map(formatThreshold).join(' · ')}</strong>. Entre deux paliers,
               aucun email n'est envoyé pour cette même échéance.
@@ -192,7 +192,7 @@ function PreferencesTab({ orgId }) {
         <div className="setting-row">
           <div className="label-group">
             <div className="t">Récapitulatif mensuel</div>
-            <div className="d">Un email mensuel avec l'état de vos garanties</div>
+            <div className="d">Un email mensuel avec l'état de tes garanties</div>
           </div>
           <div className={`switch ${settings.auto_recap_email ? 'on' : ''}`}
             onClick={() => setSettings(s => ({ ...s, auto_recap_email: !s.auto_recap_email }))}>
@@ -202,7 +202,7 @@ function PreferencesTab({ orgId }) {
         <div className="setting-row">
           <div className="label-group">
             <div className="t">Emails Hey Did (nouveautés, rappels)</div>
-            <div className="d">Occasionnels : nouveautés de l'application, ou petit rappel si vous n'êtes pas venu depuis longtemps</div>
+            <div className="d">Occasionnels : nouveautés de l'application, ou petit rappel si tu n'es pas venu depuis longtemps</div>
           </div>
           <div className={`switch ${settings.product_emails_enabled !== false ? 'on' : ''}`}
             onClick={() => setSettings(s => ({ ...s, product_emails_enabled: !(s.product_emails_enabled !== false) }))}>

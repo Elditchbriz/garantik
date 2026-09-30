@@ -86,7 +86,7 @@ export default function InboxPage() {
       <PageHeader
         backTo="/dashboard"
         title="Docs en attente"
-        subtitle="Transférez vos tickets et contrats par email pour les traiter ici"
+        subtitle="Transfère tes tickets et contrats par email pour les traiter ici"
       />
 
       {/* Adresse email personnelle */}
@@ -95,7 +95,7 @@ export default function InboxPage() {
         borderRadius: 'var(--radius-m)', padding: '16px 18px', marginBottom: 20,
       }}>
         <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--blue-dark)', marginBottom: 8 }}>
-          Votre adresse email personnelle
+          Ton adresse email personnelle
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <code style={{

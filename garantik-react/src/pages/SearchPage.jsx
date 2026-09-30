@@ -608,7 +608,7 @@ export default function SearchPage() {
       {!searched && !loading && (
         <div className="empty-state" style={{ paddingTop: 24 }}>
           <div className="icon-circle"><Icon name="search" /></div>
-          <div className="title">Recherchez dans vos garanties et contrats</div>
+          <div className="title">Recherche dans tes garanties et contrats</div>
           <div className="sub">Utilisez le champ ci-dessus ou appliquez des filtres pour affiner</div>
         </div>
       )}

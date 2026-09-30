@@ -69,7 +69,7 @@ export default function DiscussionsPage() {
     <div>
       <PageHeader
         title="Did"
-        subtitle="Posez vos questions à Did, il connaît vos garanties et contrats"
+        subtitle="Pose tes questions à Did, il connaît tes garanties et contrats"
         showHelp={false}
       />
 
@@ -78,7 +78,7 @@ export default function DiscussionsPage() {
           padding: '8px 14px', borderRadius: 'var(--radius-m)', marginBottom: 12,
           background: 'var(--gray-pale)', color: 'var(--ink-faint)', fontSize: 12, textAlign: 'center',
         }}>
-          Vos conversations sont conservées 30 jours. <strong style={{ color: 'var(--ink-soft)' }}>Hey Did+</strong> les garde indéfiniment.
+          Tes conversations sont conservées 30 jours. <strong style={{ color: 'var(--ink-soft)' }}>Hey Did+</strong> les garde indéfiniment.
         </div>
       )}
 
@@ -90,7 +90,7 @@ export default function DiscussionsPage() {
             <div className="didier-avatar"><img src="/didier-headshot.jpg" alt="Did" /></div>
             <div className="didier-card-text">
               <div className="t">Bonjour ! Je suis Did.</div>
-              <div className="d">Posez-moi une question sur vos garanties, contrats ou abonnements — je connais vos vraies données.</div>
+              <div className="d">Pose-moi une question sur tes garanties, contrats ou abonnements — je connais tes vraies données.</div>
             </div>
           </div>
         ) : (
@@ -148,7 +148,7 @@ export default function DiscussionsPage() {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Écrivez votre question…"
+          placeholder="Écris ta question…"
           disabled={sending}
           style={{
             flex: 1, padding: '11px 14px', borderRadius: 'var(--radius-m)',

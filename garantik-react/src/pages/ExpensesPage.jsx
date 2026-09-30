@@ -50,7 +50,7 @@ export default function ExpensesPage() {
           </div>
           <h3 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>Réservé à Hey Did+</h3>
           <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 20, maxWidth: 340, marginInline: 'auto' }}>
-            Voyez d'un coup d'œil où part votre argent : répartition par catégorie, projection annuelle, et évolution de vos charges.
+            Vois d'un coup d'œil où part ton argent : répartition par catégorie, projection annuelle, et évolution de tes charges.
           </p>
           <button className="btn btn-primary" onClick={() => navigate('/account/subscription')}>Découvrir Hey Did+</button>
         </div>
@@ -98,7 +98,7 @@ export default function ExpensesPage() {
 
   return (
     <div>
-      <PageHeader title="Dépenses" subtitle="Vue d'ensemble de vos engagements financiers" backTo="/dashboard" showHelp={false} />
+      <PageHeader title="Dépenses" subtitle="Vue d'ensemble de tes engagements financiers" backTo="/dashboard" showHelp={false} />
 
       {/* Hero — les 3 chiffres clés */}
       <div style={{
@@ -162,7 +162,7 @@ export default function ExpensesPage() {
               +{totalIncreaseAmount.toFixed(2)} € détectés ces 3 derniers mois
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--navy)' }}>
-              {priceChanges.length} hausse{priceChanges.length > 1 ? 's' : ''} de prix repérée{priceChanges.length > 1 ? 's' : ''} sur vos contrats.
+              {priceChanges.length} hausse{priceChanges.length > 1 ? 's' : ''} de prix repérée{priceChanges.length > 1 ? 's' : ''} sur tes contrats.
             </div>
           </div>
         </div>

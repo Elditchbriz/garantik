@@ -61,7 +61,7 @@ export default function HouseholdPage() {
       await loadHousehold();
       if (!result.email_sent) {
         setHouseholdError(
-          "L'invitation a bien été créée, mais l'email n'a pas pu être envoyé. Vérifiez la configuration email (secret BREVO_API_KEY) côté Supabase — l'invitation reste valable, la personne peut toujours la rejoindre si vous lui transmettez le lien manuellement."
+          "L'invitation a bien été créée, mais l'email n'a pas pu être envoyé. Vérifiez la configuration email (secret BREVO_API_KEY) côté Supabase — l'invitation reste valable, la personne peut toujours la rejoindre si tu lui transmets le lien manuellement."
         );
       }
     } catch (err) {
@@ -186,7 +186,7 @@ export default function HouseholdPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)' }}>
-                  {m.full_name || m.email} {m.id === profile?.id && <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(vous)</span>}
+                  {m.full_name || m.email} {m.id === profile?.id && <span style={{ color: 'var(--ink-faint)', fontWeight: 400 }}>(toi)</span>}
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink-faint)' }}>{i === 0 ? 'Propriétaire' : 'Membre'}</div>
               </div>
@@ -245,7 +245,7 @@ export default function HouseholdPage() {
           </form>
         )}
         {isHouseholdOwner && (householdMembers.length - 1 + householdInvites.length) >= 5 && (
-          <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Votre foyer a atteint la limite de 5 membres.</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Ton foyer a atteint la limite de 5 membres.</div>
         )}
         {resendMessage && (
           <div style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 600, marginTop: 8 }}>✓ {resendMessage}</div>

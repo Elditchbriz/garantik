@@ -73,7 +73,7 @@ export default function JoinHouseholdPage() {
           <>
             <Icon name="circle-check" style={{ fontSize: 32, color: 'var(--green-text)', marginBottom: 12 }} />
             <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 19 }}>Bienvenue dans le foyer !</h2>
-            <p style={{ color: 'var(--ink-soft)', fontSize: 13.5 }}>Redirection vers votre tableau de bord…</p>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13.5 }}>Redirection vers ton tableau de bord…</p>
           </>
         ) : error ? (
           <>
@@ -84,9 +84,9 @@ export default function JoinHouseholdPage() {
           </>
         ) : !session ? (
           <>
-            <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 19 }}>Vous avez été invité(e) sur Hey Did+</h2>
+            <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 19 }}>Tu as été invité(e) sur Hey Did+</h2>
             <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 24 }}>
-              Connectez-vous ou créez un compte avec l'adresse email qui a reçu l'invitation pour rejoindre ce foyer.
+              Connecte-toi ou crée un compte avec l'adresse email qui a reçu l'invitation pour rejoindre ce foyer.
             </p>
             {(() => {
               // Filet de sécurité : si l'inscription exige une confirmation
@@ -106,16 +106,16 @@ export default function JoinHouseholdPage() {
         ) : preview?.already_member ? (
           <>
             <Icon name="circle-check" style={{ fontSize: 28, color: 'var(--green-text)', marginBottom: 12 }} />
-            <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 18 }}>Vous faites déjà partie de ce foyer</h2>
+            <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 18 }}>Tu fais déjà partie de ce foyer</h2>
             <Link to="/dashboard" className="btn btn-primary" style={{ marginTop: 12 }}>Aller au tableau de bord</Link>
           </>
         ) : (
           <>
             <h2 style={{ margin: '0 0 8px', color: 'var(--navy)', fontSize: 19 }}>
-              {preview?.inviter_name ? `${preview.inviter_name} vous invite` : 'Vous êtes invité(e)'} à rejoindre son foyer
+              {preview?.inviter_name ? `${preview.inviter_name} t'invite` : 'Tu es invité(e)'} à rejoindre son foyer
             </h2>
             <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 24 }}>
-              Vous aurez accès aux garanties, contrats et documents de <strong>{preview?.organization_name}</strong>, sans payer d'abonnement séparé.
+              Tu auras accès aux garanties, contrats et documents de <strong>{preview?.organization_name}</strong>, sans payer d'abonnement séparé.
             </p>
             <button onClick={handleAccept} disabled={joining} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
               {joining ? 'Ça arrive…' : 'Rejoindre le foyer'}

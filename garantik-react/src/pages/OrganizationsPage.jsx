@@ -63,7 +63,7 @@ export default function OrganizationsPage() {
         <div>
           <div className="eyebrow">Organismes & listes</div>
           <h1 style={{ color: '#fff' }}>Mes listes</h1>
-          <p className="sub">Gérez vos catégories, marques et enseignes</p>
+          <p className="sub">Gère tes catégories, marques et enseignes</p>
         </div>
       </div>
 

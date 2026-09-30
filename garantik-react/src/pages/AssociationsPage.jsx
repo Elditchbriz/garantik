@@ -55,8 +55,8 @@ export default function AssociationsPage() {
             Nos associations partenaires
           </h1>
           <p style={{ fontSize: 15, color: 'var(--ink-soft)', maxWidth: 560, margin: '0 auto' }}>
-            En passant à Hey Did+, vous choisissez l'une de ces associations : Hey Did lui reverse
-            automatiquement au moins 10% de votre abonnement, sans coût supplémentaire pour vous.
+            En passant à Hey Did+, tu choisis l'une de ces associations : Hey Did lui reverse
+            automatiquement un montant fixe chaque mois, sans coût supplémentaire pour toi.
           </p>
         </div>
 

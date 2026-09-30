@@ -15,13 +15,13 @@ import WarrantyInfoPanel from '../components/WarrantyInfoPanel.jsx';
 function getWarrantyConditionsText(source, months) {
   if (!months) return null;
   if (source === 'legal_second_hand') {
-    return `Garantie légale de conformité : ${months} mois à compter de l'achat pour ce produit d'occasion. En cas de défaut, vous pouvez exiger la réparation ou le remplacement gratuit — conservez votre ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
+    return `Garantie légale de conformité : ${months} mois à compter de l'achat pour ce produit d'occasion. En cas de défaut, tu peux exiger la réparation ou le remplacement gratuit — conserve ton ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
   }
   if (source === 'commercial_stated') {
-    return `Garantie commerciale de ${months} mois annoncée par le vendeur ou le fabricant. Conservez votre ticket et, si fourni, le certificat de garantie — les conditions précises (couverture, démarche à suivre) dépendent des mentions du document ou du site du fabricant.`;
+    return `Garantie commerciale de ${months} mois annoncée par le vendeur ou le fabricant. Conserve ton ticket et, si fourni, le certificat de garantie — les conditions précises (couverture, démarche à suivre) dépendent des mentions du document ou du site du fabricant.`;
   }
   // legal_default (ou source inconnue) : traité comme la garantie légale standard
-  return `Garantie légale de conformité : ${months} mois à compter de l'achat. En cas de panne, vous pouvez exiger la réparation ou le remplacement gratuit, sans frais — conservez votre ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
+  return `Garantie légale de conformité : ${months} mois à compter de l'achat. En cas de panne, tu peux exiger la réparation ou le remplacement gratuit, sans frais — conserve ton ticket comme preuve d'achat, aucun document spécifique du vendeur n'est nécessaire.`;
 }
 
 export default function AddPurchasePage() {
@@ -252,7 +252,7 @@ export default function AddPurchasePage() {
     <>
       <PageHeader
         title="Nouvelle garantie"
-        subtitle="Scannez votre ticket ou saisissez manuellement"
+        subtitle="Scanne ton ticket ou saisis manuellement"
         
       />
 
@@ -436,7 +436,7 @@ export default function AddPurchasePage() {
               </div>
               <div className="modal-icon"><Icon name="lock" /></div>
               <h3>Limite du plan gratuit atteinte</h3>
-              <p>Vous avez atteint la limite de 10 garanties et contrats</p>
+              <p>Tu as atteint la limite de 10 garanties et contrats</p>
             </div>
             <div className="modal-body">
               <div className="modal-progress">

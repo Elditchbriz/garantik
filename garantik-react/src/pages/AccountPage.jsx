@@ -56,7 +56,7 @@ export default function AccountPage() {
 
   return (
     <>
-      <PageHeader title="Mon compte" subtitle="Gérez vos coordonnées et votre abonnement" />
+      <PageHeader title="Mon compte" subtitle="Gère tes coordonnées et ton abonnement" />
 
       {/* Carte de profil — avatar, nom, statut du plan en un coup d'œil.
           Un clic ouvre l'édition en place, sans page dédiée pour un simple nom. */}

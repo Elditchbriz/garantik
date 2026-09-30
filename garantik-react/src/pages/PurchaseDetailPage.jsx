@@ -388,7 +388,7 @@ export default function PurchaseDetailPage() {
                 }}>
                   <Icon name="lock" />
                   <span>
-                    <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did vous explique concrètement ce que couvre cette garantie et comment la faire jouer.
+                    <strong style={{ color: 'var(--navy)' }}>Hey Did+</strong> — Did t'explique concrètement ce que couvre cette garantie et comment la faire jouer.
                   </span>
                 </div>
               </Link>
@@ -629,7 +629,7 @@ export default function PurchaseDetailPage() {
             <div className="empty-state">
               <div className="icon-circle"><Icon name="folder" /></div>
               <div className="title">Aucun document</div>
-              <div className="sub">Ajoutez votre ticket de caisse ou votre facture ci-dessus</div>
+              <div className="sub">Ajoute ton ticket de caisse ou ta facture ci-dessus</div>
             </div>
           ) : (
             <div className="panel">

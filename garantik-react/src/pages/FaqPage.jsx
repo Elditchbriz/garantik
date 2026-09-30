@@ -60,7 +60,7 @@ export default function FaqPage() {
         marginTop: 20, padding: '16px 20px', background: 'var(--blue-pale-2)',
         borderRadius: 'var(--radius-m)', fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.6, textAlign: 'center',
       }}>
-        Vous ne trouvez pas votre réponse ?{' '}
+        Tu ne trouves pas ta réponse ?{' '}
         <a href="mailto:contact@hey-did.fr" style={{ color: 'var(--blue)', fontWeight: 600 }}>
           Écrivez-nous à contact@hey-did.fr
         </a>
