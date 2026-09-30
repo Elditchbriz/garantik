@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { getReferralInfo } from '../lib/supabaseClient.js';
+import { getReferralInfo, supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -22,6 +22,11 @@ export default function ReferralPage() {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   useEffect(() => {
     if (!orgId) return;
@@ -47,13 +52,41 @@ export default function ReferralPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Garantik',
+          title: 'Hey Did',
           text: 'Gère tes garanties et factures sans effort avec Hey Did. Voici 1 mois de Hey Did+ offert :',
           url: referralUrl,
         });
       } catch (e) { /* annulé par l'utilisateur, rien à faire */ }
     } else {
       handleCopyLink();
+    }
+  }
+
+  async function handleSendInviteEmail() {
+    if (!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
+      setInviteError('Adresse email invalide');
+      return;
+    }
+    setSendingInvite(true);
+    setInviteError('');
+    setInviteSent(false);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-referral-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to_email: inviteEmail }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur inconnue');
+      setInviteSent(true);
+      setInviteEmail('');
+      setTimeout(() => setInviteSent(false), 4000);
+    } catch (err) {
+      setInviteError(err.message || "Impossible d'envoyer l'invitation — réessayez.");
+    } finally {
+      setSendingInvite(false);
     }
   }
 
@@ -99,6 +132,49 @@ export default function ReferralPage() {
         <button onClick={handleShare} className="btn btn-amber" style={{ width: '100%', justifyContent: 'center' }}>
           <Icon name="rocket" /> Partager mon lien d'invitation
         </button>
+
+        {/* Envoi direct par email — alternative au copier-coller manuel */}
+        <div style={{
+          marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.15)',
+        }}>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', marginBottom: 10, textAlign: 'left' }}>
+            Ou envoyez directement l'invitation par email :
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="email@exemple.fr"
+              disabled={sendingInvite}
+              style={{
+                flex: 1, minWidth: 160, padding: '10px 12px', borderRadius: 'var(--radius-s)',
+                border: 'none', fontSize: 13.5, fontFamily: 'inherit',
+              }}
+            />
+            <button
+              onClick={handleSendInviteEmail}
+              disabled={sendingInvite || !inviteEmail}
+              style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 'var(--radius-s)',
+                color: '#fff', padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+              }}
+            >
+              <Icon name="mail" style={{ fontSize: 14 }} /> {sendingInvite ? 'Envoi…' : 'Envoyer'}
+            </button>
+          </div>
+          {inviteSent && (
+            <div style={{ fontSize: 12.5, color: '#fff', fontWeight: 600, marginTop: 8, textAlign: 'left' }}>
+              ✓ Invitation envoyée !
+            </div>
+          )}
+          {inviteError && (
+            <div style={{ fontSize: 12.5, color: '#FCA5A5', fontWeight: 600, marginTop: 8, textAlign: 'left' }}>
+              ⚠️ {inviteError}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
