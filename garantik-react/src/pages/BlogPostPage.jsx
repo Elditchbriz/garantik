@@ -111,7 +111,7 @@ export default function BlogPostPage() {
         <div className="lp-header-inner">
           <Link to="/" className="lp-logo">
             <div className="mark" style={{ width: 32, height: 32 }}></div>
-            <div className="word">Garantik</div>
+            <div className="word">Hey Did</div>
           </Link>
           <nav className="lp-nav">
             <Link to="/">Accueil</Link>
@@ -186,7 +186,7 @@ export default function BlogPostPage() {
             }}>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 8 }}>Ne laissez plus vos garanties expirer en silence</p>
               <h3 style={{ fontSize: 20, color: '#fff', fontFamily: 'Fraunces, serif', marginBottom: 16 }}>
-                Essayez Garantik gratuitement
+                Essayez Hey Did gratuitement
               </h3>
               <Link to="/auth?mode=signup" className="btn btn-amber btn-lg">
                 Commencer gratuitement →
@@ -198,7 +198,7 @@ export default function BlogPostPage() {
 
       <footer style={{ borderTop: '1px solid var(--line)', padding: '28px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 13, color: 'var(--ink-faint)' }}>
-          © 2026 Garantik · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
+          © 2026 Hey Did · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
         </p>
       </footer>
     </div>
