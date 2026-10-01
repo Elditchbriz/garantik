@@ -547,7 +547,7 @@ export default function DashboardPage() {
       <div className="ph">
         <div className="ph-left">
           <div>
-            <h1 className="ph-title" style={{ fontSize: 19 }}>Bonjour {profile?.full_name?.split(' ')[0] || ''} 👋</h1>
+            <h1 className="ph-title" style={{ fontSize: 19 }}>Bonjour {profile?.first_name || profile?.full_name?.split(' ')[0] || ''} 👋</h1>
           </div>
         </div>
       </div>
