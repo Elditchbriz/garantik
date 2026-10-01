@@ -19,8 +19,13 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 // Authentification
 // ============================================================
 
-export async function signUpWithEmail(email, password, fullName, referralCode = null) {
-  const metadata = { full_name: fullName };
+export async function signUpWithEmail(email, password, firstName, lastName, referralCode = null) {
+  // full_name reste envoyé (compatibilité avec le déclencheur existant qui
+  // alimente profiles.full_name, utilisé pour l'affichage un peu partout :
+  // liste des membres du foyer, etc.) — first_name/last_name sont en plus,
+  // saisis tels quels, jamais déduits.
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const metadata = { full_name: fullName, first_name: firstName, last_name: lastName };
   if (referralCode) metadata.referral_code = referralCode.toUpperCase();
 
   return supabase.auth.signUp({
