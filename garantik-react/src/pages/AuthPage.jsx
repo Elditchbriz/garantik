@@ -14,7 +14,8 @@ export default function AuthPage() {
   const [manualRefInput, setManualRefInput] = useState('');
   const redirectTo = searchParams.get('redirect') || '/dashboard';
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,7 +55,7 @@ export default function AuthPage() {
         setLoading(false);
         return;
       }
-      const { data, error } = await signUpWithEmail(email, password, fullName, referralCode);
+      const { data, error } = await signUpWithEmail(email, password, firstName, lastName, referralCode);
       setLoading(false);
 
       if (error) {
@@ -124,7 +125,7 @@ export default function AuthPage() {
             </p>
             <button
               onClick={async () => {
-                await signUpWithEmail(confirmedEmail, '', '', referralCode);
+                await signUpWithEmail(confirmedEmail, '', '', '', referralCode);
               }}
               style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
             >
@@ -312,8 +313,16 @@ export default function AuthPage() {
           <form onSubmit={handleSubmit}>
             {mode === 'signup' && (
               <div className="auth-field">
-                <label>Nom complet</label>
-                <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Votre nom" required />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label>Prénom</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" required />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label>Nom</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Votre nom" required />
+                  </div>
+                </div>
               </div>
             )}
 
