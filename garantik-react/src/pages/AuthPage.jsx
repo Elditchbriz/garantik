@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -12,6 +12,12 @@ export default function AuthPage() {
   const [referralCode, setReferralCode] = useState(searchParams.get('ref') || null);
   const [showManualRefInput, setShowManualRefInput] = useState(false);
   const [manualRefInput, setManualRefInput] = useState('');
+  // null = pas encore vérifié, true/false = résultat de la vérification
+  // réelle contre la base — un code arrivé par lien ou tapé à la main
+  // n'est JAMAIS considéré valide tant qu'il n'a pas été confirmé ici,
+  // pour ne jamais afficher une fausse promesse de mois offert.
+  const [referralCodeValid, setReferralCodeValid] = useState(null);
+  const [checkingReferralCode, setCheckingReferralCode] = useState(false);
   const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const [firstName, setFirstName] = useState('');
@@ -28,6 +34,27 @@ export default function AuthPage() {
   const [rgpdError, setRgpdError] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Vérifie le code contre la base dès qu'il change — que ce soit celui
+  // arrivé par l'URL (?ref=...) au chargement, ou celui tapé à la main
+  // et validé via le bouton "Appliquer". Un code invalide ne doit jamais
+  // afficher la promesse de mois offert, ni être transmis à l'inscription.
+  useEffect(() => {
+    if (!referralCode) { setReferralCodeValid(null); return; }
+    let cancelled = false;
+    setCheckingReferralCode(true);
+    setReferralCodeValid(null);
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-referral-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: referralCode }),
+    })
+      .then((res) => res.json())
+      .then((json) => { if (!cancelled) setReferralCodeValid(!!json.valid); })
+      .catch(() => { if (!cancelled) setReferralCodeValid(false); })
+      .finally(() => { if (!cancelled) setCheckingReferralCode(false); });
+    return () => { cancelled = true; };
+  }, [referralCode]);
 
   async function handleForgotPassword(e) {
     e.preventDefault();
@@ -55,7 +82,8 @@ export default function AuthPage() {
         setLoading(false);
         return;
       }
-      const { data, error } = await signUpWithEmail(email, password, firstName, lastName, referralCode);
+      const safeReferralCode = referralCodeValid === true ? referralCode : null;
+      const { data, error } = await signUpWithEmail(email, password, firstName, lastName, safeReferralCode);
       setLoading(false);
 
       if (error) {
@@ -83,7 +111,8 @@ export default function AuthPage() {
 
   async function handleGoogle() {
     setErrorMsg('');
-    const { error } = await signInWithGoogle(referralCode);
+    const safeReferralCode = referralCodeValid === true ? referralCode : null;
+    const { error } = await signInWithGoogle(safeReferralCode);
     if (error) { setErrorMsg(error.message); return; }
     // Avec la connexion native, il n'y a plus de redirection de navigateur
     // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
@@ -260,13 +289,38 @@ export default function AuthPage() {
               <h1>Créer votre compte</h1>
               <p className="sub-text">10 suivis offerts, sans carte bancaire</p>
               {referralCode ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
-                  padding: '10px 14px', borderRadius: 'var(--radius-m)',
-                  background: 'var(--amber-pale)', color: 'var(--amber-text)', fontSize: 13, fontWeight: 600,
-                }}>
-                  🎁 1 mois de Hey Did+ offert grâce à votre invitation !
-                </div>
+                checkingReferralCode ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
+                    padding: '10px 14px', borderRadius: 'var(--radius-m)',
+                    background: 'var(--gray-pale)', color: 'var(--ink-soft)', fontSize: 13,
+                  }}>
+                    Vérification du code…
+                  </div>
+                ) : referralCodeValid === true ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
+                    padding: '10px 14px', borderRadius: 'var(--radius-m)',
+                    background: 'var(--amber-pale)', color: 'var(--amber-text)', fontSize: 13, fontWeight: 600,
+                  }}>
+                    🎁 1 mois de Hey Did+ offert grâce à votre invitation !
+                  </div>
+                ) : referralCodeValid === false ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
+                    padding: '10px 14px', borderRadius: 'var(--radius-m)',
+                    background: 'var(--red-pale)', color: 'var(--red-text)', fontSize: 13, fontWeight: 500,
+                  }}>
+                    ⚠️ Ce code de parrainage n'est pas reconnu — vérifiez-le, ou
+                    <button
+                      type="button"
+                      onClick={() => { setReferralCode(null); setManualRefInput(''); setShowManualRefInput(false); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', fontWeight: 700, textDecoration: 'underline', fontFamily: 'inherit', fontSize: 'inherit' }}
+                    >
+                      continuez sans code
+                    </button>
+                  </div>
+                ) : null
               ) : !showManualRefInput ? (
                 <button
                   type="button"
