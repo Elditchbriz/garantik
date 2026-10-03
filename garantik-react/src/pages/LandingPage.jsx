@@ -472,6 +472,7 @@ export default function LandingPage() {
               <Link to="/legal/mentions">Mentions légales</Link>
               <Link to="/legal/cgu">CGU</Link>
               <Link to="/legal/confidentialite">Confidentialité</Link>
+              <Link to="/retractation">Se rétracter du contrat</Link>
             </div>
           </div>
           <div className="lp-footer-bottom">

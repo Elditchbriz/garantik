@@ -773,14 +773,27 @@ export default function SubscriptionPage() {
               )}
             </div>
           ) : hasStripeSubscription ? (
-            <button
-              className="btn btn-ghost"
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={handleManageSubscription}
-              disabled={checkoutLoading !== null}
-            >
-              <Icon name="settings" /> {checkoutLoading === 'portal' ? 'Redirection…' : 'Gérer mon abonnement'}
-            </button>
+            <>
+              <button
+                className="btn btn-ghost"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={handleManageSubscription}
+                disabled={checkoutLoading !== null}
+              >
+                <Icon name="settings" /> {checkoutLoading === 'portal' ? 'Redirection…' : 'Gérer mon abonnement'}
+              </button>
+              {/* Fonction de rétractation en ligne, visible là où le contrat est géré */}
+              <button
+                onClick={() => navigate(`/retractation?from=${encodeURIComponent('/account/subscription')}`)}
+                style={{
+                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--ink-faint)', fontSize: 12.5, marginTop: 12, textDecoration: 'underline',
+                  fontFamily: 'inherit', textAlign: 'center', display: 'block',
+                }}
+              >
+                Se rétracter du contrat
+              </button>
+            </>
           ) : null}
         </div>
       </div>
