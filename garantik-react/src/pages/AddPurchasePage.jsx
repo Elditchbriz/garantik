@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota } from '../lib/supabaseClient.js';
+import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota, markInboxItemProcessed } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ScannerModal from '../components/ScannerModal.jsx';
@@ -29,13 +29,18 @@ export default function AddPurchasePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const linkedContractId = searchParams.get('contract_id');
+  const inboxId = searchParams.get('inbox_id');
   const orgId = profile?.organization_id;
   const isPremium = profile?.organizations?.plan === 'premium';
   const [hasStorageConnected, setHasStorageConnected] = useState(false);
 
-  // Le scanner s'ouvre directement à l'arrivée sur cette page
-  const [showScanner, setShowScanner] = useState(true);
+  // Le scanner s'ouvre directement à l'arrivée sur cette page — sauf si un
+  // document est déjà reçu par email (inbox_id) : dans ce cas, pas besoin
+  // de rescanner, l'analyse se lance directement sur le fichier déjà là.
+  const [showScanner, setShowScanner] = useState(!inboxId);
   const [showForm, setShowForm] = useState(false);
+  const [analyzingInboxFile, setAnalyzingInboxFile] = useState(!!inboxId);
+  const [inboxAnalysisError, setInboxAnalysisError] = useState('');
 
   const [objectName, setObjectName] = useState('');
   const [brand, setBrand] = useState('');
@@ -75,6 +80,45 @@ export default function AddPurchasePage() {
     supabase.from('storage_connections').select('id').eq('organization_id', orgId).limit(1)
       .then(({ data }) => setHasStorageConnected((data || []).length > 0));
   }, [orgId]);
+
+  // Document déjà reçu par email : récupère le fichier déjà stocké et lance
+  // l'analyse directement, sans jamais passer par l'étape de scan — le
+  // fichier existe déjà, inutile de le redemander à l'utilisateur.
+  useEffect(() => {
+    if (!inboxId) return;
+    (async () => {
+      try {
+        const { data: item, error: itemErr } = await supabase
+          .from('email_inbox').select('id, file_path, file_type').eq('id', inboxId).single();
+        if (itemErr || !item) throw new Error('Document introuvable dans la boîte de réception.');
+
+        const { data: fileBlob, error: dlErr } = await supabase.storage.from('documents').download(item.file_path);
+        if (dlErr || !fileBlob) throw new Error('Impossible de récupérer le fichier.');
+
+        const buffer = await fileBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        bytes.forEach((b) => (binary += String.fromCharCode(b)));
+        const base64data = btoa(binary);
+
+        const { data, error: fnError } = await supabase.functions.invoke('extract-receipt', {
+          body: { image_base64: base64data, media_type: item.file_type },
+        });
+        if (fnError) throw new Error(fnError.message);
+        if (!data || data.rejected || !data.data) {
+          throw new Error(data?.error || "Ce document ne ressemble pas à un ticket ou une facture exploitable.");
+        }
+
+        const result = data.data;
+        handleScanResult({ store: result.store, purchase_date: result.purchase_date, raw_text: result.raw_text, items: result.items || [] }, fileBlob);
+      } catch (err) {
+        setInboxAnalysisError(err.message || "Impossible d'analyser ce document — réessaie, ou saisis les informations manuellement.");
+      } finally {
+        setAnalyzingInboxFile(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inboxId]);
 
   // Charger les listes existantes (marques, enseignes, catégories) pour l'autocomplete
   useEffect(() => {
@@ -214,6 +258,12 @@ export default function AddPurchasePage() {
       }
     } else {
       console.warn('[TICKET DEBUG] pas d\'upload - data.id:', data?.id, '/ blob:', scannedBlobRef.current);
+    }
+
+    // Venu de "Docs en attente" : le document quitte la liste maintenant
+    // qu'il est bien rattaché à une garantie.
+    if (data?.id && inboxId) {
+      await markInboxItemProcessed(inboxId, data.id, null);
     }
 
     // Si on arrive depuis la fiche d'un contrat (lien "Lier ce contrat à un achat"),
@@ -424,6 +474,22 @@ export default function AddPurchasePage() {
           isPremium={isPremium}
           hasStorageConnected={hasStorageConnected}
         />
+      )}
+
+      {/* Document reçu par email : analyse automatique, sans passer par le scanner */}
+      {analyzingInboxFile && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(255,255,255,0.97)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div className="spinner" />
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)' }}>Analyse du document en cours…</p>
+        </div>
+      )}
+      {inboxAnalysisError && !analyzingInboxFile && !showForm && (
+        <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
+          <Icon name="alert-circle" style={{ fontSize: 32, color: 'var(--red-text)' }} />
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)', maxWidth: 320 }}>{inboxAnalysisError}</p>
+          <button className="btn btn-secondary" onClick={() => { setInboxAnalysisError(''); setShowForm(true); }}>Saisir manuellement</button>
+          <button className="btn btn-ghost" onClick={() => navigate('/inbox')}>Retour à la boîte de réception</button>
+        </div>
       )}
 
       {/* Modal limite plan gratuit */}

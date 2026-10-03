@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { supabase, getEmailInbox, deleteInboxItem } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import AddTypeSheet from '../components/AddTypeSheet.jsx';
 
 // Domaine de réception des emails — à mettre à jour quand le vrai domaine sera configuré
 // Avec Brevo domaine partagé : votre-code@[domaine-brevo-inbound]
@@ -66,13 +67,13 @@ export default function InboxPage() {
     setItems(prev => prev.filter(i => i.id !== item.id));
   }
 
+  // On ne devine plus le type (garantie/contrat/abonnement) à partir du nom
+  // ou du sujet — trop peu fiable. On ouvre plutôt le même sélecteur que
+  // partout ailleurs dans l'app, et on transmet juste l'id du document déjà
+  // reçu pour que la page de destination saute l'étape de scan.
+  const [processingItem, setProcessingItem] = useState(null);
   function handleProcess(item) {
-    // Détecter si c'est probablement un contrat ou un achat selon le nom/sujet
-    const isProbablyContract = /contrat|assurance|abonnement|leasing|bail|location/i.test(
-      `${item.file_name} ${item.subject}`
-    );
-    const route = isProbablyContract ? '/add-contract' : '/add-purchase';
-    navigate(`${route}?inbox_id=${item.id}`);
+    setProcessingItem(item);
   }
 
   function copyAddress() {
@@ -206,6 +207,13 @@ export default function InboxPage() {
             )}
           </div>
         </div>
+      )}
+
+      {processingItem && (
+        <AddTypeSheet
+          onClose={() => setProcessingItem(null)}
+          extraParams={`inbox_id=${processingItem.id}`}
+        />
       )}
     </>
   );

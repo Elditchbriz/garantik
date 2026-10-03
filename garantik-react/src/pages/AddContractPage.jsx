@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase, listContractTypes, createContract, uploadDocument, findSimilarContracts, checkFreeQuota } from '../lib/supabaseClient.js';
+import { supabase, listContractTypes, createContract, uploadDocument, findSimilarContracts, checkFreeQuota, markInboxItemProcessed } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ContractScannerModal from '../components/ContractScannerModal.jsx';
@@ -75,11 +75,16 @@ export default function AddContractPage() {
 
   // Le scanner s'ouvre directement à l'arrivée sur cette page, comme pour
   // les garanties — parcours identique, pour ne plus dérouter personne.
-  const [showScanner, setShowScanner] = useState(true);
+  // Sauf si un document est déjà reçu par email (inbox_id) : dans ce cas,
+  // pas besoin de rescanner, l'analyse se lance directement dessus.
+  const inboxId = searchParams.get('inbox_id');
+  const [showScanner, setShowScanner] = useState(!inboxId);
   const [showForm, setShowForm] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [analyzingInboxFile, setAnalyzingInboxFile] = useState(!!inboxId);
+  const [inboxAnalysisError, setInboxAnalysisError] = useState('');
 
   useEffect(() => {
     if (!orgId) return;
@@ -96,6 +101,43 @@ export default function AddContractPage() {
     supabase.from('providers').select('name').eq('organization_id', orgId).order('name')
       .then(({ data }) => setProviders(data?.map(p => p.name) || []));
   }, [orgId]);
+
+  // Document déjà reçu par email : récupère le fichier déjà stocké et lance
+  // l'analyse directement, sans jamais passer par l'étape de scan.
+  useEffect(() => {
+    if (!inboxId) return;
+    (async () => {
+      try {
+        const { data: item, error: itemErr } = await supabase
+          .from('email_inbox').select('id, file_path, file_type').eq('id', inboxId).single();
+        if (itemErr || !item) throw new Error('Document introuvable dans la boîte de réception.');
+
+        const { data: fileBlob, error: dlErr } = await supabase.storage.from('documents').download(item.file_path);
+        if (dlErr || !fileBlob) throw new Error('Impossible de récupérer le fichier.');
+
+        const buffer = await fileBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        bytes.forEach((b) => (binary += String.fromCharCode(b)));
+        const base64data = btoa(binary);
+
+        const { data, error: fnError } = await supabase.functions.invoke('extract-contract', {
+          body: { image_base64: base64data, media_type: item.file_type },
+        });
+        if (fnError) throw new Error(fnError.message);
+        if (!data || data.rejected || !data.data) {
+          throw new Error(data?.error || "Ce document ne ressemble pas à un contrat exploitable.");
+        }
+
+        handleScanResult(data.data, fileBlob);
+      } catch (err) {
+        setInboxAnalysisError(err.message || "Impossible d'analyser ce document — réessaie, ou saisis les informations manuellement.");
+      } finally {
+        setAnalyzingInboxFile(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inboxId]);
 
   async function handleScanResult(data, blob) {
     if (data.contract_name) setName(data.contract_name);
@@ -194,6 +236,13 @@ export default function AddContractPage() {
           }
     } else {
       }
+
+    // Venu de "Docs en attente" : le document quitte la liste maintenant
+    // qu'il est bien rattaché à un contrat. (ordre inversé par rapport à
+    // une garantie : ici c'est contract_id qui est renseigné, pas purchase_id)
+    if (data?.id && inboxId) {
+      await markInboxItemProcessed(inboxId, null, data.id);
+    }
 
     setSaving(false);
     navigate(`/contract/${data.id}`);
@@ -393,6 +442,22 @@ export default function AddContractPage() {
           isPremium={isPremium}
           hasStorageConnected={hasStorageConnected}
         />
+      )}
+
+      {/* Document reçu par email : analyse automatique, sans passer par le scanner */}
+      {analyzingInboxFile && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(255,255,255,0.97)', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <div className="spinner" />
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)' }}>Analyse du document en cours…</p>
+        </div>
+      )}
+      {inboxAnalysisError && !analyzingInboxFile && !showForm && (
+        <div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, textAlign: 'center' }}>
+          <Icon name="alert-circle" style={{ fontSize: 32, color: 'var(--red-text)' }} />
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)', maxWidth: 320 }}>{inboxAnalysisError}</p>
+          <button className="btn btn-secondary" onClick={() => { setInboxAnalysisError(''); setShowForm(true); }}>Saisir manuellement</button>
+          <button className="btn btn-ghost" onClick={() => navigate('/inbox')}>Retour à la boîte de réception</button>
+        </div>
       )}
       {showLimitModal && (
         <div className="modal-overlay" onClick={() => setShowLimitModal(false)}>
