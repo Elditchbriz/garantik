@@ -7,13 +7,16 @@ import useFocusTrap from '../hooks/useFocusTrap.js';
 // l'action rapide "Ajouter" du tableau de bord. Remplace l'ancien accès
 // direct à /add-purchase : l'utilisateur choisit d'abord le type, ce qui
 // évite de se retrouver sur le mauvais formulaire (garantie vs contrat).
-export default function AddTypeSheet({ onClose }) {
+export default function AddTypeSheet({ onClose, extraParams = '' }) {
   const navigate = useNavigate();
   const trapRef = useFocusTrap(onClose);
 
   function go(path) {
     onClose();
-    navigate(path);
+    // extraParams permet, par exemple, de transmettre l'id d'un document
+    // déjà reçu par email (inbox_id) — la page de destination saute alors
+    // l'étape de scan et lance l'analyse directement sur ce fichier.
+    navigate(path + (extraParams ? (path.includes('?') ? extraParams : `?${extraParams.replace(/^&/, '')}`) : ''));
   }
 
   return (
