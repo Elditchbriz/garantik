@@ -115,21 +115,28 @@ export default function AddContractPage() {
         const { data: fileBlob, error: dlErr } = await supabase.storage.from('documents').download(item.file_path);
         if (dlErr || !fileBlob) throw new Error('Impossible de récupérer le fichier.');
 
-        const buffer = await fileBlob.arrayBuffer();
+        // Le type renvoyé par le stockage au téléchargement n'est pas fiable
+        // (il peut revenir générique si le fichier a été enregistré sans
+        // type précis à la réception) — on s'appuie sur le type noté dans
+        // la boîte de réception et on le réapplique au fichier.
+        const mediaType = (item.file_type || fileBlob.type || 'application/pdf').split(';')[0].trim();
+        const typedBlob = new Blob([fileBlob], { type: mediaType });
+
+        const buffer = await typedBlob.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         let binary = '';
         bytes.forEach((b) => (binary += String.fromCharCode(b)));
         const base64data = btoa(binary);
 
         const { data, error: fnError } = await supabase.functions.invoke('extract-contract', {
-          body: { image_base64: base64data, media_type: item.file_type },
+          body: { image_base64: base64data, media_type: mediaType },
         });
         if (fnError) throw new Error(fnError.message);
         if (!data || data.rejected || !data.data) {
           throw new Error(data?.error || "Ce document ne ressemble pas à un contrat exploitable.");
         }
 
-        handleScanResult(data.data, fileBlob);
+        handleScanResult(data.data, typedBlob);
       } catch (err) {
         setInboxAnalysisError(err.message || "Impossible d'analyser ce document — réessaie, ou saisis les informations manuellement.");
       } finally {
@@ -218,6 +225,9 @@ export default function AddContractPage() {
     if (error) { setErrorMsg(error.message); setSaving(false); return; }
 
 
+    // Le document n'est considéré comme rattaché que si l'envoi a réellement abouti.
+    let documentAttached = false;
+
     if (data?.id && scannedBlobRef.current) {
       // Supabase Storage n'accepte pas les accents ni les caractères spéciaux dans les noms de fichiers
       const blobType = scannedBlobRef.current?.type || 'image/jpeg';
@@ -232,16 +242,23 @@ export default function AddContractPage() {
         if (uploadErr) {
         console.error('Erreur upload document contrat :', uploadErr);
       } else if (docData?.id) {
+        documentAttached = true;
         await supabase.from('documents').update({ document_category: 'contrat' }).eq('id', docData.id);
           }
     } else {
       }
 
-    // Venu de "Docs en attente" : le document quitte la liste maintenant
-    // qu'il est bien rattaché à un contrat. (ordre inversé par rapport à
-    // une garantie : ici c'est contract_id qui est renseigné, pas purchase_id)
+    // Venu de "Docs en attente" : le document ne quitte la liste que s'il est
+    // réellement rattaché au contrat (ordre inversé par rapport à une
+    // garantie : ici c'est contract_id qui est renseigné, pas purchase_id).
+    // Sinon il reste en attente, pour ne jamais disparaître sans arriver
+    // dans l'onglet Documents.
     if (data?.id && inboxId) {
-      await markInboxItemProcessed(inboxId, null, data.id);
+      if (documentAttached) {
+        await markInboxItemProcessed(inboxId, null, data.id);
+      } else {
+        window.alert("Le contrat est bien enregistré, mais le document n'a pas pu y être rattaché. Il reste dans « Docs en attente » : tu pourras le rattacher depuis la fiche du contrat.");
+      }
     }
 
     setSaving(false);

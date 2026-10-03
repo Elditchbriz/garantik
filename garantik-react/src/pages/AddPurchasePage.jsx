@@ -95,14 +95,22 @@ export default function AddPurchasePage() {
         const { data: fileBlob, error: dlErr } = await supabase.storage.from('documents').download(item.file_path);
         if (dlErr || !fileBlob) throw new Error('Impossible de récupérer le fichier.');
 
-        const buffer = await fileBlob.arrayBuffer();
+        // Le type renvoyé par le stockage au téléchargement n'est pas fiable
+        // (il peut revenir générique, ex. "text/plain", si le fichier a été
+        // enregistré sans type précis à la réception) — on s'appuie sur le
+        // type noté dans la boîte de réception, et on le réapplique au
+        // fichier pour que le rattachement ultérieur ne soit pas refusé.
+        const mediaType = (item.file_type || fileBlob.type || 'application/pdf').split(';')[0].trim();
+        const typedBlob = new Blob([fileBlob], { type: mediaType });
+
+        const buffer = await typedBlob.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         let binary = '';
         bytes.forEach((b) => (binary += String.fromCharCode(b)));
         const base64data = btoa(binary);
 
         const { data, error: fnError } = await supabase.functions.invoke('extract-receipt', {
-          body: { image_base64: base64data, media_type: item.file_type },
+          body: { image_base64: base64data, media_type: mediaType },
         });
         if (fnError) throw new Error(fnError.message);
         if (!data || data.rejected || !data.data) {
@@ -110,7 +118,7 @@ export default function AddPurchasePage() {
         }
 
         const result = data.data;
-        handleScanResult({ store: result.store, purchase_date: result.purchase_date, raw_text: result.raw_text, items: result.items || [] }, fileBlob);
+        handleScanResult({ store: result.store, purchase_date: result.purchase_date, raw_text: result.raw_text, items: result.items || [] }, typedBlob);
       } catch (err) {
         setInboxAnalysisError(err.message || "Impossible d'analyser ce document — réessaie, ou saisis les informations manuellement.");
       } finally {
@@ -238,6 +246,10 @@ export default function AddPurchasePage() {
       return;
     }
 
+    // Suivi explicite : le document n'est considéré comme rattaché que si
+    // l'envoi a réellement abouti (sinon il ne doit pas quitter "Docs en attente").
+    let documentAttached = false;
+
     // Uploader le ticket scanné comme document principal si disponible
     if (data?.id && scannedBlobRef.current) {
       console.log('[TICKET DEBUG] blob présent:', scannedBlobRef.current?.size, scannedBlobRef.current?.type);
@@ -248,22 +260,30 @@ export default function AddPurchasePage() {
         .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
       const dateSlug = purchaseDate || new Date().toISOString().slice(0, 10);
       const namePart = [slugify(objectName), slugify(store)].filter(Boolean).join('_') || 'document';
-      const customName = `${namePart}_${dateSlug}.jpg`;
+      const blobExt = scannedBlobRef.current?.type === 'application/pdf' ? 'pdf' : 'jpg';
+      const customName = `${namePart}_${dateSlug}.${blobExt}`;
       console.log('[TICKET DEBUG] customName:', customName, '/ orgId:', orgId, '/ purchaseId:', data.id);
 
       const { data: docData, error: uploadErr } = await uploadDocument(scannedBlobRef.current, orgId, data.id, customName);
       console.log('[TICKET DEBUG] résultat upload:', docData?.id, '/ erreur:', uploadErr);
       if (uploadErr) {
         console.error('Le ticket scanné n\'a pas pu être attaché à la garantie :', uploadErr);
+      } else if (docData?.id) {
+        documentAttached = true;
       }
     } else {
       console.warn('[TICKET DEBUG] pas d\'upload - data.id:', data?.id, '/ blob:', scannedBlobRef.current);
     }
 
-    // Venu de "Docs en attente" : le document quitte la liste maintenant
-    // qu'il est bien rattaché à une garantie.
+    // Venu de "Docs en attente" : le document ne quitte la liste que s'il est
+    // réellement rattaché à la garantie — sinon il reste en attente, pour ne
+    // jamais le faire disparaître sans qu'il arrive dans l'onglet Documents.
     if (data?.id && inboxId) {
-      await markInboxItemProcessed(inboxId, data.id, null);
+      if (documentAttached) {
+        await markInboxItemProcessed(inboxId, data.id, null);
+      } else {
+        window.alert("La garantie est bien enregistrée, mais le document n'a pas pu y être rattaché. Il reste dans « Docs en attente » : tu pourras le rattacher depuis la fiche de la garantie.");
+      }
     }
 
     // Si on arrive depuis la fiche d'un contrat (lien "Lier ce contrat à un achat"),
