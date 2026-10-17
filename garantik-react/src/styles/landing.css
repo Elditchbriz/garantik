@@ -362,6 +362,11 @@
 .lp-footer-col h4 { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 16px; }
 .lp-footer-col a { display: block; font-size: 13.5px; color: rgba(255,255,255,0.6); margin-bottom: 11px; }
 .lp-footer-col a:hover { color: #fff; }
+/* « Nous contacter » est un <button> (il ouvre une fenêtre, il ne mène pas vers une page) :
+   même aspect que les liens de la colonne, avec la main au survol et le clavier (Tab). */
+.lp-footer-col .link-btn { display: block; background: none; border: none; padding: 0; margin: 0 0 11px; font: inherit; font-size: 13.5px; text-align: left; color: rgba(255,255,255,0.6); cursor: pointer; }
+.lp-footer-col .link-btn:hover { color: #fff; }
+.lp-footer-col .link-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 4px; }
 .lp-footer-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 24px; font-size: 12.5px; color: rgba(255,255,255,0.4); }
 
 /* ---------- Auth pages ---------- */
@@ -452,6 +457,29 @@
 
 .auth-switch { text-align: center; margin-top: 26px; font-size: 13.5px; color: var(--ink-soft); }
 .auth-switch a { color: var(--blue); font-weight: 600; }
+
+/* Lien d'action (bascule connexion / inscription, retour à la connexion).
+   Un vrai <button> plutôt qu'un <a> sans href : le navigateur ne traite pas un <a> sans href
+   comme un lien (pas de main au survol, inaccessible au clavier). Même aspect que ".auth-switch a". */
+.auth-switch .link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--blue);
+  cursor: pointer;
+}
+.auth-switch .link-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Filet de sécurité global : un <a> sans href qui sert de lien (avec onClick) n'affiche pas la
+   main par défaut. À éviter (préférer <button> ou <Link>), mais ça évite le défaut si ça arrive. */
+a:not([href]) { cursor: pointer; }
 
 /* ---------- Account page ---------- */
 .account-tabs { display: flex; flex-direction: column; gap: 4px; }
@@ -589,7 +617,7 @@
   .lp-footer-top { grid-template-columns: 1fr; gap: 24px; }
   .lp-footer-brand p { font-size: 13px; }
   .lp-footer-col h4 { font-size: 12.5px; margin-bottom: 10px; }
-  .lp-footer-col a { font-size: 13px; }
+  .lp-footer-col a, .lp-footer-col .link-btn { font-size: 13px; }
   .lp-footer-bottom { flex-direction: column; gap: 6px; align-items: flex-start; font-size: 12.5px; }
 }
 
