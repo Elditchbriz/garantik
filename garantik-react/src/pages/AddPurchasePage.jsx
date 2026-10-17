@@ -8,6 +8,7 @@ import DuplicateWarningModal from '../components/DuplicateWarningModal.jsx';
 import SimilarSuggest from '../components/SimilarSuggest.jsx';
 import WarrantyInfoPanel from '../components/WarrantyInfoPanel.jsx';
 
+import { friendlyError } from '../lib/friendlyError.js';
 // Texte généré (pas d'IA nécessaire) selon la base légale déjà déterminée
 // par extract-receipt.ts — un ticket de caisse ne contient quasiment
 // jamais les vraies conditions de garantie, contrairement à un contrat ;
@@ -241,7 +242,7 @@ export default function AddPurchasePage() {
       if (error.code === 'QUOTA_EXCEEDED') {
         setShowLimitModal(true);
       } else {
-        setErrorMsg(error.message);
+        setErrorMsg(friendlyError(error));
       }
       return;
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
+import { friendlyError } from '../lib/friendlyError.js';
 import '../styles/landing.css';
 
 export default function AuthPage() {
@@ -63,7 +64,7 @@ export default function AuthPage() {
     const { error } = await requestPasswordReset(email);
     setResetLoading(false);
     if (error) {
-      setErrorMsg(error.message);
+      setErrorMsg(friendlyError(error, { formal: true }));
       return;
     }
     setResetSent(true);
@@ -87,7 +88,7 @@ export default function AuthPage() {
       setLoading(false);
 
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(friendlyError(error, { formal: true }));
         return;
       }
       if (data.session) {
@@ -102,7 +103,7 @@ export default function AuthPage() {
       setLoading(false);
 
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(friendlyError(error, { formal: true }));
         return;
       }
       navigate(redirectTo);
@@ -113,7 +114,7 @@ export default function AuthPage() {
     setErrorMsg('');
     const safeReferralCode = referralCodeValid === true ? referralCode : null;
     const { error } = await signInWithGoogle(safeReferralCode);
-    if (error) { setErrorMsg(error.message); return; }
+    if (error) { setErrorMsg(friendlyError(error, { formal: true })); return; }
     // Avec la connexion native, il n'y a plus de redirection de navigateur
     // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
     navigate(redirectTo);

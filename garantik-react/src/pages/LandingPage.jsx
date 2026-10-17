@@ -5,6 +5,7 @@ import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
 import '../styles/landing.css';
 
+import { friendlyError } from '../lib/friendlyError.js';
 const COMPARISON_ROWS = [
   { label: 'Garanties et contrats suivis', free: '10 max', premium: 'Illimité' },
   { label: 'Scan et analyse par IA', free: true, premium: true },
@@ -51,7 +52,7 @@ function PublicContactModal({ onClose }) {
       if (!res.ok) throw new Error(json.error || 'Erreur inconnue');
       setSent(true);
     } catch (err) {
-      setError(err.message);
+      setError(friendlyError(err, { formal: true }));
     } finally {
       setSending(false);
     }

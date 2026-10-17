@@ -7,6 +7,7 @@ import ContractScannerModal from '../components/ContractScannerModal.jsx';
 import DuplicateWarningModal from '../components/DuplicateWarningModal.jsx';
 import SimilarSuggest from '../components/SimilarSuggest.jsx';
 
+import { friendlyError } from '../lib/friendlyError.js';
 export default function AddContractPage() {
   const { profile } = useOutletContext();
   const navigate = useNavigate();
@@ -222,7 +223,7 @@ export default function AddContractPage() {
       renewed_from_contract_id: renewFromContractId || null,
     }, orgId);
 
-    if (error) { setErrorMsg(error.message); setSaving(false); return; }
+    if (error) { setErrorMsg(friendlyError(error)); setSaving(false); return; }
 
 
     // Le document n'est considéré comme rattaché que si l'envoi a réellement abouti.
