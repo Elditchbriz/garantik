@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import App from './App.jsx';
 import HomeRoute from './pages/HomeRoute.jsx';
 import AuthPage from './pages/AuthPage.jsx';
@@ -30,6 +30,30 @@ import FaqPage from './pages/FaqPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 import IconSprite from './components/IconSprite.jsx';
 import './styles/style.css';
+// Anciens liens de la forme /legal ou /legal#cgu, déjà présents dans des emails
+// envoyés (et dans l'ancien formulaire d'inscription) : on les redirige vers la
+// bonne page plutôt que de laisser un écran blanc. La vraie adresse est /legal/cgu.
+const LEGAL_PAGES = ['mentions', 'cgu', 'confidentialite', 'hebergement'];
+function LegacyLegalRedirect() {
+  const { hash } = useLocation();
+  const target = hash.replace('#', '').toLowerCase();
+  return <Navigate to={`/legal/${LEGAL_PAGES.includes(target) ? target : 'mentions'}`} replace />;
+}
+
+// Toute adresse inconnue : un message clair plutôt qu'une page blanche.
+function NotFoundPage() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 8 }}>🧭</div>
+      <h1 style={{ fontSize: 22, color: 'var(--navy)', marginBottom: 8 }}>Page introuvable</h1>
+      <p style={{ fontSize: 14, color: 'var(--ink-soft)', maxWidth: 360, lineHeight: 1.6, marginBottom: 20 }}>
+        Cette page n'existe pas ou n'existe plus. Vous pouvez revenir à l'accueil.
+      </p>
+      <Link to="/" className="btn btn-primary">Retour à l'accueil</Link>
+    </div>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <IconSprite />
@@ -42,6 +66,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/associations" element={<AssociationsPage />} />
+        <Route path="/legal" element={<LegacyLegalRedirect />} />
         <Route path="/legal/:page" element={<LegalPage />} />
         <Route path="/retractation" element={<WithdrawalPage />} />
         <Route element={<App />}>
@@ -63,6 +88,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/faq" element={<FaqPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
