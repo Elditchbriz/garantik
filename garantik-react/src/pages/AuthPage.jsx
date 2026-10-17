@@ -446,9 +446,9 @@ export default function AuthPage() {
                   />
                   <span>
                     J'accepte les{' '}
-                    <a href="/legal#cgu" target="_blank" style={{ color: 'var(--blue)' }}>conditions d'utilisation</a>
+                    <a href="/legal/cgu" target="_blank" style={{ color: 'var(--blue)' }}>conditions d'utilisation</a>
                     {' '}et la{' '}
-                    <a href="/legal#confidentialite" target="_blank" style={{ color: 'var(--blue)' }}>politique de confidentialité</a>.
+                    <a href="/legal/confidentialite" target="_blank" style={{ color: 'var(--blue)' }}>politique de confidentialité</a>.
                     {' '}En plan gratuit, mes fichiers scannés sont analysés par l'IA puis supprimés sous 30 jours.
                     Le stockage permanent nécessite un compte Hey Did+ ou la connexion d'un espace de stockage personnel.
                   </span>
