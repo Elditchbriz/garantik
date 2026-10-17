@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import { friendlyError } from '../lib/friendlyError.js';
+import PasswordEyeIcon from '../components/PasswordEyeIcon.jsx';
 import '../styles/landing.css';
 
 export default function AuthPage() {
@@ -410,7 +411,7 @@ export default function AuthPage() {
                     color: 'var(--ink-faint)', lineHeight: 1,
                   }}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  <PasswordEyeIcon visible={showPassword} />
                 </button>
               </div>
               {mode === 'login' && (
