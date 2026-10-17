@@ -220,7 +220,7 @@ export default function AuthPage() {
                 </form>
 
                 <div className="auth-switch">
-                  <a onClick={() => setMode('login')}>← Retour à la connexion</a>
+                  <button type="button" className="link-btn" onClick={() => setMode('login')}>← Retour à la connexion</button>
                 </div>
               </>
             )}
@@ -416,12 +416,13 @@ export default function AuthPage() {
               </div>
               {mode === 'login' && (
                 <div style={{ textAlign: 'right', marginTop: 6 }}>
-                  <a
+                  <button
+                    type="button"
                     onClick={() => { setMode('forgot'); setErrorMsg(''); setResetSent(false); }}
-                    style={{ fontSize: 12.5, color: 'var(--ink-soft)', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', fontSize: 12.5, lineHeight: 'inherit', color: 'var(--ink-soft)', cursor: 'pointer' }}
                   >
                     Mot de passe oublié ?
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
@@ -465,9 +466,9 @@ export default function AuthPage() {
 
           <div className="auth-switch">
             {mode === 'login' ? (
-              <>Pas encore de compte ? <a onClick={() => setMode('signup')}>Créer un compte</a></>
+              <>Pas encore de compte ? <button type="button" className="link-btn" onClick={() => setMode('signup')}>Créer un compte</button></>
             ) : (
-              <>Déjà un compte ? <a onClick={() => setMode('login')}>Se connecter</a></>
+              <>Déjà un compte ? <button type="button" className="link-btn" onClick={() => setMode('login')}>Se connecter</button></>
             )}
           </div>
 

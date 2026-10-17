@@ -466,7 +466,7 @@ export default function LandingPage() {
             <div className="lp-footer-col">
               <h4>Entreprise</h4>
               <Link to="/blog">Blog</Link>
-              <a onClick={() => setContactModalOpen(true)} style={{ cursor: 'pointer' }}>Nous contacter</a>
+              <button type="button" className="link-btn" onClick={() => setContactModalOpen(true)}>Nous contacter</button>
             </div>
             <div className="lp-footer-col">
               <h4>Légal</h4>
