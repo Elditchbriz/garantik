@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, updatePassword } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
+import PasswordEyeIcon from '../components/PasswordEyeIcon.jsx';
+import { friendlyError } from '../lib/friendlyError.js';
 import '../styles/landing.css';
 
 export default function ResetPasswordPage() {
@@ -44,7 +46,8 @@ export default function ResetPasswordPage() {
     setSaving(false);
 
     if (error) {
-      setErrorMsg(error.message);
+      // Supabase répond en anglais (ex. « New password should be different… ») : on traduit.
+      setErrorMsg(friendlyError(error, { formal: true }));
       return;
     }
     setSuccess(true);
@@ -76,8 +79,8 @@ export default function ResetPasswordPage() {
         <div className="auth-form-box">
           {!validLink ? (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
-                ⚠️
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28, color: 'var(--red-text)' }}>
+                <Icon name="alert-triangle" />
               </div>
               <h1 style={{ fontSize: 22, marginBottom: 10 }}>Lien invalide ou expiré</h1>
               <p style={{ fontSize: 14.5, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 24 }}>
@@ -125,7 +128,7 @@ export default function ResetPasswordPage() {
                         color: 'var(--ink-faint)', lineHeight: 1,
                       }}
                     >
-                      {showPassword ? '🙈' : '👁️'}
+                      <PasswordEyeIcon visible={showPassword} />
                     </button>
                   </div>
                 </div>
