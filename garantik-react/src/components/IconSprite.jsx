@@ -163,6 +163,20 @@ const spriteMarkup = `<svg xmlns="http://www.w3.org/2000/svg" style="display:non
 
 <symbol id="ic-brand-dropbox" viewBox="0 0 24 24"><polygon points="12 3 6 7 12 11 6 15 12 19 18 15 12 11 18 7" /></symbol>
 
+
+<!-- Icônes ajoutées : référencées dans l'app mais absentes du jeu d'origine (affichaient un vide) -->
+<symbol id="ic-alert-circle" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 8v4" /><path d="M12 16h.01" /></symbol>
+
+<symbol id="ic-arrow-up-right" viewBox="0 0 24 24"><path d="M17 7l-10 10" /><path d="M8 7l9 0l0 9" /></symbol>
+
+<symbol id="ic-arrows-sort" viewBox="0 0 24 24"><path d="M3 9l4 -4l4 4m-4 -4v14" /><path d="M21 15l-4 4l-4 -4m4 4v-14" /></symbol>
+
+<symbol id="ic-bell-off" viewBox="0 0 24 24"><path d="M9.346 5.353c.21 -.129 .428 -.246 .654 -.353a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3m-1 3h-13a4 4 0 0 0 2 -3v-3a6.996 6.996 0 0 1 1.273 -3.707" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /><path d="M3 3l18 18" /></symbol>
+
+<symbol id="ic-briefcase" viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -9" /><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" /><path d="M12 12l0 .01" /><path d="M3 13a20 20 0 0 0 18 0" /></symbol>
+
+<symbol id="ic-external-link" viewBox="0 0 24 24"><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" /></symbol>
+
 </defs>
 </svg>
 `;
