@@ -336,6 +336,7 @@ export default function App() {
                   <Icon name="settings" /> Paramètres
                 </NavLink>
                 <div onClick={handleSignOut} style={{
+                  cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px',
                   fontSize: 13.5, fontWeight: 500, color: 'var(--red-text)',
                   borderTop: '1px solid var(--line)',
