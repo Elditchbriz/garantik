@@ -21,11 +21,24 @@ function MenuRow({ icon, iconBg, iconColor, label, meta, onClick, badge }) {
   );
 }
 
+// Comptes créés avant la séparation prénom/nom : seul full_name existe. On en
+// déduit une proposition (premier mot = prénom) pour pré-remplir le formulaire,
+// MAIS elle peut être fausse (ex. "DUPOND Michel") : c'est exactement pour ça
+// que la personne est invitée à la vérifier plutôt qu'à la subir.
+function guessNames(fullName) {
+  const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+  return { first: parts[0] || '', last: parts.slice(1).join(' ') };
+}
+
 export default function AccountPage() {
   const { profile, setProfile } = useOutletContext();
   const navigate = useNavigate();
 
-  const [fullName, setFullName] = useState(profile?.full_name || '');
+  const nameNeedsCheck = !profile?.first_name; // compte ancien : prénom jamais saisi explicitement
+  const guessed = guessNames(profile?.full_name);
+  const [firstName, setFirstName] = useState(profile?.first_name || guessed.first);
+  const [lastName, setLastName] = useState(profile?.first_name ? (profile?.last_name || '') : guessed.last);
+  const [nameError, setNameError] = useState('');
   const [orgName, setOrgName] = useState(profile?.organizations?.name || '');
   const [editingProfile, setEditingProfile] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -39,10 +52,25 @@ export default function AccountPage() {
     .split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
 
   async function handleSaveProfile() {
+    const first = firstName.trim();
+    const last = lastName.trim();
+    if (!first) { setNameError('Indique ton prénom.'); return; }
+
     setSaving(true);
-    await supabase.from('profiles').update({ full_name: fullName }).eq('id', profile.id);
+    setNameError('');
+    // full_name reste renseigné (affiché ailleurs : liste du foyer, etc.) ;
+    // first_name est la source des salutations, saisie telle quelle, jamais déduite.
+    const fullName = [first, last].filter(Boolean).join(' ');
+    const { error: profileError } = await supabase.from('profiles')
+      .update({ full_name: fullName, first_name: first, last_name: last || null }).eq('id', profile.id);
+    if (profileError) {
+      console.error('Erreur mise à jour du profil :', profileError);
+      setSaving(false);
+      setNameError("Impossible d'enregistrer pour le moment — réessaie dans un instant.");
+      return;
+    }
     await supabase.from('organizations').update({ name: orgName }).eq('id', profile.organization_id);
-    setProfile(p => ({ ...p, full_name: fullName, organizations: { ...p.organizations, name: orgName } }));
+    setProfile(p => ({ ...p, full_name: fullName, first_name: first, last_name: last || null, organizations: { ...p.organizations, name: orgName } }));
     setSaving(false);
     setSaved(true);
     setEditingProfile(false);
@@ -71,6 +99,11 @@ export default function AccountPage() {
         <div className="dash-item-body">
           <div className="dash-item-name" style={{ fontSize: 15.5 }}>{profile?.full_name || 'Mon compte'}</div>
           <div className="dash-item-meta">{profile?.email}</div>
+          {nameNeedsCheck && !editingProfile && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber-text)', marginTop: 3 }}>
+              Vérifie ton prénom pour que Did te salue correctement
+            </div>
+          )}
         </div>
         <Icon name="chevron-down" style={{ color: 'var(--ink-faint)', transform: editingProfile ? 'rotate(0deg)' : 'rotate(-90deg)' }} />
       </div>
@@ -78,10 +111,23 @@ export default function AccountPage() {
       {editingProfile && (
         <div className="panel" style={{ marginBottom: 12 }}>
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="field">
-              <label>Nom complet</label>
-              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="field" style={{ flex: 1 }}>
+                <label>Prénom</label>
+                <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
+              </div>
+              <div className="field" style={{ flex: 1 }}>
+                <label>Nom</label>
+                <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
+              </div>
             </div>
+            {nameNeedsCheck && (
+              <div style={{ fontSize: 12.5, color: 'var(--ink-soft)', background: 'var(--amber-pale)', borderRadius: 'var(--radius-s)', padding: '9px 12px', lineHeight: 1.5 }}>
+                Vérifie que ton prénom est bien dans le champ « Prénom » : c'est lui que Did utilise pour te saluer.
+                Il a été déduit de ton nom complet et peut être inversé.
+              </div>
+            )}
+            {nameError && <div style={{ fontSize: 13, color: 'var(--red-text)', fontWeight: 600 }}>⚠️ {nameError}</div>}
             <div className="field">
               <label>Nom du foyer</label>
               <input type="text" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Ex : Famille Dupont" />
