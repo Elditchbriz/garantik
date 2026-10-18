@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import App from './App.jsx';
+import AppErrorBoundary from './components/AppErrorBoundary.jsx';
+import { initMonitoring } from './lib/monitoring.js';
 import HomeRoute from './pages/HomeRoute.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
@@ -54,8 +56,12 @@ function NotFoundPage() {
   );
 }
 
+// Suivi des erreurs : inerte tant que VITE_SENTRY_DSN n'est pas défini, ne bloque jamais l'affichage
+initMonitoring();
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
+    <AppErrorBoundary>
     <IconSprite />
     <BrowserRouter>
       <Routes>
@@ -91,5 +97,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
+    </AppErrorBoundary>
   </React.StrictMode>
 );
