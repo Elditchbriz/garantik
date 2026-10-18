@@ -1,3 +1,5 @@
+import { captureError } from './monitoring.js';
+
 // Traduit un message d'erreur technique en français lisible par un client.
 //
 // Pourquoi : les erreurs d'authentification (Supabase Auth) et de base de
@@ -115,7 +117,9 @@ export function friendlyError(err, { formal = false } = {}) {
     }
   }
 
-  if (!message) return pick('generic');
-  if (looksEnglish(message)) return pick('generic');
+  // Message vide ou en anglais qu'on ne sait pas traduire = erreur inattendue : le client voit un
+  // message générique, et on la signale pour la corriger (sans effet si le suivi n'est pas configuré)
+  if (!message) { captureError(err, { where: 'friendlyError:sans-message' }); return pick('generic'); }
+  if (looksEnglish(message)) { captureError(err, { where: 'friendlyError:inconnue' }); return pick('generic'); }
   return message; // message français écrit par nous (fonctions Edge, règles de la base…)
 }
