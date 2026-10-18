@@ -16,6 +16,7 @@
     "@capgo/capacitor-native-biometric": "^8.6.7",
     "@capgo/capacitor-social-login": "^8.4.5",
     "@sanity/client": "^7.23.0",
+    "@sentry/browser": "^11.8.0",
     "@supabase/supabase-js": "^2.45.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
