@@ -1,3 +1,4 @@
+import { captureError } from './monitoring.js';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -404,6 +405,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
       return { data: docData, error: null };
     }
     console.error(`Erreur upload ${storageConn.provider}, fallback Supabase:`, uploadError);
+    captureError(uploadError, { where: 'uploadDocument:fournisseur-externe', level: 'warning', extra: { provider: storageConn.provider } });
     // Fallback vers Supabase Storage si le provider externe échoue
   }
 
@@ -416,6 +418,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
 
   if (uploadError) {
     console.error('Erreur upload document :', uploadError);
+    captureError(uploadError, { where: 'uploadDocument:stockage', extra: { mime: fileType, size: fileSize } });
     return { data: null, error: uploadError };
   }
 
@@ -439,6 +442,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
     .select()
     .single();
 
+  if (insertError) captureError(insertError, { where: 'uploadDocument:enregistrement', extra: { code: insertError.code } });
   return { data: insertedDoc, error: insertError };
 }
 
