@@ -200,6 +200,18 @@ export default function AccountPage() {
           </button>
         </div>
       </div>
+
+      {/* Suppression du compte : obligatoire pour Google Play (et droit à l'effacement du RGPD).
+          Volontairement discret (pas un gros bouton rouge) pour éviter un tap accidentel, mais toujours visible. */}
+      <div style={{ textAlign: 'center', marginTop: 18 }}>
+        <button
+          type="button"
+          onClick={() => navigate('/suppression-compte?from=/account')}
+          style={{ background: 'none', border: 'none', padding: 4, color: 'var(--ink-faint)', fontSize: 13, fontFamily: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+        >
+          Supprimer mon compte
+        </button>
+      </div>
     </>
   );
 }

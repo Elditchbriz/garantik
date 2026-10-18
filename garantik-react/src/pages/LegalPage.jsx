@@ -136,7 +136,7 @@ Vous pouvez à tout moment demander la suppression anticipée de vos fichiers de
       },
       {
         heading: "7. Vos droits",
-        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@hey-did.fr. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
+        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@hey-did.fr. Vous pouvez aussi supprimer votre compte à tout moment, depuis « Mon compte » ou sur hey-did.fr/suppression-compte : la suppression est définitive et efface vos garanties, contrats et documents ; nous ne conservons ensuite que ce que la loi nous impose de garder ou que le reversement aux associations exige : les données de facturation, la trace d'une éventuelle demande de rétractation, et les dons déjà enregistrés, qui ne sont alors plus rattachés à votre compte. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
       },
       {
         heading: "8. Cookies",
