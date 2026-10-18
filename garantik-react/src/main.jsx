@@ -17,6 +17,7 @@ import SubscriptionPage from './pages/SubscriptionPage.jsx';
 import HouseholdPage from './pages/HouseholdPage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import WithdrawalPage from './pages/WithdrawalPage.jsx';
+import DeleteAccountPage from './pages/DeleteAccountPage.jsx';
 import PurchaseDetailPage from './pages/PurchaseDetailPage.jsx';
 import AddContractPage from './pages/AddContractPage.jsx';
 import ContractDetailPage from './pages/ContractDetailPage.jsx';
@@ -75,6 +76,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/legal" element={<LegacyLegalRedirect />} />
         <Route path="/legal/:page" element={<LegalPage />} />
         <Route path="/retractation" element={<WithdrawalPage />} />
+        <Route path="/suppression-compte" element={<DeleteAccountPage />} />
         <Route element={<App />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
