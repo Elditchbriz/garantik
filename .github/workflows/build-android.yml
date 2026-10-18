@@ -61,6 +61,7 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_DROPBOX_APP_KEY=${{ secrets.VITE_DROPBOX_APP_KEY }}
+          VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN }}
           EOF
 
       - name: Construire l'app web
