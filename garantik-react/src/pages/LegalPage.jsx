@@ -9,7 +9,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: "Où sont hébergées vos données ?",
-        content: `L'ensemble de vos données — informations de compte, garanties, contrats et documents — est hébergé exclusivement en France et au sein de l'Union européenne, sur l'infrastructure de Supabase (serveurs AWS eu-west-3, Paris) pour la base de données, et Vercel (réseau européen) pour l'application elle-même. Aucune donnée n'est transférée hors de l'UE.`
+        content: `L'ensemble de vos données — informations de compte, garanties, contrats et documents — est hébergé exclusivement en France et au sein de l'Union européenne, sur l'infrastructure de Supabase (serveurs AWS eu-west-3, Paris) pour la base de données, et Vercel (réseau européen) pour l'application elle-même. Vos données de compte, de garanties, de contrats et vos documents sont stockés exclusivement dans l'Union européenne. Seuls deux traitements ponctuels peuvent faire intervenir un prestataire hors de l'Union : l'analyse par intelligence artificielle d'un ticket que vous scannez, et les rapports techniques d'erreurs (hébergés dans l'Union européenne). Le détail figure dans notre politique de confidentialité.`
       },
       {
         heading: "Comment vos documents sont-ils protégés ?",
@@ -105,15 +105,19 @@ Lors de la souscription, l'utilisateur est invité à cocher, sur la page de pai
       },
       {
         heading: "2. Données collectées",
-        content: `Nous collectons les données que vous nous communiquez lors de votre inscription (nom, adresse e-mail), les données que vous saisissez dans l'application (achats, garanties, documents), les données extraites automatiquement de vos tickets de caisse avec votre consentement explicite, ainsi que des données techniques de connexion à des fins de sécurité et d'amélioration du service.`
+        content: `Nous collectons les données que vous nous communiquez lors de votre inscription (nom, adresse e-mail), les données que vous saisissez dans l'application (achats, garanties, documents), les données extraites automatiquement de vos tickets de caisse avec votre consentement explicite, ainsi que des données techniques de connexion à des fins de sécurité et d'amélioration du service, y compris des rapports techniques d'erreurs (type d'erreur, page concernée, type d'appareil et de navigateur) générés lorsque l'application rencontre un dysfonctionnement.`
       },
       {
         heading: "3. Finalités du traitement",
-        content: `Vos données sont traitées pour : la fourniture du service de gestion de garanties, l'envoi de notifications d'expiration si vous y avez consenti, la facturation de l'abonnement Hey Did+, et l'amélioration du service par analyse anonymisée des usages. Nous ne vendons ni ne cédons vos données personnelles à des tiers.`
+        content: `Vos données sont traitées pour : la fourniture du service de gestion de garanties, l'envoi de notifications d'expiration si vous y avez consenti, la facturation de l'abonnement Hey Did+, l'amélioration du service par analyse anonymisée des usages, et la détection et la correction des dysfonctionnements par un suivi technique des erreurs (sur la base de notre intérêt légitime à garantir le bon fonctionnement et la sécurité du service). Nous ne vendons ni ne cédons vos données personnelles à des tiers.`
       },
       {
         heading: "4. Hébergement et transferts de données",
-        content: `L'ensemble de vos données est hébergé en France et au sein de l'Union européenne, sur les serveurs de Supabase (infrastructure européenne). Aucun transfert de données vers des pays tiers n'est effectué sans garanties appropriées conformément au RGPD.`
+        content: `L'ensemble de vos données est hébergé en France et au sein de l'Union européenne, sur les serveurs de Supabase (infrastructure européenne). Aucun transfert de données vers des pays tiers n'est effectué sans garanties appropriées conformément au RGPD.
+
+Deux prestataires méritent d'être signalés :
+• Anthropic, pour l'analyse des tickets de caisse par intelligence artificielle (voir la section 5) : ce traitement peut avoir lieu en dehors de l'Union européenne.
+• Sentry (Functional Software, Inc., société américaine), pour le suivi technique des erreurs : les rapports sont hébergés dans l'Union européenne (Francfort, Allemagne) et expurgés de toute donnée personnelle directe (adresse e-mail, jetons de connexion) avant leur envoi ; l'enregistrement de l'adresse IP y est désactivé. Sentry étant une société de droit américain, un accès à ces rapports depuis les États-Unis ne peut pas être exclu : il est encadré par l'accord de traitement de données de Sentry, qui intègre les clauses contractuelles types de la Commission européenne.`
       },
       {
         heading: "5. Intelligence artificielle et OCR",
@@ -121,7 +125,7 @@ Lors de la souscription, l'utilisateur est invité à cocher, sur la page de pai
       },
       {
         heading: "6. Durée de conservation et politique de stockage des fichiers",
-        content: `Vos données de compte sont conservées pendant toute la durée de votre abonnement et jusqu'à 30 jours après la suppression de votre compte. Les données de facturation sont conservées 10 ans conformément aux obligations légales.
+        content: `Vos données de compte sont conservées pendant toute la durée de votre abonnement et jusqu'à 30 jours après la suppression de votre compte. Les données de facturation sont conservées 10 ans conformément aux obligations légales. Les rapports techniques d'erreurs sont conservés pour une durée limitée, strictement nécessaire à la correction des dysfonctionnements.
 
 Concernant les fichiers numérisés (tickets de caisse, contrats, photos) :
 - Plan gratuit : les fichiers sont conservés 30 jours après leur dépôt, puis supprimés automatiquement et définitivement. Les données extraites (texte, montants, dates) restent accessibles dans votre compte.
