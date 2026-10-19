@@ -63,7 +63,7 @@ export default function StorageConnector({ orgId }) {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(null);
-  const [justConnected, setJustConnected] = useState(false);
+  const [justConnected, setJustConnected] = useState(null);   // clé du fournisseur qui vient d'être connecté (google_drive, dropbox…)
   const [disconnecting, setDisconnecting] = useState(null);
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function StorageConnector({ orgId }) {
 
     if (!code || !['google_drive', 'dropbox'].includes(state)) return;
 
-    setConnecting('google_drive');
+    setConnecting(state);   // le fournisseur réellement en cours de connexion (et pas toujours Google Drive)
 
     try {
       const fnName = state === 'dropbox' ? 'dropbox-callback' : 'google-drive-callback';
@@ -112,12 +112,12 @@ export default function StorageConnector({ orgId }) {
       if (fnError) throw new Error(fnError.message);
       if (data?.success) {
         await loadConnections();
-        setJustConnected(true);
-        setTimeout(() => setJustConnected(false), 5000);
+        setJustConnected(state);
+        setTimeout(() => setJustConnected(null), 5000);
       }
     } catch (err) {
       console.error('Erreur connexion Drive:', err);
-      alert(`Impossible de connecter Google Drive : ${err.message}`);
+      alert(`Impossible de connecter ${providerLabel(state)} : ${err.message}`);
     }
 
     setConnecting(null);
@@ -188,8 +188,8 @@ export default function StorageConnector({ orgId }) {
       <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
       <h3 style={{ color: 'var(--navy)', fontSize: 20, marginBottom: 10 }}>Bien joué !</h3>
       <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginBottom: 0, lineHeight: 1.6 }}>
-        Google Drive est connecté. Vos prochains documents scannés seront<br/>
-        automatiquement sauvegardés dans votre dossier <strong>Hey Did</strong> sur Drive.
+        {providerLabel(justConnected)} est connecté. Vos prochains documents scannés seront<br/>
+        automatiquement sauvegardés dans votre dossier <strong>{connections.find((c) => c.provider === justConnected)?.folder_name || 'Hey Did'}</strong> sur votre {providerLabel(justConnected)}.
       </p>
     </div>
   );
