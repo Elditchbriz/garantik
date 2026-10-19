@@ -32,7 +32,13 @@ const M = {
   signup_disabled: ['Les inscriptions sont momentanément fermées.', 'Les inscriptions sont momentanément fermées.'],
   user_not_found: ['Aucun compte ne correspond à cette adresse.', 'Aucun compte ne correspond à cette adresse.'],
   email_not_authorized: ["Impossible d'envoyer l'email à cette adresse pour le moment. Écrivez-nous à contact@hey-did.fr.", "Impossible d'envoyer l'email à cette adresse pour le moment. Écris-nous à contact@hey-did.fr."],
-  user_banned: ['Ce compte est suspendu. Contactez contact@hey-did.fr.', 'Ce compte est suspendu. Contacte contact@hey-did.fr.'],
+  // Supabase répond « User is banned » dans deux situations qu'il ne permet pas de distinguer : compte suspendu, et compte
+  // dont la suppression a été demandée (son accès est alors fermé pendant 30 jours, cf. delete-account). Un seul message
+  // pour les deux, avec l'adresse qui permet de récupérer ses données ou d'annuler la suppression.
+  user_banned: [
+    "Ce compte est suspendu ou en cours de suppression. Pour obtenir de l'aide, récupérer vos données ou annuler la suppression, écrivez à privacy@hey-did.fr.",
+    "Ce compte est suspendu ou en cours de suppression. Pour obtenir de l'aide, récupérer tes données ou annuler la suppression, écris à privacy@hey-did.fr.",
+  ],
   network: ['Connexion impossible. Vérifiez votre connexion internet et réessayez.', 'Connexion impossible. Vérifie ta connexion internet et réessaie.'],
   duplicate: ['Cet élément existe déjà.', 'Cet élément existe déjà.'],
   forbidden: ["Cette action n'est pas autorisée avec ce compte.", "Cette action n'est pas autorisée avec ton compte."],
