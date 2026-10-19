@@ -285,6 +285,24 @@ export async function checkFreeQuota(organizationId) {
   return data;
 }
 
+// Décompte affiché dans les fenêtres « limite atteinte » : même règle que la fonction check_free_plan_quota de la
+// base (tous les achats + les contrats non résiliés), et même limite (quota personnalisé de l'organisation, sinon 10).
+// Ne sert QU'À L'AFFICHAGE : c'est la base qui décide si l'ajout est autorisé. En cas d'erreur, `used` vaut null et
+// les fenêtres retombent sur leur texte générique.
+export async function getFreePlanUsage(organizationId) {
+  try {
+    const [p, c, o] = await Promise.all([
+      supabase.from('purchases').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
+      supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).is('cancelled_at', null),
+      supabase.from('organizations').select('quota_override').eq('id', organizationId).maybeSingle(),
+    ]);
+    if (p.error || c.error || o.error) return { used: null, quota: 10 };
+    return { used: (p.count ?? 0) + (c.count ?? 0), quota: o.data?.quota_override ?? 10 };
+  } catch {
+    return { used: null, quota: 10 };
+  }
+}
+
 export async function createPurchase(purchaseData, organizationId) {
   // Vérification du statut du compte AVANT le contrôle de quota,
   // pour ne jamais afficher "quota atteint" quand la vraie raison
