@@ -107,6 +107,14 @@ export default function WithdrawalPage() {
             <label>Ne pas remplir<input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
           </div>
 
+          {/* Information donnée au moment où les données sont collectées (RGPD). La durée doit rester identique à celle de
+              purge-deleted-accounts (WITHDRAWAL_RETENTION_DAYS) et de la politique de confidentialité (section 6). */}
+          <p style={{ fontSize: 12.5, color: 'var(--ink-faint)', lineHeight: 1.6, margin: '0 0 16px' }}>
+            Votre nom, votre adresse email et la date de votre demande servent uniquement à traiter votre rétractation.
+            Ils sont supprimés 30 jours après la demande. Plus d'informations dans notre{' '}
+            <a href={`/legal/confidentialite?from=${encodeURIComponent('/retractation')}`} style={{ color: 'var(--blue)' }}>politique de confidentialité</a>.
+          </p>
+
           {error && <p style={{ color: 'var(--red-text)', fontSize: 13, fontWeight: 600, margin: '0 0 14px' }}>⚠️ {error}</p>}
 
           <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Continuer</button>
