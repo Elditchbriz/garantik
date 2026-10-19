@@ -84,7 +84,7 @@ function WhatHappens({ plan }) {
       <h2 style={h2}>Ce que nous conservons, et pourquoi</h2>
       <p style={{ ...li, margin: 0 }}>
         Uniquement ce que la loi nous impose de garder : les données de facturation (10 ans), la trace d'une éventuelle
-        demande de rétractation, et les dons déjà enregistrés pour leur reversement aux associations, qui ne sont alors
+        demande de rétractation (30 jours), et les dons déjà enregistrés pour leur reversement aux associations, qui ne sont alors
         plus rattachés à vous. Le détail figure dans notre{' '}
         <a href={`/legal/confidentialite?from=${encodeURIComponent(SELF)}`} style={{ color: 'var(--blue)', fontWeight: 600 }}>politique de confidentialité</a>.
       </p>
