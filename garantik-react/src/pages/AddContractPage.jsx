@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase, listContractTypes, createContract, uploadDocument, findSimilarContracts, checkFreeQuota, markInboxItemProcessed } from '../lib/supabaseClient.js';
+import { supabase, listContractTypes, createContract, uploadDocument, findSimilarContracts, checkFreeQuota, getFreePlanUsage, markInboxItemProcessed } from '../lib/supabaseClient.js';
+import FreePlanLimitNotice, { limitHeadline } from '../components/FreePlanLimitNotice.jsx';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ContractScannerModal from '../components/ContractScannerModal.jsx';
@@ -69,6 +70,11 @@ export default function AddContractPage() {
   const [duplicates, setDuplicates] = useState([]);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitUsage, setLimitUsage] = useState(null);   // { used, quota } : décompte réel affiché dans la fenêtre de limite
+  async function openLimitModal() {
+    setShowLimitModal(true);
+    setLimitUsage(await getFreePlanUsage(orgId));
+  }
   const [amount, setAmount] = useState('');
   const [billingPeriod, setBillingPeriod] = useState('');
   const [notes, setNotes] = useState('');
@@ -182,7 +188,7 @@ export default function AddContractPage() {
 
     // Vérifier le quota plan gratuit (cumul achats + contrats)
     const canCreate = await checkFreeQuota(orgId);
-    if (!canCreate) { setShowLimitModal(true); return; }
+    if (!canCreate) { openLimitModal(); return; }
 
     if (!forceCreate) {
       const similar = await findSimilarContracts(orgId, {
@@ -484,13 +490,14 @@ export default function AddContractPage() {
               <div className="modal-close" onClick={() => setShowLimitModal(false)}><Icon name="x" /></div>
               <div className="modal-icon"><Icon name="lock" /></div>
               <h3>Limite du plan gratuit</h3>
-              <p>Tu as atteint la limite de 10 garanties et contrats</p>
+              <p>{limitHeadline(limitUsage?.used, limitUsage?.quota ?? 10)}</p>
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.6 }}>
-                Le plan gratuit permet de gérer jusqu'à 10 éléments au total (garanties + contrats).
-                Passez à Hey Did+ pour un accès illimité.
+                Le plan gratuit permet de gérer jusqu'à {limitUsage?.quota ?? 10} éléments au total (garanties + contrats).
+                Passe à Hey Did+ pour un accès illimité.
               </p>
+              <FreePlanLimitNotice used={limitUsage?.used} quota={limitUsage?.quota ?? 10} />
               <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
                 onClick={() => setShowLimitModal(false)}>
                 Compris

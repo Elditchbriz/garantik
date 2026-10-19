@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import CharityTile from '../components/CharityTile.jsx';
+import CancellationHeadsUp from '../components/CancellationHeadsUp.jsx';
 
 // Charge Stripe.js à la demande (uniquement quand une confirmation 3D Secure
 // est nécessaire — rare) plutôt qu'au chargement de la page, pour ne pas
@@ -774,6 +775,11 @@ export default function SubscriptionPage() {
             </div>
           ) : hasStripeSubscription ? (
             <>
+              {/* Avant la résiliation (qui se fait dans le portail Stripe) : fichiers à télécharger, limite du plan gratuit.
+                  Masqué si la résiliation est déjà programmée. */}
+              {!profile?.organizations?.stripe_cancel_at_period_end && (
+                <CancellationHeadsUp quota={profile?.organizations?.quota_override ?? 10} />
+              )}
               <button
                 className="btn btn-ghost"
                 style={{ width: '100%', justifyContent: 'center' }}

@@ -79,6 +79,7 @@ function SortBtn({ value, onChange }) {
 function QuotaBar({ used, quota }) {
   const pct = Math.min(100, Math.round((used / quota) * 100));
   const nearLimit = used >= quota - 2;
+  const over = used > quota;   // ex. ancien abonné Hey Did+ revenu en plan gratuit avec 50 éléments
   return (
     <div style={{
       background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)',
@@ -91,7 +92,7 @@ function QuotaBar({ used, quota }) {
           </span>
           {nearLimit && (
             <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--amber-text)' }}>
-              Plus que {Math.max(0, quota - used)} disponible{quota - used > 1 ? 's' : ''}
+              {over ? 'Limite dépassée' : `Plus que ${Math.max(0, quota - used)} disponible${quota - used > 1 ? 's' : ''}`}
             </span>
           )}
         </div>
@@ -102,6 +103,11 @@ function QuotaBar({ used, quota }) {
             transition: 'width 0.3s ease',
           }} />
         </div>
+        {over && (
+          <div style={{ fontSize: 11.5, color: 'var(--ink-soft)', marginTop: 8, lineHeight: 1.5 }}>
+            Tu peux tout consulter et modifier, mais pas en ajouter tant que tu en as {quota} ou plus.
+          </div>
+        )}
       </div>
       <a href="/account#abonnement" style={{
         flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue)', whiteSpace: 'nowrap',

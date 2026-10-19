@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota, markInboxItemProcessed } from '../lib/supabaseClient.js';
+import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota, getFreePlanUsage, markInboxItemProcessed } from '../lib/supabaseClient.js';
+import FreePlanLimitNotice, { limitHeadline } from '../components/FreePlanLimitNotice.jsx';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ScannerModal from '../components/ScannerModal.jsx';
@@ -67,6 +68,11 @@ export default function AddPurchasePage() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [limitUsage, setLimitUsage] = useState(null);   // { used, quota } : décompte réel affiché dans la fenêtre de limite
+  async function openLimitModal() {
+    setShowLimitModal(true);
+    setLimitUsage(await getFreePlanUsage(orgId));
+  }
   const [showWarrantyInfo, setShowWarrantyInfo] = useState(false);
 
   // Articles restants détectés sur le même ticket, pas encore enregistrés
@@ -240,7 +246,7 @@ export default function AddPurchasePage() {
 
     if (error) {
       if (error.code === 'QUOTA_EXCEEDED') {
-        setShowLimitModal(true);
+        openLimitModal();
       } else {
         setErrorMsg(friendlyError(error));
       }
@@ -523,13 +529,14 @@ export default function AddPurchasePage() {
               </div>
               <div className="modal-icon"><Icon name="lock" /></div>
               <h3>Limite du plan gratuit atteinte</h3>
-              <p>Tu as atteint la limite de 10 garanties et contrats</p>
+              <p>{limitHeadline(limitUsage?.used, limitUsage?.quota ?? 10)}</p>
             </div>
             <div className="modal-body">
               <div className="modal-progress">
                 <div className="dot"></div>
-                <span>10 / 10 éléments utilisés (garanties + contrats)</span>
+                <span>{limitUsage?.used ?? (limitUsage?.quota ?? 10)} / {limitUsage?.quota ?? 10} éléments utilisés (garanties + contrats)</span>
               </div>
+              <FreePlanLimitNotice used={limitUsage?.used} quota={limitUsage?.quota ?? 10} />
               <div className="modal-features">
                 <div className="f"><Icon name="check" /> Garanties illimitées</div>
                 <div className="f"><Icon name="check" /> Alertes personnalisables par achat</div>
