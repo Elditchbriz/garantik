@@ -59,6 +59,15 @@ const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
+// Le serveur répond { error: « message lisible », code } : on l'affiche tel quel plutôt que « Edge Function returned a non-2xx status code »
+async function functionErrorMessage(fnError) {
+  try {
+    const body = await fnError.context?.json?.();
+    if (body?.error) return body.error;
+  } catch (_) { /* corps illisible */ }
+  return fnError.message;
+}
+
 export default function StorageConnector({ orgId }) {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +118,7 @@ export default function StorageConnector({ orgId }) {
         },
       });
 
-      if (fnError) throw new Error(fnError.message);
+      if (fnError) throw new Error(await functionErrorMessage(fnError));
       if (data?.success) {
         await loadConnections();
         setJustConnected(state);
