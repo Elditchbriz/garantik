@@ -144,7 +144,8 @@ export default function DocumentsPage() {
 
   async function handleDelete(doc) {
     if (!window.confirm(`Supprimer "${doc.file_name}" ? Cette action est irréversible.`)) return;
-    await supabase.storage.from('documents').remove([doc.file_path]);
+    // Un document hébergé chez l'utilisateur (Dropbox, Google Drive…) n'a pas de fichier chez Hey Did : rien à retirer du stockage
+    if (doc.file_path) await supabase.storage.from('documents').remove([doc.file_path]);
     await supabase.from('documents').delete().eq('id', doc.id);
     setDocs(prev => prev.filter(d => d.id !== doc.id));
   }
