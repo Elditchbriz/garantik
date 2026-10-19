@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -380,6 +381,7 @@ export default function PurchaseDetailPage() {
             )
           ) : (
             purchase.warranty_duration_months && (
+              <WebOnly>
               <Link to="/account/subscription" style={{ textDecoration: 'none' }}>
                 <div style={{
                   padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
@@ -392,6 +394,7 @@ export default function PurchaseDetailPage() {
                   </span>
                 </div>
               </Link>
+              </WebOnly>
             )
           )}
 

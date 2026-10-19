@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
@@ -50,14 +52,20 @@ export default function AssociationsPage() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 60px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div className="eyebrow-sm" style={{ justifyContent: 'center', display: 'flex' }}>Hey Did+ a du sens</div>
+          <WebOnly><div className="eyebrow-sm" style={{ justifyContent: 'center', display: 'flex' }}>Hey Did+ a du sens</div></WebOnly>
           <h1 style={{ fontSize: 28, fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif', fontWeight: 800, color: 'var(--navy)', margin: '8px 0 12px' }}>
             Nos associations partenaires
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-soft)', maxWidth: 560, margin: '0 auto' }}>
-            En passant à Hey Did+, tu choisis l'une de ces associations : Hey Did lui reverse
-            automatiquement un montant fixe chaque mois, sans coût supplémentaire pour toi.
-          </p>
+          {isNativeApp() ? (
+            <p style={{ fontSize: 15, color: 'var(--ink-soft)', maxWidth: 560, margin: '0 auto' }}>
+              Les associations soutenues par Hey Did.
+            </p>
+          ) : (
+            <p style={{ fontSize: 15, color: 'var(--ink-soft)', maxWidth: 560, margin: '0 auto' }}>
+              En passant à Hey Did+, tu choisis l'une de ces associations : Hey Did lui reverse
+              automatiquement un montant fixe chaque mois, sans coût supplémentaire pour toi.
+            </p>
+          )}
         </div>
 
         {loading ? (

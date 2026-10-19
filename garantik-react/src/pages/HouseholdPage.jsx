@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import { useOutletContext, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -140,11 +142,13 @@ export default function HouseholdPage() {
           }}>
             <Icon name="lock" style={{ fontSize: 24, color: 'var(--blue-dark)' }} />
           </div>
-          <h3 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>Réservé à Hey Did+</h3>
-          <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 20, maxWidth: 340, marginInline: 'auto' }}>
-            Invitez jusqu'à 5 proches à accéder aux mêmes garanties, contrats et documents, sans abonnement séparé pour eux.
-          </p>
-          <Link to="/account/subscription" className="btn btn-primary">Découvrir Hey Did+</Link>
+          <h3 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>{isNativeApp() ? 'Non disponible avec le plan gratuit' : 'Réservé à Hey Did+'}</h3>
+          <WebOnly>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 20, maxWidth: 340, marginInline: 'auto' }}>
+              Invitez jusqu'à 5 proches à accéder aux mêmes garanties, contrats et documents, sans abonnement séparé pour eux.
+            </p>
+            <Link to="/account/subscription" className="btn btn-primary">Découvrir Hey Did+</Link>
+          </WebOnly>
         </div>
       </div>
     );

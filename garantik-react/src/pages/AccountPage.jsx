@@ -3,6 +3,7 @@ import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { supabase, signOut } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import { FeedbackModal } from '../components/FeedbackButton.jsx';
 
 function MenuRow({ icon, iconBg, iconColor, label, meta, onClick, badge }) {
@@ -158,7 +159,7 @@ export default function AccountPage() {
           label={isPremium ? '⭐ Hey Did+' : '🔒 Plan Gratuit'}
           meta={isPremium && renewalDate
             ? `Renouvellement le ${new Date(renewalDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-            : isPremium ? 'Facturation, don, outils' : 'Découvrir les avantages'}
+            : isPremium ? (isNativeApp() ? 'Mon abonnement' : 'Facturation, don, outils') : (isNativeApp() ? 'Mon plan' : 'Découvrir les avantages')}
           onClick={() => navigate('/account/subscription')}
         />
         <MenuRow

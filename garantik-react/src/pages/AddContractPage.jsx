@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, listContractTypes, createContract, uploadDocument, findSimilarContracts, checkFreeQuota, getFreePlanUsage, markInboxItemProcessed } from '../lib/supabaseClient.js';
 import FreePlanLimitNotice, { limitHeadline } from '../components/FreePlanLimitNotice.jsx';
+import WebOnly from '../components/WebOnly.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ContractScannerModal from '../components/ContractScannerModal.jsx';
@@ -494,8 +496,9 @@ export default function AddContractPage() {
             </div>
             <div className="modal-body">
               <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', marginBottom: 20, lineHeight: 1.6 }}>
-                Le plan gratuit permet de gérer jusqu'à {limitUsage?.quota ?? 10} éléments au total (garanties + contrats).
-                Passe à Hey Did+ pour un accès illimité.
+                Le plan gratuit permet de gérer jusqu'à {limitUsage?.quota ?? 10} éléments au total (garanties + contrats).{' '}
+                <WebOnly>Passe à Hey Did+ pour un accès illimité.</WebOnly>
+                {isNativeApp() && 'Supprime un élément existant pour en ajouter un nouveau.'}
               </p>
               <FreePlanLimitNotice used={limitUsage?.used} quota={limitUsage?.quota ?? 10} />
               <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}

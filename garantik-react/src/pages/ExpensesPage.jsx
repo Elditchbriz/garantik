@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { supabase, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -48,11 +50,13 @@ export default function ExpensesPage() {
           }}>
             <Icon name="lock" style={{ fontSize: 24, color: 'var(--blue-dark)' }} />
           </div>
-          <h3 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>Réservé à Hey Did+</h3>
-          <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 20, maxWidth: 340, marginInline: 'auto' }}>
-            Vois d'un coup d'œil où part ton argent : répartition par catégorie, projection annuelle, et évolution de tes charges.
-          </p>
-          <button className="btn btn-primary" onClick={() => navigate('/account/subscription')}>Découvrir Hey Did+</button>
+          <h3 style={{ margin: '0 0 8px', color: 'var(--navy)' }}>{isNativeApp() ? 'Non disponible avec le plan gratuit' : 'Réservé à Hey Did+'}</h3>
+          <WebOnly>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 13.5, marginBottom: 20, maxWidth: 340, marginInline: 'auto' }}>
+              Vois d'un coup d'œil où part ton argent : répartition par catégorie, projection annuelle, et évolution de tes charges.
+            </p>
+            <button className="btn btn-primary" onClick={() => navigate('/account/subscription')}>Découvrir Hey Did+</button>
+          </WebOnly>
         </div>
       </div>
     );

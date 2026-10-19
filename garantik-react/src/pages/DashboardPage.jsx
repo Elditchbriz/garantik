@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -109,11 +110,13 @@ function QuotaBar({ used, quota }) {
           </div>
         )}
       </div>
-      <a href="/account#abonnement" style={{
-        flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue)', whiteSpace: 'nowrap',
-      }}>
-        Passer à Hey Did+
-      </a>
+      <WebOnly>
+        <a href="/account#abonnement" style={{
+          flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue)', whiteSpace: 'nowrap',
+        }}>
+          Passer à Hey Did+
+        </a>
+      </WebOnly>
     </div>
   );
 }

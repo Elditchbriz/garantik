@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
 import { useOutletContext } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -78,7 +79,8 @@ export default function DiscussionsPage() {
           padding: '8px 14px', borderRadius: 'var(--radius-m)', marginBottom: 12,
           background: 'var(--gray-pale)', color: 'var(--ink-faint)', fontSize: 12, textAlign: 'center',
         }}>
-          Tes conversations sont conservées 30 jours. <strong style={{ color: 'var(--ink-soft)' }}>Hey Did+</strong> les garde indéfiniment.
+          Tes conversations sont conservées 30 jours.{' '}
+          <WebOnly><strong style={{ color: 'var(--ink-soft)' }}>Hey Did+</strong> les garde indéfiniment.</WebOnly>
         </div>
       )}
 

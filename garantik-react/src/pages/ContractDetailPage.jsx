@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import WebOnly from '../components/WebOnly.jsx';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
@@ -411,6 +412,7 @@ export default function ContractDetailPage() {
                 </div>
               </div>
             ) : (
+              <WebOnly>
               <Link to="/account/subscription" style={{ textDecoration: 'none' }}>
                 <div style={{
                   padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
@@ -423,6 +425,7 @@ export default function ContractDetailPage() {
                   </span>
                 </div>
               </Link>
+              </WebOnly>
             )
           )}
 
@@ -457,6 +460,7 @@ export default function ContractDetailPage() {
               )
             ) : (
               contract.notice_period_days && (
+                <WebOnly>
                 <Link to="/account/subscription" style={{ textDecoration: 'none' }}>
                   <div style={{
                     padding: '14px 16px', borderRadius: 'var(--radius-m)', marginBottom: 16,
@@ -469,6 +473,7 @@ export default function ContractDetailPage() {
                     </span>
                   </div>
                 </Link>
+                </WebOnly>
               )
             )
           )}

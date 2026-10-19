@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { isNativeApp } from '../lib/platform.js';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
@@ -339,6 +340,8 @@ export default function SearchPage() {
   const purchaseResults = results.filter(r => r._type === 'purchase');
   const contractResults = results.filter(r => r._type === 'contract');
   const isPremium = profile?.organizations?.plan === 'premium';
+  // App Android, plan gratuit : pas d'entrées PDF/Excel verrouillées (elles mèneraient à l'achat, qui ne se fait pas dans l'app)
+  const hideLockedExports = isNativeApp() && !isPremium;
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [exportMenuPos, setExportMenuPos] = useState(null);
   const exportButtonRef = useRef(null);
@@ -424,6 +427,8 @@ export default function SearchPage() {
                     >
                       <Icon name="file-text" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> CSV
                     </button>
+                    {!hideLockedExports && (
+                      <>
                     <button
                       onClick={() => { if (!isPremium) { navigate("/account/subscription"); return; } runExport('pdf'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
@@ -438,7 +443,9 @@ export default function SearchPage() {
                       <Icon name="file-spreadsheet" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> Excel
                       {!isPremium && <Icon name="lock" style={{ fontSize: 12, color: 'var(--ink-faint)', marginLeft: 'auto' }} />}
                     </button>
-                    {!isPremium && (
+                      </>
+                    )}
+                    {!isPremium && !hideLockedExports && (
                       <div style={{ fontSize: 11, color: 'var(--ink-faint)', padding: '6px 12px 2px' }}>PDF et Excel réservés à Hey Did+</div>
                     )}
                   </div>

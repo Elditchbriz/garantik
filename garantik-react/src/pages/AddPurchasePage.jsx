@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota, getFreePlanUsage, markInboxItemProcessed } from '../lib/supabaseClient.js';
 import FreePlanLimitNotice, { limitHeadline } from '../components/FreePlanLimitNotice.jsx';
+import WebOnly from '../components/WebOnly.jsx';
+import { isNativeApp } from '../lib/platform.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import ScannerModal from '../components/ScannerModal.jsx';
@@ -537,21 +539,30 @@ export default function AddPurchasePage() {
                 <span>{limitUsage?.used ?? (limitUsage?.quota ?? 10)} / {limitUsage?.quota ?? 10} éléments utilisés (garanties + contrats)</span>
               </div>
               <FreePlanLimitNotice used={limitUsage?.used} quota={limitUsage?.quota ?? 10} />
-              <div className="modal-features">
-                <div className="f"><Icon name="check" /> Garanties illimitées</div>
-                <div className="f"><Icon name="check" /> Alertes personnalisables par achat</div>
-                <div className="f"><Icon name="check" /> Hébergement cloud sécurisé inclus</div>
-              </div>
-              <div className="modal-price-line">
-                <span className="amount">2,08€</span>
-                <span className="period">/ mois, facturé 24,99€ par an</span>
-              </div>
+              <WebOnly>
+                <div className="modal-features">
+                  <div className="f"><Icon name="check" /> Garanties illimitées</div>
+                  <div className="f"><Icon name="check" /> Alertes personnalisables par achat</div>
+                  <div className="f"><Icon name="check" /> Hébergement cloud sécurisé inclus</div>
+                </div>
+                <div className="modal-price-line">
+                  <span className="amount">2,08€</span>
+                  <span className="period">/ mois, facturé 24,99€ par an</span>
+                </div>
+              </WebOnly>
+              {isNativeApp() && (
+                <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                  Supprime un élément existant pour en ajouter un nouveau.
+                </p>
+              )}
               <div className="modal-actions">
-                <a href="/account#abonnement" className="btn btn-primary">
-                  <Icon name="rocket" /> Passer à Hey Did+
-                </a>
+                <WebOnly>
+                  <a href="/account#abonnement" className="btn btn-primary">
+                    <Icon name="rocket" /> Passer à Hey Did+
+                  </a>
+                </WebOnly>
                 <button className="btn btn-ghost" onClick={() => setShowLimitModal(false)}>
-                  Plus tard
+                  {isNativeApp() ? 'Compris' : 'Plus tard'}
                 </button>
               </div>
             </div>

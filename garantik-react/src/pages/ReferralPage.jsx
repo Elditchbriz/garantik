@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { getReferralInfo, supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { isNativeApp } from '../lib/platform.js';
 
 function formatDate(d) {
   if (!d) return '';
@@ -14,6 +15,11 @@ const statusLabels = {
   signed_up: { label: 'Inscrit', color: 'var(--blue-dark)', bg: 'var(--blue-pale)' },
   rewarded: { label: 'Récompensé', color: 'var(--green-text)', bg: 'var(--green-pale)' },
 };
+
+// Le lien de parrainage mène TOUJOURS au site : l'inscription et l'abonnement se font sur le site, pas dans l'app Android.
+// Sur le site, on garde l'adresse courante (utile pour les versions de test) ; dans l'app Android on écrit l'adresse du
+// site en dur, sans dépendre de la façon dont l'app est configurée (aujourd'hui elle charge le site en direct).
+const SITE_URL = 'https://www.hey-did.fr';
 
 export default function ReferralPage() {
   const { profile } = useOutletContext();
@@ -35,7 +41,7 @@ export default function ReferralPage() {
 
   if (loading || !info) return <p style={{ padding: 32, textAlign: 'center', color: 'var(--ink-faint)' }}>Chargement…</p>;
 
-  const referralUrl = `${window.location.origin}/auth?mode=signup&ref=${info.referralCode}`;
+  const referralUrl = `${isNativeApp() ? SITE_URL : window.location.origin}/auth?mode=signup&ref=${info.referralCode}`;
   const rewardedCount = info.referrals.filter(r => r.status === 'rewarded').length;
   const pendingCount = info.referrals.filter(r => r.status !== 'rewarded').length;
   const MAX_REFERRALS = 3;
