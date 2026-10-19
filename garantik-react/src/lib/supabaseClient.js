@@ -362,7 +362,20 @@ export async function countPurchasesByStatus(organizationId) {
 // Documents (upload de tickets/factures)
 // ============================================================
 
+const EXTERNAL_STORAGE_LABELS = { google_drive: 'Google Drive', dropbox: 'Dropbox' };
+
+// Un envoi vers le stockage externe de l'utilisateur a échoué : le fichier est conservé chez Hey Did (rien n'est perdu), MAIS on
+// le dit. Avant, ce repli était silencieux : la personne croyait son fichier dans son Drive ou son Dropbox et ne le trouvait pas.
+function notifyExternalStorageFallback(provider, failure) {
+  const label = EXTERNAL_STORAGE_LABELS[provider] || 'ton espace de stockage';
+  let advice = ' Vérifie la connexion dans Réglages (Espace de stockage).';
+  if (failure?.code === 'reauth_required' || failure?.code === 'missing_scope') advice = ` Reconnecte-le dans Réglages (Espace de stockage).`;
+  else if (failure?.code === 'quota_exceeded') advice = ' Son espace est plein.';
+  try { window.alert(`Le fichier n'a pas pu être envoyé sur ${label} : il est conservé chez Hey Did à la place.${advice}`); } catch (_) { /* hors navigateur */ }
+}
+
 export async function uploadDocument(file, organizationId, purchaseId = null, customName = null, contractId = null) {
+  let fallbackFrom = null;   // fournisseur externe qui a échoué, le cas échéant
   // file peut être un objet File (upload classique) ou un Blob brut (ex: canvas.toBlob()
   // du scanner, qui n'a pas de propriété .name). On normalise les deux cas ici.
   const fileType = file.type || 'image/jpeg';
@@ -422,9 +435,14 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
       triggerDocumentOcr(uploadData.document_id, file); // en arrière-plan, ne bloque pas l'upload
       return { data: docData, error: null };
     }
+    // La fonction serveur répond { error: « message lisible », code } : on récupère le motif (l'erreur de Supabase, elle, est générique)
+    let failure = null;
+    try { failure = await uploadError?.context?.json?.(); } catch (_) { /* corps illisible */ }
     console.error(`Erreur upload ${storageConn.provider}, fallback Supabase:`, uploadError);
-    captureError(uploadError, { where: 'uploadDocument:fournisseur-externe', level: 'warning', extra: { provider: storageConn.provider } });
-    // Fallback vers Supabase Storage si le provider externe échoue
+    captureError(uploadError ?? new Error('réponse de la fonction sans document_id'), { where: 'uploadDocument:fournisseur-externe', level: 'warning', extra: { provider: storageConn.provider, code: failure?.code } });
+    // Fallback vers Supabase Storage si le provider externe échoue — et on prévient l'utilisateur
+    fallbackFrom = storageConn.provider;
+    notifyExternalStorageFallback(fallbackFrom, failure);
   }
 
   // Stockage Supabase (par défaut ou fallback)
@@ -461,7 +479,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
     .single();
 
   if (insertError) captureError(insertError, { where: 'uploadDocument:enregistrement', extra: { code: insertError.code } });
-  return { data: insertedDoc, error: insertError };
+  return { data: insertedDoc, error: insertError, ...(fallbackFrom ? { fallbackFrom } : {}) };
 }
 
 export async function listContractTypes(organizationId) {
