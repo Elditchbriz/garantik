@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient.js';
 import { Capacitor } from '@capacitor/core';
+import WebOnly from './WebOnly.jsx';
 import { DocumentScanner } from '@capgo/capacitor-document-scanner';
 import { beginNativeUIAction, endNativeUIAction } from './BiometricLockScreen.jsx';
 import Icon from './Icon.jsx';
@@ -400,7 +401,7 @@ export default function ScannerModal({ onResult, onClose, onManual, isPremium = 
                   <span style={{ fontSize: 16, flexShrink: 0 }}>ℹ️</span>
                   <span>
                     <strong style={{ color: 'var(--blue-dark)' }}>Plan gratuit</strong> — votre fichier est analysé par l'IA puis supprimé sous 30 jours.
-                    Pour le conserver définitivement, <a href="/settings" style={{ color: 'var(--blue)' }}>connectez un espace de stockage</a> ou passez à Hey Did+.
+                    Pour le conserver définitivement, <a href="/settings" style={{ color: 'var(--blue)' }}>connectez un espace de stockage</a><WebOnly> ou passez à Hey Did+</WebOnly>.
                   </span>
                 </div>
               )}
