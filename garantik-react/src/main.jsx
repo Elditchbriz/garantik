@@ -14,6 +14,8 @@ import DocumentsPage from './pages/DocumentsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import AccountPage from './pages/AccountPage.jsx';
 import SubscriptionPage from './pages/SubscriptionPage.jsx';
+import NativeSubscriptionPage from './pages/NativeSubscriptionPage.jsx';
+import { isNativeApp } from './lib/platform.js';
 import HouseholdPage from './pages/HouseholdPage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import WithdrawalPage from './pages/WithdrawalPage.jsx';
@@ -37,6 +39,12 @@ import './styles/style.css';
 // envoyés (et dans l'ancien formulaire d'inscription) : on les redirige vers la
 // bonne page plutôt que de laisser un écran blanc. La vraie adresse est /legal/cgu.
 const LEGAL_PAGES = ['mentions', 'cgu', 'confidentialite', 'hebergement'];
+// Sur le site et en webapp : la page d'abonnement habituelle, NON modifiée. Dans l'app Android : un simple état du plan,
+// car rien ne se vend dans l'app (voir WebOnly).
+function SubscriptionRoute() {
+  return isNativeApp() ? <NativeSubscriptionPage /> : <SubscriptionPage />;
+}
+
 function LegacyLegalRedirect() {
   const { hash } = useLocation();
   const target = hash.replace('#', '').toLowerCase();
@@ -85,7 +93,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/account" element={<AccountPage />} />
-          <Route path="/account/subscription" element={<SubscriptionPage />} />
+          <Route path="/account/subscription" element={<SubscriptionRoute />} />
           <Route path="/account/household" element={<HouseholdPage />} />
           <Route path="/purchase/:id" element={<PurchaseDetailPage />} />
           <Route path="/add-contract" element={<AddContractPage />} />
