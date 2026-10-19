@@ -6,6 +6,8 @@ import PageHeader from '../components/PageHeader.jsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { rowsToCsv, fetchAllPages } from '../lib/csvExport.js';
+import { captureError } from '../lib/monitoring.js';
 
 function formatDate(d) {
   if (!d) return '';
@@ -56,15 +58,7 @@ function buildExportRows(purchases, contracts) {
 const EXPORT_HEADERS = ['Type', 'Nom', 'Marque / Prestataire', 'Enseigne / Catégorie', 'Montant (€)', 'Date de début', 'Échéance', 'Statut', 'Notes'];
 
 function exportToCsv(purchases, contracts) {
-  const rows = buildExportRows(purchases, contracts);
-  const escapeCsv = (val) => {
-    if (val === null || val === undefined) return '';
-    const str = String(val);
-    if (str.includes(';') || str.includes('"') || str.includes('\n')) return '"' + str.replace(/"/g, '""') + '"';
-    return str;
-  };
-  const csvRows = rows.map((r) => [r.type, r.nom, r.tiers, r.categorie, r.montant, r.debut, r.echeance, r.statut, r.notes].map(escapeCsv).join(';'));
-  const csvContent = '\uFEFF' + [EXPORT_HEADERS.join(';'), ...csvRows].join('\n');
+  const csvContent = rowsToCsv(EXPORT_HEADERS, buildExportRows(purchases, contracts));
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, 'csv');
 }
@@ -166,6 +160,9 @@ export default function SearchPage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [truncated, setTruncated] = useState(false);     // la recherche a atteint la limite d'affichage (100 par type)
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   // Listes pour les filtres — garanties
   const [brands, setBrands] = useState([]);
@@ -221,19 +218,8 @@ export default function SearchPage() {
   }, [query, filterStatus, scope, filterBrand, filterStore, filterCategory, filterDateFrom, filterDateTo,
       filterProvider, filterContractType, filterEndDateFrom, filterEndDateTo, sortMode, orgId]);
 
-  async function doSearch() {
-    if (!orgId) return;
-    setLoading(true);
-
-    const qLower = query.trim().toLowerCase();
-
-    // ---------- Documents complémentaires (nom de fichier + contenu OCR) ----------
-    // Un document ajouté après coup sur une garantie/un contrat n'a pas
-    // forcément de mot correspondant dans les champs de la garantie/du
-    // contrat lui-même — sans cette étape, il resterait invisible à la
-    // recherche même si son contenu matche. On récupère donc d'abord les
-    // garanties/contrats concernés par un document correspondant, pour
-    // les inclure explicitement ci-dessous.
+  // Garanties/contrats dont un DOCUMENT correspond à la recherche (voir ci-dessous).
+  async function findMatchedDocIds(qLower) {
     let matchedPurchaseIds = [];
     let matchedContractIds = [];
     if (qLower) {
@@ -243,11 +229,17 @@ export default function SearchPage() {
       matchedPurchaseIds = [...new Set((matchedDocs || []).map((d) => d.purchase_id).filter(Boolean))];
       matchedContractIds = [...new Set((matchedDocs || []).map((d) => d.contract_id).filter(Boolean))];
     }
+    return { matchedPurchaseIds, matchedContractIds };
+  }
 
+  // Requêtes de la recherche en cours (mots-clés + filtres), SANS tri ni limite. Elles servent à l'affichage (limité aux
+  // 100 premiers résultats) ET à l'export (toutes les lignes) : un seul endroit pour les filtres, afin que l'export
+  // contienne exactement ce que la recherche trouve.
+  function buildQueries(qLower, matchedPurchaseIds, matchedContractIds) {
     // ---------- Achats — ignorés si le périmètre est "Contrats" ----------
-    let purchasePromise = Promise.resolve({ data: [] });
+    let purchaseQuery = null;
     if (scope !== 'contract') {
-      let purchaseQuery = supabase.from('purchases').select('*').eq('organization_id', orgId);
+      purchaseQuery = supabase.from('purchases').select('*').eq('organization_id', orgId);
       if (qLower) {
         let orClause = `object_name.ilike.%${qLower}%,brand.ilike.%${qLower}%,store.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`;
         if (matchedPurchaseIds.length > 0) orClause += `,id.in.(${matchedPurchaseIds.join(',')})`;
@@ -258,13 +250,12 @@ export default function SearchPage() {
       if (filterCategory) purchaseQuery = purchaseQuery.eq('category', filterCategory);
       if (filterDateFrom) purchaseQuery = purchaseQuery.gte('purchase_date', filterDateFrom);
       if (filterDateTo) purchaseQuery = purchaseQuery.lte('purchase_date', filterDateTo);
-      purchasePromise = purchaseQuery.order('purchase_date', { ascending: false }).limit(100);
     }
 
     // ---------- Contrats & abonnements — ignorés si le périmètre est "Garanties" ----------
-    let contractPromise = Promise.resolve({ data: [] });
+    let contractQuery = null;
     if (scope !== 'purchase') {
-      let contractQuery = supabase.from('contracts').select('*').eq('organization_id', orgId).is('cancelled_at', null);
+      contractQuery = supabase.from('contracts').select('*').eq('organization_id', orgId).is('cancelled_at', null);
       if (qLower) {
         let orClause = `name.ilike.%${qLower}%,provider.ilike.%${qLower}%,contract_type.ilike.%${qLower}%,reference_number.ilike.%${qLower}%,ocr_content.ilike.%${qLower}%,notes.ilike.%${qLower}%`;
         if (matchedContractIds.length > 0) orClause += `,id.in.(${matchedContractIds.join(',')})`;
@@ -274,10 +265,23 @@ export default function SearchPage() {
       if (filterContractType) contractQuery = contractQuery.eq('contract_type', filterContractType);
       if (filterEndDateFrom) contractQuery = contractQuery.gte('end_date', filterEndDateFrom);
       if (filterEndDateTo) contractQuery = contractQuery.lte('end_date', filterEndDateTo);
-      contractPromise = contractQuery.order('end_date', { ascending: false }).limit(100);
     }
 
+    return { purchaseQuery, contractQuery };
+  }
+
+  async function doSearch() {
+    if (!orgId) return;
+    setLoading(true);
+
+    const qLower = query.trim().toLowerCase();
+    const { matchedPurchaseIds, matchedContractIds } = await findMatchedDocIds(qLower);
+    const { purchaseQuery, contractQuery } = buildQueries(qLower, matchedPurchaseIds, matchedContractIds);
+    const purchasePromise = purchaseQuery ? purchaseQuery.order('purchase_date', { ascending: false }).limit(100) : Promise.resolve({ data: [] });
+    const contractPromise = contractQuery ? contractQuery.order('end_date', { ascending: false }).limit(100) : Promise.resolve({ data: [] });
+
     const [{ data: purchaseData }, { data: contractData }] = await Promise.all([purchasePromise, contractPromise]);
+    setTruncated((purchaseData || []).length >= 100 || (contractData || []).length >= 100);
 
     let mergedPurchases = (purchaseData || []).map(p => ({ ...p, _type: 'purchase', _endDate: p.warranty_end_date, _sortDate: p.purchase_date }));
     let mergedContracts = (contractData || []).map(c => ({ ...c, _type: 'contract', _endDate: c.end_date, _sortDate: c.start_date || c.created_at }));
@@ -347,6 +351,50 @@ export default function SearchPage() {
     setExportMenuOpen((v) => !v);
   }
 
+  // Tous les résultats de la recherche en cours (mêmes mots-clés et filtres), sans la limite d'affichage de 100.
+  async function loadAllResults() {
+    const qLower = query.trim().toLowerCase();
+    const { matchedPurchaseIds, matchedContractIds } = await findMatchedDocIds(qLower);
+    const { purchaseQuery, contractQuery } = buildQueries(qLower, matchedPurchaseIds, matchedContractIds);
+    // Tri par date puis identifiant : pages stables, sans doublon ni oubli entre deux lectures
+    const read = (key, dateColumn) => fetchAllPages((from, to) =>
+      buildQueries(qLower, matchedPurchaseIds, matchedContractIds)[key]
+        .order(dateColumn, { ascending: false }).order('id', { ascending: true }).range(from, to));
+    const [purchases, contracts] = await Promise.all([
+      purchaseQuery ? read('purchaseQuery', 'purchase_date') : [],
+      contractQuery ? read('contractQuery', 'end_date') : [],
+    ]);
+    // Le filtre de statut s'applique après la lecture, comme à l'affichage
+    if (!filterStatus) return { purchases, contracts };
+    return {
+      purchases: purchases.filter((p) => itemStatus(p.warranty_end_date) === filterStatus),
+      contracts: contracts.filter((c) => itemStatus(c.end_date) === filterStatus),
+    };
+  }
+
+  // Tant que la liste affichée n'est pas tronquée, elle EST déjà complète : on l'exporte telle quelle. Sinon on relit tout.
+  async function runExport(format) {
+    setExportMenuOpen(false);
+    if (exporting) return;
+    setExportError('');
+    try {
+      let purchases = purchaseResults;
+      let contracts = contractResults;
+      if (truncated) {
+        setExporting(true);
+        ({ purchases, contracts } = await loadAllResults());
+      }
+      if (format === 'csv') exportToCsv(purchases, contracts);
+      else if (format === 'pdf') exportToPdf(purchases, contracts);
+      else exportToExcel(purchases, contracts);
+    } catch (e) {
+      captureError(e, { where: 'SearchPage:export' });
+      setExportError("L'export n'a pas pu aboutir. Réessaie dans un instant.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -371,20 +419,20 @@ export default function SearchPage() {
                     borderRadius: 'var(--radius-m)', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: 6, minWidth: 200,
                   }}>
                     <button
-                      onClick={() => { exportToCsv(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      onClick={() => { runExport('csv'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                     >
                       <Icon name="file-text" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> CSV
                     </button>
                     <button
-                      onClick={() => { if (!isPremium) { navigate("/account/subscription"); return; } exportToPdf(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      onClick={() => { if (!isPremium) { navigate("/account/subscription"); return; } runExport('pdf'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                     >
                       <Icon name="file-type-pdf" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> PDF
                       {!isPremium && <Icon name="lock" style={{ fontSize: 12, color: 'var(--ink-faint)', marginLeft: 'auto' }} />}
                     </button>
                     <button
-                      onClick={() => { if (!isPremium) { navigate("/account/subscription"); return; } exportToExcel(purchaseResults, contractResults); setExportMenuOpen(false); }}
+                      onClick={() => { if (!isPremium) { navigate("/account/subscription"); return; } runExport('excel'); }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderRadius: 8, fontSize: 13, color: 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                     >
                       <Icon name="file-spreadsheet" style={{ fontSize: 15, color: 'var(--ink-faint)' }} /> Excel
@@ -538,6 +586,17 @@ export default function SearchPage() {
           <div className="icon-circle"><Icon name="search" /></div>
           <div className="title">Aucun résultat</div>
           <div className="sub">Essayez avec d'autres filtres ou un mot-clé différent</div>
+        </div>
+      )}
+
+      {(exporting || exportError) && (
+        <div role="status" style={{ fontSize: 12.5, margin: '0 0 12px', color: exportError ? 'var(--red-text)' : 'var(--ink-soft)' }}>
+          {exportError || "Préparation de l'export…"}
+        </div>
+      )}
+      {!loading && truncated && results.length > 0 && (
+        <div role="note" style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: '0 0 12px' }}>
+          Affichage limité aux 100 premiers résultats de chaque type. L'export contient tous les résultats de la recherche.
         </div>
       )}
 
