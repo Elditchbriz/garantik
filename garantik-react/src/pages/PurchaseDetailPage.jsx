@@ -225,7 +225,7 @@ export default function PurchaseDetailPage() {
   }
 
   async function openViewer(doc) {
-    if (doc.storage_provider === 'google_drive' && doc.external_file_url) {
+    if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
     }
@@ -243,7 +243,7 @@ export default function PurchaseDetailPage() {
   }
 
   async function downloadFile(doc) {
-    if (doc.storage_provider === 'google_drive' && doc.external_file_url) {
+    if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
     }
