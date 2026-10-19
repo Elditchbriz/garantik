@@ -66,7 +66,7 @@ Vous pouvez changer d'option de stockage à tout moment depuis les paramètres d
       },
       {
         heading: "8. Résiliation",
-        content: `L'utilisateur peut supprimer son compte à tout moment depuis la page Mon compte. Les données sont conservées 30 jours après la suppression avant suppression définitive. En cas de non-paiement de l'abonnement Hey Did+, le compte est automatiquement rétrogradé au plan gratuit.`
+        content: `L'utilisateur peut demander la suppression de son compte à tout moment, depuis la page Mon compte ou sur hey-did.fr/suppression-compte. Son accès est fermé immédiatement. Ses données sont supprimées définitivement 30 jours plus tard ; pendant ce délai, il peut demander à les récupérer, ou à annuler la suppression, en écrivant à privacy@hey-did.fr. Les données que la loi impose de conserver (notamment les données de facturation) ne sont pas concernées par cette suppression. En cas de non-paiement de l'abonnement Hey Did+, le compte est automatiquement rétrogradé au plan gratuit.`
       },
       {
         heading: "9. Droit applicable",
@@ -125,7 +125,7 @@ Deux prestataires méritent d'être signalés :
       },
       {
         heading: "6. Durée de conservation et politique de stockage des fichiers",
-        content: `Vos données de compte sont conservées pendant toute la durée de votre abonnement et jusqu'à 30 jours après la suppression de votre compte. Les données de facturation sont conservées 10 ans conformément aux obligations légales. Les rapports techniques d'erreurs sont conservés pour une durée limitée, strictement nécessaire à la correction des dysfonctionnements.
+        content: `Vos données de compte sont conservées tant que votre compte existe. Lorsque vous demandez la suppression de votre compte, votre accès est fermé immédiatement et vos données sont supprimées définitivement 30 jours plus tard : ce délai vous permet de les récupérer, et nous permet d'annuler une suppression demandée par erreur ou par un tiers. Durant ce délai, vous ne recevez plus aucun email de notre part. Les données de facturation sont conservées 10 ans conformément aux obligations légales. Les rapports techniques d'erreurs sont conservés pour une durée limitée, strictement nécessaire à la correction des dysfonctionnements.
 
 Concernant les fichiers numérisés (tickets de caisse, contrats, photos) :
 - Plan gratuit : les fichiers sont conservés 30 jours après leur dépôt, puis supprimés automatiquement et définitivement. Les données extraites (texte, montants, dates) restent accessibles dans votre compte.
@@ -136,7 +136,7 @@ Vous pouvez à tout moment demander la suppression anticipée de vos fichiers de
       },
       {
         heading: "7. Vos droits",
-        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@hey-did.fr. Vous pouvez aussi supprimer votre compte à tout moment, depuis « Mon compte » ou sur hey-did.fr/suppression-compte : la suppression est définitive et efface vos garanties, contrats et documents ; nous ne conservons ensuite que ce que la loi nous impose de garder ou que le reversement aux associations exige : les données de facturation, la trace d'une éventuelle demande de rétractation, et les dons déjà enregistrés, qui ne sont alors plus rattachés à votre compte. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
+        content: `Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de portabilité et d'opposition au traitement de vos données. Pour exercer ces droits, contactez-nous à privacy@hey-did.fr. Vous pouvez aussi supprimer votre compte à tout moment, depuis « Mon compte » ou sur hey-did.fr/suppression-compte : votre accès est fermé immédiatement et vos garanties, contrats et documents sont supprimés définitivement 30 jours plus tard (pendant ce délai, vous pouvez demander à les récupérer, ou à annuler la suppression, en écrivant à privacy@hey-did.fr) ; nous ne conservons ensuite que ce que la loi nous impose de garder ou que le reversement aux associations exige : les données de facturation, la trace d'une éventuelle demande de rétractation, et les dons déjà enregistrés, qui ne sont alors plus rattachés à votre compte. Vous disposez également du droit d'introduire une réclamation auprès de la CNIL (cnil.fr).`
       },
       {
         heading: "8. Cookies",
