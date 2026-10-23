@@ -74,6 +74,8 @@ export default function StorageConnector({ orgId }) {
   const [connecting, setConnecting] = useState(null);
   const [justConnected, setJustConnected] = useState(null);   // clé du fournisseur qui vient d'être connecté (google_drive, dropbox…)
   const [disconnecting, setDisconnecting] = useState(null);
+  const [justReplaced, setJustReplaced] = useState([]);   // fournisseurs déconnectés par la connexion qui vient d'aboutir
+  const [healedNote, setHealedNote] = useState('');      // information affichée si deux espaces étaient connectés en même temps
 
   useEffect(() => {
     if (!orgId) return;
@@ -86,7 +88,17 @@ export default function StorageConnector({ orgId }) {
       .from('storage_connections')
       .select('*')
       .eq('organization_id', orgId);
-    setConnections(data || []);
+    let rows = data || [];
+    // Un seul espace de stockage actif à la fois. Si plusieurs connexions coexistent (anciennes connexions, d'avant cette règle), on garde
+    // la plus récente et on déconnecte les autres, en le disant.
+    if (rows.length > 1) {
+      const sorted = [...rows].sort((a, b) => String(b.connected_at ?? '').localeCompare(String(a.connected_at ?? '')));
+      const [keep, ...drop] = sorted;
+      await supabase.from('storage_connections').delete().eq('organization_id', orgId).in('provider', drop.map((d) => d.provider));
+      rows = [keep];
+      setHealedNote(`Un seul espace de stockage peut être actif à la fois : ${drop.map((d) => providerLabel(d.provider)).join(', ')} a été déconnecté, ${providerLabel(keep.provider)} reste actif.`);
+    }
+    setConnections(rows);
     setLoading(false);
   }
 
@@ -108,6 +120,13 @@ export default function StorageConnector({ orgId }) {
 
     setConnecting(state);   // le fournisseur réellement en cours de connexion (et pas toujours Google Drive)
 
+    // Ce qui était connecté AVANT : la fonction serveur déconnecte les autres fournisseurs quand la nouvelle connexion est enregistrée
+    let replaced = [];
+    try {
+      const { data: before } = await supabase.from('storage_connections').select('provider').eq('organization_id', orgId);
+      replaced = (before || []).map((c) => c.provider).filter((p) => p !== state);
+    } catch (_) { /* information facultative */ }
+
     try {
       const fnName = state === 'dropbox' ? 'dropbox-callback' : 'google-drive-callback';
       const { data, error: fnError } = await supabase.functions.invoke(fnName, {
@@ -122,7 +141,8 @@ export default function StorageConnector({ orgId }) {
       if (data?.success) {
         await loadConnections();
         setJustConnected(state);
-        setTimeout(() => setJustConnected(null), 5000);
+        setJustReplaced(replaced);
+        setTimeout(() => { setJustConnected(null); setJustReplaced([]); }, 5000);
       }
     } catch (err) {
       console.error('Erreur connexion Drive:', err);
@@ -139,6 +159,7 @@ export default function StorageConnector({ orgId }) {
       alert('Configuration Dropbox manquante. Contactez le support.');
       return;
     }
+    if (!confirmSwitch('dropbox')) return;
     const authUrl = new URL('https://www.dropbox.com/oauth2/authorize');
     authUrl.searchParams.set('client_id', DROPBOX_APP_KEY);
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
@@ -153,6 +174,7 @@ export default function StorageConnector({ orgId }) {
       alert('Configuration Google Drive manquante. Contactez le support.');
       return;
     }
+    if (!confirmSwitch('google_drive')) return;
     const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
@@ -165,7 +187,7 @@ export default function StorageConnector({ orgId }) {
   }
 
   async function disconnectProvider(provider) {
-    if (!window.confirm(`Déconnecter ${providerLabel(provider)} ? Vos documents existants resteront accessibles via leur lien, mais les nouveaux fichiers seront stockés sur Hey Did.`)) return;
+    if (!window.confirm(`Déconnecter ${providerLabel(provider)} ? ${providerConsequence(provider)} Les nouveaux fichiers seront stockés sur Hey Did.`)) return;
     setDisconnecting(provider);
     await supabase
       .from('storage_connections')
@@ -174,6 +196,22 @@ export default function StorageConnector({ orgId }) {
       .eq('provider', provider);
     await loadConnections();
     setDisconnecting(null);
+  }
+
+  // Ce qui arrive aux documents DÉJÀ envoyés quand un espace est déconnecté
+  function providerConsequence(provider) {
+    if (provider === 'dropbox') return 'Vos documents déjà envoyés restent dans votre Dropbox, mais ne pourront plus être ouverts depuis Hey Did tant que vous ne le reconnectez pas.';
+    if (provider === 'google_drive') return 'Vos documents déjà envoyés restent dans votre Google Drive et continueront de s\'ouvrir avec votre compte Google.';
+    return 'Vos documents déjà envoyés restent dans votre espace de stockage.';
+  }
+
+  // Un seul espace actif à la fois : si un autre est connecté, on prévient avant de partir vers le nouveau (rien n'est supprimé à ce stade :
+  // l'ancien n'est déconnecté qu'une fois la nouvelle connexion réussie).
+  function confirmSwitch(to) {
+    const others = connections.filter((c) => c.provider !== to);
+    if (!others.length) return true;
+    const from = others[0].provider;
+    return window.confirm(`Un seul espace de stockage peut être actif à la fois.\n\nConnecter ${providerLabel(to)} va déconnecter ${providerLabel(from)} : vos prochains documents seront envoyés sur ${providerLabel(to)}.\n${providerConsequence(from)}\n\nContinuer ?`);
   }
 
   function providerLabel(provider) {
@@ -199,6 +237,7 @@ export default function StorageConnector({ orgId }) {
       <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginBottom: 0, lineHeight: 1.6 }}>
         {providerLabel(justConnected)} est connecté. Vos prochains documents scannés seront<br/>
         automatiquement sauvegardés dans votre dossier <strong>{connections.find((c) => c.provider === justConnected)?.folder_name || 'Hey Did'}</strong> sur votre {providerLabel(justConnected)}.
+        {justReplaced.length > 0 && (<><br />{justReplaced.map(providerLabel).join(', ')} a été déconnecté : un seul espace de stockage est actif à la fois.</>)}
       </p>
     </div>
   );
@@ -215,6 +254,12 @@ export default function StorageConnector({ orgId }) {
         vos tickets et contrats scannés seront sauvegardés directement chez vous, indépendamment de votre abonnement Hey Did.
         Hey Did n'accède qu'aux fichiers qu'il crée lui-même.
       </div>
+
+      {healedNote && (
+        <div role="status" style={{ fontSize: 12.5, color: 'var(--ink-soft)', background: 'var(--amber-pale)', border: '1px solid var(--line)', borderRadius: 'var(--radius-m)', padding: '10px 14px', marginBottom: 16, lineHeight: 1.5 }}>
+          {healedNote}
+        </div>
+      )}
 
       {/* Connexions actives */}
       {connections.length > 0 && (
@@ -274,7 +319,7 @@ export default function StorageConnector({ orgId }) {
 
       {/* Providers disponibles */}
       <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-faint)', marginBottom: 10 }}>
-        {connections.length > 0 ? 'Ajouter un autre espace' : 'Choisir un espace de stockage'}
+        {connections.length > 0 ? 'Changer d\'espace de stockage' : 'Choisir un espace de stockage'}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
