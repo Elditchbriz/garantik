@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient.js';
+import { supabase, uploadDocument, getDropboxDocumentUrl, describeUploadError } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import LinkModal from '../components/LinkModal.jsx';
 import SimilarSuggest from '../components/SimilarSuggest.jsx';
@@ -178,22 +178,20 @@ export default function PurchaseDetailPage() {
   async function uploadFile(file) {
     if (!file) return;
     setUploading(true);
-    const filePath = `${orgId}/${Date.now()}_${file.name}`;
-    const { error: upErr } = await supabase.storage.from('documents').upload(filePath, file);
-    if (!upErr) {
-      await supabase.from('documents').insert({
-        organization_id: orgId,
-        purchase_id: id,
-        file_name: file.name,
-        file_path: filePath,
-        file_type: file.type,
-        file_size_bytes: file.size,
-        document_category: uploadCategory,
-        ocr_status: 'pending', // traité par lot en différé (cron process-pending-ocr), pas dans l'immédiat
-      });
+    try {
+      // Même fonction d'envoi que partout ailleurs : elle respecte l'espace de stockage choisi (Hey Did, Google Drive, Dropbox), nettoie le
+      // nom du fichier pour le stockage et signale les échecs. Avant, cette page écrivait directement dans le stockage Hey Did, ignorait
+      // l'espace choisi, et n'affichait RIEN si le fichier ou l'enregistrement était refusé.
+      const { data, error } = await uploadDocument(file, orgId, id);
+      if (error || !data) { window.alert(describeUploadError(error)); return; }
+      // On garde le nom d'origine du fichier à l'affichage, comme avant
+      await supabase.from('documents').update({ document_category: uploadCategory, file_name: file.name || data.file_name }).eq('id', data.id);
       await loadAll();
+    } catch (e) {
+      window.alert(describeUploadError(e));
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
 
   function handleUploadDoc(e) {
@@ -224,7 +222,22 @@ export default function PurchaseDetailPage() {
     await loadAll();
   }
 
+  // Document hébergé sur Dropbox : lien TEMPORAIRE demandé à Hey Did (réservé aux membres connectés du foyer), jamais de lien public.
+  // Sur le web, la fenêtre est ouverte tout de suite (action de l'utilisateur) puis dirigée vers le lien : après l'attente du serveur,
+  // le navigateur pourrait bloquer l'ouverture.
+  async function openDropboxDoc(doc) {
+    const native = Capacitor.isNativePlatform();
+    const win = native ? null : window.open('', '_blank');
+    if (win) win.opener = null;
+    const { url, error } = await getDropboxDocumentUrl(doc.id);
+    if (!url) { if (win) win.close(); window.alert(error); return; }
+    if (native) await Browser.open({ url });
+    else if (win) win.location.href = url;
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   async function openViewer(doc) {
+    if (doc.storage_provider === 'dropbox') { await openDropboxDoc(doc); return; }
     if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
@@ -243,6 +256,7 @@ export default function PurchaseDetailPage() {
   }
 
   async function downloadFile(doc) {
+    if (doc.storage_provider === 'dropbox') { await openDropboxDoc(doc); return; }
     if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
