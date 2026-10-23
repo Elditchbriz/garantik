@@ -1,4 +1,5 @@
 import { captureError } from './monitoring.js';
+import { isNativeApp } from './platform.js';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -362,6 +363,33 @@ export async function countPurchasesByStatus(organizationId) {
 // Documents (upload de tickets/factures)
 // ============================================================
 
+// Lien TEMPORAIRE (4 h) pour ouvrir un document hébergé sur Dropbox. Aucun lien public n'est conservé : la fonction dropbox-open ne répond
+// qu'à un membre connecté du foyer propriétaire du document. Renvoie { url, error } (error : message lisible, prêt à afficher).
+export async function getDropboxDocumentUrl(documentId) {
+  const fallback = "Impossible d'ouvrir ce document pour le moment. Réessaie dans un instant.";
+  try {
+    const { data, error } = await supabase.functions.invoke('dropbox-open', { body: { document_id: documentId } });
+    if (!error && data?.url) return { url: data.url, error: null };
+    let failure = null;
+    try { failure = await error?.context?.json?.(); } catch (_) { /* corps illisible */ }
+    return { url: null, error: failure?.error || fallback };
+  } catch (_) {
+    return { url: null, error: fallback };
+  }
+}
+
+// Message lisible pour une erreur d'envoi de document, au lieu de n'afficher RIEN (les pages ignoraient ces erreurs : le fichier
+// partait dans le stockage, l'enregistrement était refusé, et rien ne se passait à l'écran).
+// Le site peut suggérer Hey Did+ pour la limite ; l'application Android jamais (rien n'y pousse à s'abonner).
+export function describeUploadError(error) {
+  const msg = String(error?.message || '');
+  const limit = msg.match(/Limite de documents atteinte \((\d+) \/ (\d+)\)/);
+  if (limit) return `Limite de documents atteinte (${limit[1]} / ${limit[2]}) : supprime d'anciens documents pour en ajouter.${isNativeApp() ? '' : ' Hey Did+ lève cette limite.'}`;
+  if (/invalid key|InvalidKey/i.test(msg)) return "Le nom de ce fichier n'est pas accepté. Renomme-le sans caractères spéciaux puis réessaie.";
+  if (/payload too large|too large|exceeded the maximum/i.test(msg)) return 'Ce fichier est trop volumineux.';
+  return "Le document n'a pas pu être ajouté. Réessaie dans un instant.";
+}
+
 const EXTERNAL_STORAGE_LABELS = { google_drive: 'Google Drive', dropbox: 'Dropbox' };
 
 // Un envoi vers le stockage externe de l'utilisateur a échoué : le fichier est conservé chez Hey Did (rien n'est perdu), MAIS on
@@ -478,7 +506,11 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
     .select()
     .single();
 
-  if (insertError) captureError(insertError, { where: 'uploadDocument:enregistrement', extra: { code: insertError.code } });
+  if (insertError) {
+    captureError(insertError, { where: 'uploadDocument:enregistrement', extra: { code: insertError.code } });
+    // Le fichier est déjà dans le stockage : sans ligne en base il resterait orphelin (invisible, mais conservé) → on le retire
+    try { await supabase.storage.from('documents').remove([filePath]); } catch (_) { /* au mieux */ }
+  }
   return { data: insertedDoc, error: insertError, ...(fallbackFrom ? { fallbackFrom } : {}) };
 }
 
