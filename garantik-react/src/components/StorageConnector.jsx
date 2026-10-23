@@ -47,12 +47,15 @@ function ProviderLogo({ provider, size = 24 }) {
 
 // ============================================================
 // StorageConnector — Connexion aux espaces de stockage externes
-// Actuellement : Google Drive
-// À venir : OneDrive, Dropbox
+// Fournisseurs : Google Drive, Dropbox, OneDrive (un seul actif à la fois)
 // ============================================================
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const DROPBOX_APP_KEY = import.meta.env.VITE_DROPBOX_APP_KEY;
+// OneDrive : identifiant de l'application inscrite chez Microsoft. « consumers » = comptes Microsoft personnels (outlook.com, hotmail.com, live.com).
+const ONEDRIVE_CLIENT_ID = import.meta.env.VITE_ONEDRIVE_CLIENT_ID;
+const ONEDRIVE_TENANT = import.meta.env.VITE_ONEDRIVE_TENANT || 'consumers';
+const ONEDRIVE_SCOPES = 'Files.ReadWrite.AppFolder offline_access User.Read';   // accès limité au dossier de l'application
 const REDIRECT_URI = `${window.location.origin}/settings`;
 const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/drive.file', // Accès aux fichiers créés par l'app uniquement
@@ -116,7 +119,7 @@ export default function StorageConnector({ orgId }) {
       return;
     }
 
-    if (!code || !['google_drive', 'dropbox'].includes(state)) return;
+    if (!code || !['google_drive', 'dropbox', 'onedrive'].includes(state)) return;
 
     setConnecting(state);   // le fournisseur réellement en cours de connexion (et pas toujours Google Drive)
 
@@ -128,7 +131,7 @@ export default function StorageConnector({ orgId }) {
     } catch (_) { /* information facultative */ }
 
     try {
-      const fnName = state === 'dropbox' ? 'dropbox-callback' : 'google-drive-callback';
+      const fnName = { dropbox: 'dropbox-callback', onedrive: 'onedrive-callback' }[state] || 'google-drive-callback';
       const { data, error: fnError } = await supabase.functions.invoke(fnName, {
         body: {
           code,
@@ -169,6 +172,22 @@ export default function StorageConnector({ orgId }) {
     window.location.href = authUrl.toString();
   }
 
+  function connectOneDrive() {
+    if (!ONEDRIVE_CLIENT_ID) {
+      alert('Configuration OneDrive manquante. Contactez le support.');
+      return;
+    }
+    if (!confirmSwitch('onedrive')) return;
+    const authUrl = new URL(`https://login.microsoftonline.com/${ONEDRIVE_TENANT}/oauth2/v2.0/authorize`);
+    authUrl.searchParams.set('client_id', ONEDRIVE_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('response_mode', 'query');
+    authUrl.searchParams.set('scope', ONEDRIVE_SCOPES);
+    authUrl.searchParams.set('state', 'onedrive');
+    window.location.href = authUrl.toString();
+  }
+
   function connectGoogleDrive() {
     if (!GOOGLE_CLIENT_ID) {
       alert('Configuration Google Drive manquante. Contactez le support.');
@@ -201,6 +220,7 @@ export default function StorageConnector({ orgId }) {
   // Ce qui arrive aux documents DÉJÀ envoyés quand un espace est déconnecté
   function providerConsequence(provider) {
     if (provider === 'dropbox') return 'Vos documents déjà envoyés restent dans votre Dropbox, mais ne pourront plus être ouverts depuis Hey Did tant que vous ne le reconnectez pas.';
+    if (provider === 'onedrive') return 'Vos documents déjà envoyés restent dans votre OneDrive, mais ne pourront plus être ouverts depuis Hey Did tant que vous ne le reconnectez pas.';
     if (provider === 'google_drive') return 'Vos documents déjà envoyés restent dans votre Google Drive et continueront de s\'ouvrir avec votre compte Google.';
     return 'Vos documents déjà envoyés restent dans votre espace de stockage.';
   }
@@ -357,28 +377,39 @@ export default function StorageConnector({ orgId }) {
           </button>
         )}
 
-        {/* OneDrive — à venir */}
-        <button disabled style={{
-          display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-          borderRadius: 'var(--radius-m)', border: '1px solid var(--line)',
-          background: 'var(--bg)', cursor: 'not-allowed', textAlign: 'left', fontFamily: 'inherit',
-          opacity: 0.6,
-        }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, background: '#0078D415',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
-          }}>
-            <OneDriveLogo size={22} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>
-              OneDrive <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)', marginLeft: 6 }}>Bientôt</span>
+        {/* OneDrive */}
+        {!connectedProviders.has('onedrive') && (
+          <button
+            onClick={connectOneDrive}
+            disabled={connecting === 'onedrive'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+              borderRadius: 'var(--radius-m)', border: '1px solid var(--line)',
+              background: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+              transition: 'box-shadow 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+          >
+            <div style={{
+              width: 40, height: 40, borderRadius: 10, background: '#0078D415',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
+            }}>
+              <OneDriveLogo size={22} />
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
-              Microsoft OneDrive / SharePoint
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 2 }}>
+                OneDrive
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-soft)' }}>
+                Stockez vos documents dans le dossier "Hey Did" de votre OneDrive personnel (compte Microsoft)
+              </div>
             </div>
-          </div>
-        </button>
+            <span style={{ fontSize: 13, color: 'var(--blue)', fontWeight: 600, flexShrink: 0 }}>
+              {connecting === 'onedrive' ? 'Connexion…' : 'Connecter →'}
+            </span>
+          </button>
+        )}
 
         {/* Dropbox */}
         {!connectedProviders.has('dropbox') && (
