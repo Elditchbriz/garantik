@@ -363,12 +363,17 @@ export async function countPurchasesByStatus(organizationId) {
 // Documents (upload de tickets/factures)
 // ============================================================
 
-// Lien TEMPORAIRE (4 h) pour ouvrir un document hébergé sur Dropbox. Aucun lien public n'est conservé : la fonction dropbox-open ne répond
-// qu'à un membre connecté du foyer propriétaire du document. Renvoie { url, error } (error : message lisible, prêt à afficher).
-export async function getDropboxDocumentUrl(documentId) {
+// Fournisseurs dont les documents s'ouvrent par un lien de COURTE DURÉE demandé à Hey Did (fonction « <fournisseur>-open »), jamais par un lien
+// public conservé. Google Drive garde son lien privé (il exige la connexion Google de son propriétaire).
+export const HOSTED_WITH_TEMP_LINK = ['dropbox', 'onedrive'];
+
+// Lien temporaire pour ouvrir un document hébergé chez Dropbox ou OneDrive : la fonction <fournisseur>-open ne répond qu'à un membre connecté du
+// foyer propriétaire du document. Renvoie { url, error } (error : message lisible, prêt à afficher).
+export async function getHostedDocumentUrl(provider, documentId) {
   const fallback = "Impossible d'ouvrir ce document pour le moment. Réessaie dans un instant.";
+  const functionName = provider === 'onedrive' ? 'onedrive-open' : 'dropbox-open';
   try {
-    const { data, error } = await supabase.functions.invoke('dropbox-open', { body: { document_id: documentId } });
+    const { data, error } = await supabase.functions.invoke(functionName, { body: { document_id: documentId } });
     if (!error && data?.url) return { url: data.url, error: null };
     let failure = null;
     try { failure = await error?.context?.json?.(); } catch (_) { /* corps illisible */ }
@@ -390,7 +395,7 @@ export function describeUploadError(error) {
   return "Le document n'a pas pu être ajouté. Réessaie dans un instant.";
 }
 
-const EXTERNAL_STORAGE_LABELS = { google_drive: 'Google Drive', dropbox: 'Dropbox' };
+const EXTERNAL_STORAGE_LABELS = { google_drive: 'Google Drive', dropbox: 'Dropbox', onedrive: 'OneDrive' };
 
 // Un envoi vers le stockage externe de l'utilisateur a échoué : le fichier est conservé chez Hey Did (rien n'est perdu), MAIS on
 // le dit. Avant, ce repli était silencieux : la personne croyait son fichier dans son Drive ou son Dropbox et ne le trouvait pas.
@@ -436,7 +441,7 @@ export async function uploadDocument(file, organizationId, purchaseId = null, cu
         .join('')
     );
 
-    const fnName = storageConn.provider === 'dropbox' ? 'dropbox-upload' : 'google-drive-upload';
+    const fnName = { dropbox: 'dropbox-upload', onedrive: 'onedrive-upload' }[storageConn.provider] || 'google-drive-upload';
     const { data: uploadData, error: uploadError } = await supabase.functions.invoke(fnName, {
       body: {
         organization_id: organizationId,
