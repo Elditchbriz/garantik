@@ -21,7 +21,7 @@ const LEGAL_CONTENT = {
 
 • Plan gratuit, sans stockage personnel connecté : les fichiers que vous scannez (tickets, factures, contrats) sont analysés puis conservés 30 jours, avant suppression automatique et définitive. Les informations qui en ont été extraites (nom du produit, montant, date, durée de garantie) restent, elles, disponibles indéfiniment dans votre compte — seul le fichier original disparaît.
 
-• Stockage personnel connecté (Google Drive ou Dropbox) : dès que vous connectez votre propre espace, vos fichiers y sont enregistrés directement. Hey Did n'en conserve aucune copie sur ses propres serveurs, et la suppression automatique après 30 jours ne s'applique plus — c'est votre espace personnel qui fait foi, avec ses propres règles de conservation.
+• Stockage personnel connecté (Google Drive, Dropbox ou OneDrive) : dès que vous connectez votre propre espace, vos fichiers y sont enregistrés directement. Hey Did n'en conserve aucune copie sur ses propres serveurs, et la suppression automatique après 30 jours ne s'applique plus — c'est votre espace personnel qui fait foi, avec ses propres règles de conservation.
 
 • Hey Did+ sans stockage personnel connecté : vos fichiers sont conservés sur l'hébergement sécurisé de Hey Did pendant toute la durée de votre abonnement actif, sans limite de 30 jours.
 
@@ -130,7 +130,7 @@ Deux prestataires méritent d'être signalés :
 Concernant les fichiers numérisés (tickets de caisse, contrats, photos) :
 - Plan gratuit : les fichiers sont conservés 30 jours après leur dépôt, puis supprimés automatiquement et définitivement. Les données extraites (texte, montants, dates) restent accessibles dans votre compte.
 - Hey Did+ (stockage inclus) : les fichiers sont conservés pendant toute la durée de votre abonnement actif, puis pendant 30 jours après sa fin (résiliation, ou fin d'un mois offert). Passé ce délai, ils sont supprimés automatiquement et définitivement, comme pour le plan gratuit. Les données extraites (texte, montants, dates) restent accessibles dans votre compte. Nous vous prévenons par email lors de la résiliation, puis 7 jours avant la suppression de vos fichiers.
-- Stockage personnel connecté (Google Drive) : les fichiers sont stockés directement dans votre espace personnel. Hey Did n'en conserve pas de copie.
+- Stockage personnel connecté (Google Drive, Dropbox ou OneDrive) : les fichiers sont stockés directement dans votre espace personnel. Hey Did n'en conserve pas de copie.
 
 Vous pouvez à tout moment demander la suppression anticipée de vos fichiers depuis la page Documents ou en contactant privacy@hey-did.fr.`
       },

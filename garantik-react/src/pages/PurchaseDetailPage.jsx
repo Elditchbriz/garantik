@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom';
-import { supabase, uploadDocument, getDropboxDocumentUrl, describeUploadError } from '../lib/supabaseClient.js';
+import { supabase, uploadDocument, getHostedDocumentUrl, HOSTED_WITH_TEMP_LINK, describeUploadError } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import LinkModal from '../components/LinkModal.jsx';
 import SimilarSuggest from '../components/SimilarSuggest.jsx';
@@ -222,14 +222,14 @@ export default function PurchaseDetailPage() {
     await loadAll();
   }
 
-  // Document hébergé sur Dropbox : lien TEMPORAIRE demandé à Hey Did (réservé aux membres connectés du foyer), jamais de lien public.
+  // Document hébergé chez Dropbox ou OneDrive : lien TEMPORAIRE demandé à Hey Did (réservé aux membres connectés du foyer), jamais de lien public.
   // Sur le web, la fenêtre est ouverte tout de suite (action de l'utilisateur) puis dirigée vers le lien : après l'attente du serveur,
   // le navigateur pourrait bloquer l'ouverture.
-  async function openDropboxDoc(doc) {
+  async function openHostedDoc(doc) {
     const native = Capacitor.isNativePlatform();
     const win = native ? null : window.open('', '_blank');
     if (win) win.opener = null;
-    const { url, error } = await getDropboxDocumentUrl(doc.id);
+    const { url, error } = await getHostedDocumentUrl(doc.storage_provider, doc.id);
     if (!url) { if (win) win.close(); window.alert(error); return; }
     if (native) await Browser.open({ url });
     else if (win) win.location.href = url;
@@ -237,7 +237,7 @@ export default function PurchaseDetailPage() {
   }
 
   async function openViewer(doc) {
-    if (doc.storage_provider === 'dropbox') { await openDropboxDoc(doc); return; }
+    if (HOSTED_WITH_TEMP_LINK.includes(doc.storage_provider)) { await openHostedDoc(doc); return; }
     if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
@@ -256,7 +256,7 @@ export default function PurchaseDetailPage() {
   }
 
   async function downloadFile(doc) {
-    if (doc.storage_provider === 'dropbox') { await openDropboxDoc(doc); return; }
+    if (HOSTED_WITH_TEMP_LINK.includes(doc.storage_provider)) { await openHostedDoc(doc); return; }
     if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
