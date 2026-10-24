@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { useOutletContext } from 'react-router-dom';
-import { supabase, getHostedDocumentUrl, HOSTED_WITH_TEMP_LINK } from '../lib/supabaseClient.js';
+import { supabase, getHostedDocumentUrl, getHostedDocumentView, HOSTED_WITH_TEMP_LINK, HOSTED_VIEW_IN_APP, MAX_VIEW_IN_APP_BYTES } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import useFocusTrap from '../hooks/useFocusTrap.js';
@@ -108,8 +108,33 @@ export default function DocumentsPage() {
     else window.open(url, '_blank', 'noopener,noreferrer');
   }
 
+  // VISUALISER un document hébergé chez Dropbox ou OneDrive. Chez OneDrive, le lien de courte durée est un lien de TÉLÉCHARGEMENT : le navigateur ne l'afficherait pas.
+  // Pour les images et les PDF de taille raisonnable, Hey Did récupère donc le fichier (réservé aux membres connectés du foyer) et l'affiche dans son visualiseur, comme
+  // un document hébergé chez Hey Did. Autres cas (Word, très gros fichier, PDF dans l'app Android, Dropbox) : lien de courte durée, comme avant.
+  async function viewHostedDoc(doc) {
+    const showable = doc.file_type?.startsWith('image/') || doc.file_type === 'application/pdf';
+    const tooBig = (doc.file_size_bytes || 0) > MAX_VIEW_IN_APP_BYTES;
+    const nativePdf = Capacitor.isNativePlatform() && doc.file_type === 'application/pdf';   // les WebView Android n'affichent pas les PDF dans le visualiseur
+    if (!HOSTED_VIEW_IN_APP.includes(doc.storage_provider) || !showable || tooBig || nativePdf) { await openHostedDoc(doc); return; }
+    const { blob, url, error } = await getHostedDocumentView(doc.storage_provider, doc.id, doc.file_type);
+    if (error) { window.alert(error); return; }
+    if (blob) { setViewer({ url: URL.createObjectURL(blob), type: doc.file_type, name: doc.file_name, doc }); return; }
+    // Le serveur a répondu par un lien (type ou taille non affichables) : téléchargement
+    if (Capacitor.isNativePlatform()) await Browser.open({ url });
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function closeViewer() {
+    if (viewer?.url?.startsWith('blob:')) URL.revokeObjectURL(viewer.url);   // fichier affiché depuis OneDrive : on libère la mémoire
+    setViewer(null);
+  }
+
+  // Le visualiseur transmet son propre objet { url, type, name, doc } : « Télécharger » doit agir sur le DOCUMENT. Avant, il recevait seulement { url, type, name }
+  // et la fonction de téléchargement, qui cherche le chemin du fichier dans le document, ne faisait rien.
+  function downloadFromViewer(v) { return downloadFile(v?.doc || v); }
+
   async function openViewer(doc) {
-    if (HOSTED_WITH_TEMP_LINK.includes(doc.storage_provider)) { await openHostedDoc(doc); return; }
+    if (HOSTED_WITH_TEMP_LINK.includes(doc.storage_provider)) { await viewHostedDoc(doc); return; }
     if (doc.storage_provider !== 'supabase' && doc.external_file_url) {   // Google Drive, Dropbox… : on ouvre le lien du fournisseur
       window.open(doc.external_file_url, '_blank', 'noopener,noreferrer');
       return;
@@ -124,7 +149,7 @@ export default function DocumentsPage() {
       await Browser.open({ url: data.signedUrl });
       return;
     }
-    setViewer({ url: data.signedUrl, type: doc.file_type, name: doc.file_name });
+    setViewer({ url: data.signedUrl, type: doc.file_type, name: doc.file_name, doc });
   }
 
   async function downloadFile(doc) {
@@ -330,7 +355,7 @@ export default function DocumentsPage() {
       )}
 
       {viewer && (
-        <DocumentViewer viewer={viewer} onClose={() => setViewer(null)} onDownload={downloadFile} />
+        <DocumentViewer viewer={viewer} onClose={closeViewer} onDownload={downloadFromViewer} />
       )}
     </>
   );
