@@ -279,6 +279,10 @@ export default function AddPurchasePage() {
         console.error('Le ticket scanné n\'a pas pu être attaché à la garantie :', uploadErr);
       } else if (docData?.id) {
         documentAttached = true;
+        // Le document d'une nouvelle garantie est classé « garantie » : c'est lui que la fiche met en avant comme document principal. Un nouveau contrat fait
+        // de même (« contrat »). Sans cette ligne, il gardait la valeur par défaut de la base (« autre »), quel que soit l'espace de stockage choisi.
+        const { error: categoryError } = await supabase.from('documents').update({ document_category: 'garantie' }).eq('id', docData.id);
+        if (categoryError) console.error('La catégorie « garantie » du document n\'a pas pu être enregistrée :', categoryError);
       }
     } else {
       console.warn('[TICKET DEBUG] pas d\'upload - data.id:', data?.id, '/ blob:', scannedBlobRef.current);
