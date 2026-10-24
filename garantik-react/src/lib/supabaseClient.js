@@ -383,6 +383,33 @@ export async function getHostedDocumentUrl(provider, documentId) {
   }
 }
 
+// Chez OneDrive, le lien de courte durée est un lien de TÉLÉCHARGEMENT : le navigateur ne l'affiche pas, il télécharge. Pour VISUALISER (images et PDF), la fonction
+// onedrive-open en « mode view » renvoie le fichier lui-même, que l'application affiche dans son visualiseur intégré, comme un document hébergé chez Hey Did.
+// Dropbox : son lien s'ouvre déjà dans le navigateur, inchangé. Au-delà de cette taille, ou pour un autre type de fichier, on retombe sur le lien de courte durée.
+export const HOSTED_VIEW_IN_APP = ['onedrive'];
+export const MAX_VIEW_IN_APP_BYTES = 15 * 1024 * 1024;   // même limite que côté serveur
+
+// Renvoie { blob, url, error } : `blob` = le fichier à afficher ; `url` = lien de courte durée si le serveur ne peut pas servir le fichier (type ou taille) ;
+// `error` = message lisible, prêt à afficher.
+export async function getHostedDocumentView(provider, documentId, mimeType) {
+  const fallback = "Impossible d'ouvrir ce document pour le moment. Réessaie dans un instant.";
+  const functionName = provider === 'onedrive' ? 'onedrive-open' : 'dropbox-open';
+  try {
+    const { data, error } = await supabase.functions.invoke(functionName, { body: { document_id: documentId, mode: 'view' } });
+    if (error) {
+      let failure = null;
+      try { failure = await error?.context?.json?.(); } catch (_) { /* corps illisible */ }
+      return { blob: null, url: null, error: failure?.error || fallback };
+    }
+    // Le serveur répond en « octet-stream » : l'application donne elle-même le vrai type du fichier
+    if (typeof Blob !== 'undefined' && data instanceof Blob) return { blob: new Blob([data], { type: mimeType || 'application/octet-stream' }), url: null, error: null };
+    if (data?.url) return { blob: null, url: data.url, error: null };
+    return { blob: null, url: null, error: fallback };
+  } catch (_) {
+    return { blob: null, url: null, error: fallback };
+  }
+}
+
 // Message lisible pour une erreur d'envoi de document, au lieu de n'afficher RIEN (les pages ignoraient ces erreurs : le fichier
 // partait dans le stockage, l'enregistrement était refusé, et rien ne se passait à l'écran).
 // Le site peut suggérer Hey Did+ pour la limite ; l'application Android jamais (rien n'y pousse à s'abonner).
