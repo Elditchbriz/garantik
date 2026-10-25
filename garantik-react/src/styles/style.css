@@ -159,6 +159,35 @@ button { font-family: inherit; cursor: pointer; }
   flex: 1;
   min-width: 0;
 }
+
+/* ---------- En-tête de bureau sur les fenêtres moyennes (861 – 1279 px) ----------
+   L'en-tête réclamait environ 1 270 px : en dessous, le bloc « compte » (dernier à droite) sortait de l'écran, coupé par le overflow-x: hidden
+   du body, alors que la barre du bas (qui contient le compte) n'apparaît qu'à 860 px et moins. Entre les deux, le compte restait introuvable.
+   On resserre donc l'en-tête par paliers, pour que le compte reste visible à toutes les largeurs. */
+
+/* Un nom ou un nom de foyer très long ne doit plus pousser le compte hors de l'écran : il est tronqué avec « … » */
+.topbar-desktop-account .name,
+.topbar-desktop-account .role { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Palier 1 : on resserre les espaces et on laisse la recherche rétrécir (elle regagne de la place dès qu'il y en a) */
+@media (min-width: 861px) and (max-width: 1279px) {
+  .topbar-desktop { gap: 14px; padding: 12px 20px; }
+  .topbar-desktop-nav { gap: 2px; }
+  .topbar-nav-item { padding: 9px 12px; }
+  .topbar-nav-item.primary { margin-left: 4px; }
+  .desktop-search-input input { width: 60px; }
+}
+
+/* Palier 2 : le compte se réduit à son avatar rond, avec ses initiales (le nom figure sur la page « Mon compte », ouverte depuis le menu au clic) */
+@media (min-width: 861px) and (max-width: 1179px) {
+  .topbar-desktop { gap: 10px; padding: 12px 16px; }
+  .topbar-nav-item { padding: 9px 10px; }
+  .topbar-desktop-account { gap: 0; padding: 4px; }
+  .topbar-desktop-account > div:nth-child(2),
+  .topbar-desktop-account > svg { display: none; }
+}
+
+
 .desktop-search-dropdown {
   position: absolute;
   top: calc(100% + 8px);
