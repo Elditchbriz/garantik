@@ -161,17 +161,10 @@ export default function LandingPage() {
             </div>
             <div className="lp-hero-trust">
               <div className="item"><Icon name="check" />Sans engagement</div>
-              <div className="item"><Icon name="check" /><Link to="/legal/hebergement" style={{ color: 'inherit', textDecoration: 'underline' }}>Données hébergées en France</Link></div>
+              <div className="item"><Icon name="check" /><Link to="/legal/hebergement" style={{ color: 'inherit', textDecoration: 'underline' }}>Données hébergées en Europe</Link></div>
               <div className="item"><Icon name="check" />2 minutes pour démarrer</div>
             </div>
-            {/* Preuve sociale chiffrée au-dessus du pli (audit P2 — landing) */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, marginTop: 18,
-              fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.9)',
-            }}>
-              <span style={{ color: 'var(--amber)' }}>★★★★★</span>
-              Rejoignez les milliers de foyers qui ne ratent plus jamais une échéance de garantie ou de contrat
-            </div>
+            {/* Pas de formule de popularité (« des milliers de foyers », étoiles) tant qu'elle n'est pas vraie : à ne remettre qu'avec un chiffre réel et vérifiable. */}
           </div>
 
           <div className="lp-hero-visual">
@@ -248,7 +241,7 @@ export default function LandingPage() {
           <div className="lp-step">
             <div className="num">3</div>
             <h3>Did vous alerte au bon moment</h3>
-            <p>Notification et e-mail avant l'expiration, pour faire jouer votre garantie à temps.</p>
+            <p>E-mail avant l'expiration, pour faire jouer votre garantie à temps.</p>
           </div>
         </div>
       </section>
@@ -311,7 +304,7 @@ export default function LandingPage() {
             <Link to="/auth?mode=signup&plan=premium" className="btn btn-primary btn-full"><Icon name="hand-finger" />Protéger tous mes achats</Link>
 
             <div className="lp-price-reassurance">
-              Annulation à tout moment · Données hébergées en France<br />
+              Annulation à tout moment · Données hébergées en Europe<br />
               Une garantie perdue peut vous coûter très cher !
             </div>
           </div>
@@ -422,12 +415,13 @@ export default function LandingPage() {
           <h2>Toute la famille, tous les âges</h2>
         </div>
         <div className="lp-testimonial-grid">
+          {/* Témoignages : à n'afficher qu'avec l'accord de chaque personne citée, et avec SES propres mots (les citer à sa place est une pratique commerciale trompeuse). */}
           {[
-            { initials: 'MR', name: 'Martine R.', role: '68 ans, Nantes', quote: "Je ne retrouvais jamais mes factures d'électroménager. Maintenant tout est scanné et classé en deux secondes." },
-            { initials: 'TL', name: 'Thomas L.', role: '34 ans, Lyon', quote: "L'alerte avant la fin de garantie de mon lave-vaisselle m'a fait économiser une réparation. Simple et efficace." },
-            { initials: 'SK', name: 'Sophie K.', role: '45 ans, Bordeaux', quote: 'On gère les garanties de toute la maison avec mon mari. Plus de disputes pour savoir où est le ticket.' },
+            { initials: 'B', name: 'Bruno', role: '70 ans, région de Mons, Belgique', quote: "Je ne retrouvais jamais mes factures d'électroménager. Maintenant tout est scanné et classé en deux secondes." },
+            { initials: 'B', name: 'Benjamin', role: 'Clermont-Ferrand', quote: "L'alerte avant la fin de garantie de mon lave-vaisselle m'a fait économiser une réparation. Simple et efficace." },
+            { initials: 'AC', name: 'Anne Claire', role: '45 ans, Lyon', quote: 'On gère les garanties de toute la maison avec mon mari. Plus de disputes pour savoir où est le ticket.' },
           ].map((t) => (
-            <div className="lp-testimonial" key={t.initials}>
+            <div className="lp-testimonial" key={t.name}>
               <div className="stars">★★★★★</div>
               <p className="quote">{t.quote}</p>
               <div className="who">
@@ -477,7 +471,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-footer-bottom">
             <span>© 2026 Hey Did. Tous droits réservés.</span>
-            <span><Icon name="home" style={{ verticalAlign: '-2px', marginRight: 6 }} />Conçu et hébergé en France</span>
+            <span><Icon name="home" style={{ verticalAlign: '-2px', marginRight: 6 }} />Conçu en France · Données hébergées en Europe</span>
           </div>
         </div>
       </footer>

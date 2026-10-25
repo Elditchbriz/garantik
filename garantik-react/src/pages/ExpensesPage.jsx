@@ -3,6 +3,7 @@ import WebOnly from '../components/WebOnly.jsx';
 import { isNativeApp } from '../lib/platform.js';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { supabase, monthlyEquivalent } from '../lib/supabaseClient.js';
+import { formatEuro } from '../lib/formatMoney.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 
@@ -112,15 +113,15 @@ export default function ExpensesPage() {
       }}>
         <div>
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Par mois</div>
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{totalMonthly.toFixed(0)} €</div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{formatEuro(totalMonthly)}</div>
         </div>
         <div>
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Par an</div>
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{totalAnnual.toFixed(0)} €</div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{formatEuro(totalAnnual)}</div>
         </div>
         <div>
           <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Valeur protégée</div>
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{totalProtected.toFixed(0)} €</div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>{formatEuro(totalProtected)}</div>
         </div>
       </div>
 
@@ -136,7 +137,7 @@ export default function ExpensesPage() {
               position: 'absolute', inset: 24, background: '#fff', borderRadius: '50%',
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>{totalMonthly.toFixed(0)} €</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>{formatEuro(totalMonthly)}</div>
               <div style={{ fontSize: 11, color: 'var(--ink-faint)' }}>/ mois</div>
             </div>
           </div>
@@ -146,7 +147,7 @@ export default function ExpensesPage() {
               <div key={cat.name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--navy)' }}>{cat.name}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{cat.amount.toFixed(0)} €</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{formatEuro(cat.amount)}</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-faint)', width: 36, textAlign: 'right' }}>{cat.pct.toFixed(0)}%</div>
               </div>
             ))}

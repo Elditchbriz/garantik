@@ -3,6 +3,7 @@ import WebOnly from '../components/WebOnly.jsx';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { supabase, listPurchases, countPurchasesByStatus, getEmailInbox, monthlyEquivalent } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
+import { formatEuro } from '../lib/formatMoney.js';
 import OnboardingWizard from '../components/OnboardingWizard.jsx';
 import AddTypeSheet from '../components/AddTypeSheet.jsx';
 
@@ -750,18 +751,18 @@ export default function DashboardPage() {
         <div className="chiffres-grid">
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="ic" style={{ background: 'var(--blue-pale)', color: 'var(--blue-dark)' }}><Icon name="shield-check" /></div>
-            <div className="v">{totalProtectedValue.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €</div>
+            <div className="v">{formatEuro(totalProtectedValue)}</div>
             <div className="l">Valeur protégée</div>
           </div>
           <div className="chiffre-mini" onClick={() => navigate('/expenses')} style={{ cursor: 'pointer' }}>
             <div className="ic" style={{ background: 'var(--amber-pale)', color: 'var(--amber-text)' }}><Icon name="credit-card" /></div>
-            <div className="v">{monthlySpend.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</div>
+            <div className="v">{formatEuro(monthlySpend)}</div>
             <div className="l">Abos / mois</div>
           </div>
           {isPremium && (
             <div className="chiffre-mini" onClick={() => navigate('/account/subscription#association')} style={{ cursor: 'pointer' }}>
               <div className="ic" style={{ background: '#FEE2E2', color: '#DC2626' }}><Icon name="heart-handshake" /></div>
-              <div className="v">{totalDonated ? totalDonated.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) + ' €' : '0 €'}</div>
+              <div className="v">{formatEuro(totalDonated)}</div>
               <div className="l">Mon impact</div>
             </div>
           )}
@@ -808,7 +809,7 @@ export default function DashboardPage() {
                       <div className="dash-item-right">
                         {p.total_amount && (
                           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-soft)', marginRight: 4 }}>
-                            {Number(p.total_amount).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+                            {formatEuro(p.total_amount)}
                           </span>
                         )}
                         <span className={`badge ${sc.badge}`}>{sc.label}</span>

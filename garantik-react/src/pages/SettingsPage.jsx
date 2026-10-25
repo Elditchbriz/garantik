@@ -444,7 +444,7 @@ function AboutTab() {
         ))}
         <div style={{ padding: '16px' }}>
           <div style={{ fontSize: 12.5, color: 'var(--ink-faint)', marginBottom: 4 }}>Hey Did v1.0</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>Conçu et hébergé en France 🇫🇷</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-faint)' }}>Conçu en France 🇫🇷 · Données hébergées en Europe</div>
         </div>
       </div>
     </div>

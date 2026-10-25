@@ -9,7 +9,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: "Où sont hébergées vos données ?",
-        content: `L'ensemble de vos données — informations de compte, garanties, contrats et documents — est hébergé exclusivement en France et au sein de l'Union européenne, sur l'infrastructure de Supabase (serveurs AWS eu-west-3, Paris) pour la base de données, et Vercel (réseau européen) pour l'application elle-même. Vos données de compte, de garanties, de contrats et vos documents sont stockés exclusivement dans l'Union européenne. Seuls deux traitements ponctuels peuvent faire intervenir un prestataire hors de l'Union : l'analyse par intelligence artificielle d'un ticket que vous scannez, et les rapports techniques d'erreurs (hébergés dans l'Union européenne). Le détail figure dans notre politique de confidentialité.`
+        content: `L'ensemble de vos données — informations de compte, garanties, contrats et documents — est hébergé exclusivement en France et au sein de l'Union européenne, sur l'infrastructure de Supabase (serveurs AWS eu-west-3, Paris) pour la base de données, et Vercel (réseau mondial de diffusion, qui ne stocke ni vos données de compte, ni vos garanties, ni vos contrats, ni vos documents) pour l'application elle-même. Vos données de compte, de garanties, de contrats et vos documents sont stockés exclusivement dans l'Union européenne. Seuls deux traitements ponctuels peuvent faire intervenir un prestataire hors de l'Union : l'analyse par intelligence artificielle d'un ticket que vous scannez, et les rapports techniques d'erreurs (hébergés dans l'Union européenne). Le détail figure dans notre politique de confidentialité.`
       },
       {
         heading: "Comment vos documents sont-ils protégés ?",
@@ -160,7 +160,7 @@ Directeur de la publication : Didier BRISACK`
         heading: "Hébergement",
         content: `Le service est hébergé par :
 Supabase Inc. (infrastructure EU-West, hébergée sur AWS eu-west-3, Paris)
-et Vercel Inc. (CDN et déploiement frontend, réseau européen)
+et Vercel Inc. (CDN et déploiement frontend, réseau mondial)
 
 Les données des utilisateurs sont stockées exclusivement sur des serveurs situés en Union Européenne.`
       },
@@ -205,7 +205,7 @@ export default function LegalPage() {
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 20px 60px' }}>
-      <PageHeader backTo={backTo} title={content.title} subtitle="Dernière mise à jour : octobre 2026 · Conçu et hébergé en France 🇫🇷" />
+      <PageHeader backTo={backTo} title={content.title} subtitle="Dernière mise à jour : octobre 2026 · Conçu en France 🇫🇷 · Données hébergées en Europe" />
 
       {content.sections.map((section, i) => (
         <div key={i} style={{ marginBottom: 28 }}>

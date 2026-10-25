@@ -81,7 +81,7 @@ function exportToPdf(purchases, contracts) {
   const totalMonthly = contracts.reduce((sum, c) => sum + monthlyEquivalent(c.amount, c.billing_period), 0);
   doc.setFontSize(11);
   doc.setTextColor(27, 36, 48); // var(--navy)
-  doc.text(`Valeur protégée : ${totalProtected.toFixed(0)} €`, 14, 38);
+  doc.text(`Valeur protégée : ${totalProtected.toFixed(2)} €`, 14, 38);
   doc.text(`Engagements récurrents : ${totalMonthly.toFixed(2)} € / mois`, 14, 45);
 
   const rows = buildExportRows(purchases, contracts);

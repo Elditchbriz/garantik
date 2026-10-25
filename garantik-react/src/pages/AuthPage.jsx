@@ -242,11 +242,11 @@ export default function AuthPage() {
             <img src="/didier-headshot.jpg" alt="Did" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <h2>Did s'occupe de votre administratif</h2>
-          <p>Rejoignez des milliers de foyers qui ne perdent plus jamais un ticket de caisse, une garantie ou une échéance de contrat.</p>
+          <p>Gardez vos tickets de caisse, vos garanties et vos échéances de contrat au même endroit.</p>
           <div className="auth-feature-list">
             <div className="f"><div className="ico"><Icon name="scan" /></div>Scan automatique de vos tickets</div>
             <div className="f"><div className="ico"><Icon name="bell" /></div>Alertes avant chaque échéance</div>
-            <div className="f"><div className="ico"><Icon name="shield-check" /></div>Données hébergées en France</div>
+            <div className="f"><div className="ico"><Icon name="shield-check" /></div>Données hébergées en Europe</div>
           </div>
 
           <div className="lp-mock-card" style={{ marginTop: 32, maxWidth: 320 }}>
