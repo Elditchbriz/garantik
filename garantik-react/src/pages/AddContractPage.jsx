@@ -501,9 +501,16 @@ export default function AddContractPage() {
                 {isNativeApp() && 'Supprime un élément existant pour en ajouter un nouveau.'}
               </p>
               <FreePlanLimitNotice used={limitUsage?.used} quota={limitUsage?.quota ?? 10} />
-              <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+              {/* Même proposition que pour une garantie : sur le site, un bouton mène directement à la page d'abonnement. Rien n'est affiché dans l'app Android. */}
+              <WebOnly>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: 8 }}
+                  onClick={() => navigate('/account/subscription')}>
+                  <Icon name="rocket" /> Passer à Hey Did+
+                </button>
+              </WebOnly>
+              <button className={isNativeApp() ? 'btn btn-primary' : 'btn btn-ghost'} style={{ width: '100%', justifyContent: 'center' }}
                 onClick={() => setShowLimitModal(false)}>
-                Compris
+                {isNativeApp() ? 'Compris' : 'Plus tard'}
               </button>
             </div>
           </div>

@@ -111,11 +111,12 @@ function QuotaBar({ used, quota }) {
         )}
       </div>
       <WebOnly>
-        <a href="/account#abonnement" style={{
+        {/* Mène à la page d'abonnement (/account/subscription), pas à la page Compte */}
+        <Link to="/account/subscription" style={{
           flexShrink: 0, fontSize: 12, fontWeight: 700, color: 'var(--blue)', whiteSpace: 'nowrap',
         }}>
           Passer à Hey Did+
-        </a>
+        </Link>
       </WebOnly>
     </div>
   );

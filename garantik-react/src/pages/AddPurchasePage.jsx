@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { supabase, createPurchase, uploadDocument, findSimilarPurchases, checkFreeQuota, getFreePlanUsage, markInboxItemProcessed } from '../lib/supabaseClient.js';
 import FreePlanLimitNotice, { limitHeadline } from '../components/FreePlanLimitNotice.jsx';
 import WebOnly from '../components/WebOnly.jsx';
@@ -561,9 +561,10 @@ export default function AddPurchasePage() {
               )}
               <div className="modal-actions">
                 <WebOnly>
-                  <a href="/account#abonnement" className="btn btn-primary">
+                  {/* La page d'abonnement est /account/subscription (et non /account#abonnement : la page Compte n'a pas de rubrique abonnement) */}
+                  <Link to="/account/subscription" className="btn btn-primary">
                     <Icon name="rocket" /> Passer à Hey Did+
-                  </a>
+                  </Link>
                 </WebOnly>
                 <button className="btn btn-ghost" onClick={() => setShowLimitModal(false)}>
                   {isNativeApp() ? 'Compris' : 'Plus tard'}
