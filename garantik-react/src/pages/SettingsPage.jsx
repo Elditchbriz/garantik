@@ -433,7 +433,6 @@ function AboutTab() {
           { label: "Conditions générales d'utilisation", to: '/legal/cgu' },
           { label: 'Politique de confidentialité', to: '/legal/confidentialite' },
           { label: 'Mentions légales', to: '/legal/mentions' },
-          { label: 'Se rétracter du contrat', to: '/retractation' },
         ].map(({ label, to }) => (
           <Link key={to} to={`${to}?from=${encodeURIComponent('/settings?tab=about')}`} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',

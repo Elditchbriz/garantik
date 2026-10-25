@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
+import { getWithdrawalWindow, formatWithdrawalDeadline } from '../lib/withdrawal.js';
 import { supabase } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -237,6 +238,8 @@ export default function SubscriptionPage() {
   // alors pas fonctionner. Mieux vaut le dire clairement que de laisser
   // ces actions échouer avec une erreur technique incompréhensible.
   const hasStripeSubscription = !!profile?.organizations?.stripe_subscription_id;
+  // Délai de rétractation de 14 jours à compter de la souscription (subscription_started_at, ou à défaut la date du consentement à l'exécution immédiate)
+  const withdrawal = getWithdrawalWindow(profile?.organizations?.subscription_started_at ?? profile?.organizations?.immediate_service_consent_at);
 
   return (
     <>
@@ -788,17 +791,27 @@ export default function SubscriptionPage() {
               >
                 <Icon name="settings" /> {checkoutLoading === 'portal' ? 'Redirection…' : 'Gérer mon abonnement'}
               </button>
-              {/* Fonction de rétractation en ligne, visible là où le contrat est géré */}
-              <button
-                onClick={() => navigate(`/retractation?from=${encodeURIComponent('/account/subscription')}`)}
-                style={{
-                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--ink-faint)', fontSize: 12.5, marginTop: 12, textDecoration: 'underline',
-                  fontFamily: 'inherit', textAlign: 'center', display: 'block',
-                }}
-              >
-                Se rétracter du contrat
-              </button>
+              {/* Fonction de rétractation en ligne : proposée UNIQUEMENT pendant les 14 jours qui suivent la souscription. Ensuite le client ne peut plus se
+                  rétracter : il résilie comme d'habitude avec « Gérer mon abonnement ». Date de souscription inconnue (ancien abonné) : pas de bouton.
+                  Règle de calcul : src/lib/withdrawal.js */}
+              {withdrawal.open && withdrawal.deadline && (
+                <div style={{
+                  marginTop: 16, padding: '14px 16px', borderRadius: 'var(--radius-m)',
+                  border: '1px solid var(--line)', background: 'var(--blue-pale-2)',
+                }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>Délai de rétractation</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.55, marginBottom: 12 }}>
+                    {`Vous pouvez vous rétracter de cet abonnement jusqu'au ${formatWithdrawalDeadline(withdrawal.deadline)} inclus, sans avoir à vous justifier.`}
+                  </div>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => navigate(`/retractation?from=${encodeURIComponent('/account/subscription')}`)}
+                  >
+                    Se rétracter du contrat
+                  </button>
+                </div>
+              )}
             </>
           ) : null}
         </div>
