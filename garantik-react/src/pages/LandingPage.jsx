@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient.js';
 import '../styles/landing.css';
 
 import { friendlyError } from '../lib/friendlyError.js';
+import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
 const COMPARISON_ROWS = [
   { label: 'Garanties et contrats suivis', free: '10 max', premium: 'Illimité' },
   { label: 'Scan et analyse par IA', free: true, premium: true },
@@ -102,6 +103,7 @@ function PublicContactModal({ onClose }) {
 }
 
 export default function LandingPage() {
+  usePageMeta(PAGE_META.home);   // titre, description et adresse canonique de l'accueil pour Google (textes dans lib/seoMeta.js)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [charities, setCharities] = useState([]);

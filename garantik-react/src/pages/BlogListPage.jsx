@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sanityClient, BLOG_LIST_QUERY } from '../lib/sanityClient.js';
+import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
 import '../styles/landing.css';
 
 const categoryColors = {
@@ -16,6 +17,7 @@ function formatDate(d) {
 }
 
 export default function BlogListPage() {
+  usePageMeta(PAGE_META.blog);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');

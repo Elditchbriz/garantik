@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
+import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
 import '../styles/landing.css';
 
 // Isolée volontairement : le jour où l'app sera packagée en natif
@@ -16,6 +17,7 @@ function openExternalLink(url) {
 }
 
 export default function AssociationsPage() {
+  usePageMeta(PAGE_META.associations);
   const navigate = useNavigate();
   const [charities, setCharities] = useState([]);
   const [loading, setLoading] = useState(true);

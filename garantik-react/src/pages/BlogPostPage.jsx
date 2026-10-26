@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { sanityClient, BLOG_POST_QUERY } from '../lib/sanityClient.js';
+import { usePageMeta, articleMeta } from '../lib/seoMeta.js';
 import '../styles/landing.css';
 
 const categoryColors = {
@@ -91,6 +92,10 @@ export default function BlogPostPage() {
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Titre, description et adresse canonique de l'article pour Google. Un article introuvable porte « noindex » : sans cela, n'importe quelle
+  // adresse /blog/xxx répondrait « 200 » et pourrait être indexée comme une page vide.
+  usePageMeta(notFound ? { title: 'Article introuvable | Hey Did', noindex: true } : articleMeta(post, slug));
 
   useEffect(() => {
     sanityClient.fetch(BLOG_POST_QUERY, { slug })
