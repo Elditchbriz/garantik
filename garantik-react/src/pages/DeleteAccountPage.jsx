@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
 import { captureError } from '../lib/monitoring.js';
-import PageHeader from '../components/PageHeader.jsx';
+import PublicPageTitle from '../components/PublicPageTitle.jsx';
+import { usePageMeta } from '../lib/seoMeta.js';
+import { hardNavigate } from '../lib/hardNavigate.js';
 import Icon from '../components/Icon.jsx';
 
-// Suppression de compte : page PUBLIQUE (hors du layout de l'application, comme les pages légales).
+// Suppression de compte : page PUBLIQUE. Un visiteur la voit dans le site vitrine (en-tête et bas de page communs), une personne connectée
+// dans l'application, avec ses menus (voir PublicShell et main.jsx).
 //
 // Pourquoi publique : Google Play exige qu'un compte créé dans l'application puisse être supprimé
 // depuis l'application ET depuis une page web dont l'adresse est déclarée dans la Play Console
@@ -25,6 +28,18 @@ import Icon from '../components/Icon.jsx';
 const CONFIRM_WORD = 'SUPPRIMER';
 const PRIVACY_EMAIL = 'privacy@hey-did.fr';
 const SELF = '/suppression-compte';
+// À la fin de la suppression, la session se ferme : la page se recharge (le gabarit de l'application, avec ses menus, ne doit pas rester affiché
+// sans session). Le résultat passe d'un chargement à l'autre par cette clé (sessionStorage), lue une seule fois à l'arrivée sur « ?termine=1 ».
+const DONE_KEY = 'heydid_delete_done';
+function readDoneHandoff() {
+  try {
+    const raw = sessionStorage.getItem(DONE_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(DONE_KEY);
+    const r = JSON.parse(raw);
+    return { purgeOn: r && r.purgeOn ? r.purgeOn : null, immediate: !!(r && r.immediate === true) };
+  } catch { return null; }
+}
 
 async function callDeleteAccount(body) {
   const { data } = await supabase.auth.getSession();
@@ -95,7 +110,8 @@ function WhatHappens({ plan }) {
 export default function DeleteAccountPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const backTo = searchParams.get('from') || '/';
+  usePageMeta({ title: 'Supprimer mon compte | Hey Did' });   // titre de l'onglet ; la page reste masquée dans Google (en-tête « noindex », voir vercel.json)
+  const justFinished = searchParams.get('termine') === '1';
 
   const [phase, setPhase] = useState('loading');   // loading | loggedOut | ready | deleting | done | error
   const [plan, setPlan] = useState(null);
@@ -106,6 +122,11 @@ export default function DeleteAccountPage() {
 
   useEffect(() => {
     let cancelled = false;
+    // Arrivée après le rechargement de fin de suppression : on affiche directement la confirmation (sans rien redemander au serveur)
+    if (justFinished) {
+      const finished = readDoneHandoff();
+      if (finished) { setResult(finished); setPhase('done'); return undefined; }
+    }
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data?.session) { if (!cancelled) setPhase('loggedOut'); return; }
@@ -136,10 +157,14 @@ export default function DeleteAccountPage() {
       const { status, json } = await callDeleteAccount({ confirm: CONFIRM_WORD });
       if (status === 200 && json.ok) {
         // L'accès est fermé côté serveur : on nettoie la session locale sans appeler le serveur
-        setResult({ purgeOn: json.purge_on || null, immediate: json.deleted?.immediate === true });
+        const outcome = { purgeOn: json.purge_on || null, immediate: json.deleted?.immediate === true };
+        setResult(outcome);
         try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* sans importance */ }
         try { Object.keys(localStorage).filter((k) => k.startsWith('heydid_')).forEach((k) => localStorage.removeItem(k)); } catch { /* idem */ }
         setPhase('done');
+        // La session est fermée : on recharge la page pour que le site vitrine remplace le gabarit de l'application. Si cela échoue,
+        // l'écran de confirmation déjà affiché reste en place (comportement d'avant).
+        try { sessionStorage.setItem(DONE_KEY, JSON.stringify(outcome)); hardNavigate(`${SELF}?termine=1`); } catch { /* sans importance */ }
         return;
       }
       if (status === 409 && json.blocked) { setBlocked(json.blocked); setPhase('ready'); return; }
@@ -153,8 +178,8 @@ export default function DeleteAccountPage() {
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px 60px' }}>
-      <PageHeader backTo={backTo} title="Supprimer mon compte" subtitle="Fermeture de votre accès et suppression de vos données" />
+    <main style={{ maxWidth: 560, margin: '0 auto', padding: '48px 24px 72px' }}>
+      <PublicPageTitle backTo={searchParams.get('from')} title="Supprimer mon compte" subtitle="Fermeture de votre accès et suppression de vos données" />
 
       {phase === 'loading' && <p style={{ ...li, textAlign: 'center', marginTop: 40 }}>Chargement…</p>}
 
@@ -274,6 +299,6 @@ export default function DeleteAccountPage() {
           <button type="button" className="btn btn-primary" onClick={() => navigate('/')}>Retour à l'accueil</button>
         </div>
       )}
-    </div>
+    </main>
   );
 }

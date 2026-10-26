@@ -1,8 +1,7 @@
 import React from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import Icon from '../components/Icon.jsx';
-import PageHeader from '../components/PageHeader.jsx';
-
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { usePageMeta } from '../lib/seoMeta.js';
+import PublicPageTitle from '../components/PublicPageTitle.jsx';
 const LEGAL_CONTENT = {
   hebergement: {
     title: "Hébergement, sécurité et stockage de vos documents",
@@ -186,26 +185,22 @@ Les données des utilisateurs sont stockées exclusivement sur des serveurs situ
 
 export default function LegalPage() {
   const { page } = useParams();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const content = LEGAL_CONTENT[page];
-  // D'où vient-on ? Transmis explicitement par la page d'origine (ex :
-  // l'onglet "À propos" des paramètres) plutôt que de se fier à
-  // navigate(-1), peu fiable ici : ce lien peut aussi être ouvert
-  // directement (partagé, favori) sans historique de navigation cohérent.
-  // Par défaut, on retombe sur l'accueil du site (visiteur non connecté).
-  const backTo = searchParams.get('from') || '/';
+
+  // Titre de l'onglet. Ces pages restent masquées dans Google (en-tête « noindex », voir vercel.json) : pas d'adresse canonique.
+  usePageMeta(content ? { title: `${content.title} | Hey Did` } : { title: 'Page introuvable | Hey Did', noindex: true });
 
   if (!content) return (
-    <div style={{ padding: 32, textAlign: 'center' }}>
-      <p>Page introuvable</p>
-      <button onClick={() => navigate(backTo)} className="btn btn-ghost" style={{ marginTop: 16 }}>Retour</button>
-    </div>
+    <main style={{ maxWidth: 760, margin: '0 auto', padding: '64px 24px 80px', textAlign: 'center' }}>
+      <p style={{ fontSize: 18, color: 'var(--ink-soft)', marginBottom: 16 }}>Page introuvable</p>
+      <Link to="/" className="btn btn-primary">Retour à l'accueil</Link>
+    </main>
   );
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 20px 60px' }}>
-      <PageHeader backTo={backTo} title={content.title} subtitle="Dernière mise à jour : octobre 2026 · Conçu en France 🇫🇷 · Données hébergées en Europe" />
+    <main style={{ maxWidth: 760, margin: '0 auto', padding: '48px 24px 72px' }}>
+      <PublicPageTitle backTo={searchParams.get('from')} title={content.title} subtitle="Dernière mise à jour : octobre 2026 · Conçu en France 🇫🇷 · Données hébergées en Europe" />
 
       {content.sections.map((section, i) => (
         <div key={i} style={{ marginBottom: 28 }}>
@@ -227,6 +222,6 @@ export default function LegalPage() {
           contact@hey-did.fr
         </a>
       </div>
-    </div>
+    </main>
   );
 }

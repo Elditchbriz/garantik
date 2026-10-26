@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient.js';
-import PageHeader from '../components/PageHeader.jsx';
+import PublicPageTitle from '../components/PublicPageTitle.jsx';
+import { usePageMeta } from '../lib/seoMeta.js';
 import Icon from '../components/Icon.jsx';
 
 // Fonction de rétractation en ligne ("Se rétracter du contrat").
-// Page PUBLIQUE (hors du layout de l'app, comme les pages légales) : un
-// client doit pouvoir se rétracter même sans pouvoir se connecter.
+// Page PUBLIQUE : un client doit pouvoir se rétracter même sans pouvoir se connecter. Un visiteur la voit dans le site vitrine (en-tête et
+// bas de page communs), une personne connectée dans l'application, avec ses menus (voir PublicShell et main.jsx).
 // Vouvoiement, comme les autres pages publiques et juridiques.
 //
 // Parcours en deux temps, volontairement : saisie, puis un récapitulatif
@@ -29,7 +30,7 @@ function formatParis(iso) {
 
 export default function WithdrawalPage() {
   const [searchParams] = useSearchParams();
-  const backTo = searchParams.get('from') || '/';
+  usePageMeta({ title: 'Se rétracter du contrat | Hey Did' });   // titre de l'onglet ; la page reste masquée dans Google (en-tête « noindex », voir vercel.json)
 
   const [step, setStep] = useState('form'); // 'form' | 'confirm' | 'done'
   const [fullName, setFullName] = useState('');
@@ -78,12 +79,8 @@ export default function WithdrawalPage() {
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto', padding: '0 20px 60px' }}>
-      <PageHeader
-        backTo={backTo}
-        title="Se rétracter du contrat"
-        subtitle="Abonnement Hey Did+ — délai de 14 jours"
-      />
+    <main style={{ maxWidth: 560, margin: '0 auto', padding: '48px 24px 72px' }}>
+      <PublicPageTitle backTo={searchParams.get('from')} title="Se rétracter du contrat" subtitle="Abonnement Hey Did+ — délai de 14 jours" />
 
       {step === 'form' && (
         <form onSubmit={goToConfirm}>
@@ -172,6 +169,6 @@ export default function WithdrawalPage() {
           </p>
         </div>
       )}
-    </div>
+    </main>
   );
 }
