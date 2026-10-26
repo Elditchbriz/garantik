@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { sanityClient, BLOG_POST_QUERY } from '../lib/sanityClient.js';
 import { usePageMeta, articleMeta } from '../lib/seoMeta.js';
+import { captureError } from '../lib/monitoring.js';
 import '../styles/landing.css';
 
 const categoryColors = {
@@ -91,21 +92,33 @@ export default function BlogPostPage() {
   const { slug } = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [notFound, setNotFound] = useState(false);   // la requête a réussi mais l'article n'existe pas
+  const [loadError, setLoadError] = useState(false);  // la requête a ÉCHOUÉ (panne, réseau, autorisation) : l'article existe peut-être
+  const [attempt, setAttempt] = useState(0);
 
-  // Titre, description et adresse canonique de l'article pour Google. Un article introuvable porte « noindex » : sans cela, n'importe quelle
-  // adresse /blog/xxx répondrait « 200 » et pourrait être indexée comme une page vide.
+  // Titre, description et adresse canonique de l'article pour Google. Un article réellement introuvable porte « noindex » : sans cela, n'importe quelle
+  // adresse /blog/xxx répondrait « 200 » et pourrait être indexée comme une page vide. Une simple ERREUR de chargement ne porte JAMAIS « noindex » :
+  // une panne passagère ne doit pas faire retirer un article de Google.
   usePageMeta(notFound ? { title: 'Article introuvable | Hey Did', noindex: true } : articleMeta(post, slug));
 
   useEffect(() => {
+    let alive = true;
+    // Repartir d'un état propre à chaque article (sinon un « introuvable » précédent resterait affiché, et marquerait « noindex » un article valide)
+    setLoading(true); setNotFound(false); setLoadError(false); setPost(null);
     sanityClient.fetch(BLOG_POST_QUERY, { slug })
       .then(data => {
+        if (!alive) return;
         if (!data) setNotFound(true);
         else setPost(data);
         setLoading(false);
       })
-      .catch(() => { setNotFound(true); setLoading(false); });
-  }, [slug]);
+      .catch((err) => {
+        if (!alive) return;
+        setLoadError(true); setLoading(false);
+        captureError(err, { where: 'blog:article', extra: { slug } });   // avant : « Article introuvable », sans aucun signalement
+      });
+    return () => { alive = false; };
+  }, [slug, attempt]);
 
   const cat = post?.category ? categoryColors[post.category] : null;
 
@@ -116,7 +129,7 @@ export default function BlogPostPage() {
         <div className="lp-header-inner">
           <Link to="/" className="lp-logo">
             <div className="mark" style={{ width: 32, height: 32 }}></div>
-            <div className="word">Hey Did</div>
+            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
           </Link>
           <nav className="lp-nav">
             <Link to="/">Accueil</Link>
@@ -140,6 +153,14 @@ export default function BlogPostPage() {
         </Link>
 
         {loading && <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 48 }}>Chargement…</p>}
+
+        {loadError && (
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <p style={{ fontSize: 18, color: 'var(--ink-soft)', marginBottom: 16 }}>Impossible de charger l'article pour le moment.</p>
+            <button className="btn btn-primary" style={{ marginRight: 10 }} onClick={() => setAttempt((n) => n + 1)}>Réessayer</button>
+            <Link to="/blog" className="btn btn-ghost">Retour au blog</Link>
+          </div>
+        )}
 
         {notFound && (
           <div style={{ textAlign: 'center', padding: 48 }}>

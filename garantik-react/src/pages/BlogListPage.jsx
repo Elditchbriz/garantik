@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sanityClient, BLOG_LIST_QUERY } from '../lib/sanityClient.js';
 import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
+import { captureError } from '../lib/monitoring.js';
 import '../styles/landing.css';
 
 const categoryColors = {
@@ -21,12 +22,21 @@ export default function BlogListPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [loadError, setLoadError] = useState(false);   // échec du chargement : à NE PAS confondre avec « aucun article »
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true); setLoadError(false);
     sanityClient.fetch(BLOG_LIST_QUERY)
-      .then(data => { setPosts(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+      .then(data => { if (!alive) return; setPosts(data || []); setLoading(false); })
+      .catch((err) => {
+        if (!alive) return;
+        setLoadError(true); setLoading(false);
+        captureError(err, { where: 'blog:liste' });   // avant : l'erreur était avalée en silence et la page disait « Aucun article »
+      });
+    return () => { alive = false; };
+  }, [attempt]);
 
   const categories = [...new Set(posts.map(p => p.category).filter(Boolean))];
   const filtered = filter === 'all' ? posts : posts.filter(p => p.category === filter);
@@ -39,7 +49,7 @@ export default function BlogListPage() {
         <div className="lp-header-inner">
           <Link to="/" className="lp-logo">
             <div className="mark" style={{ width: 32, height: 32 }}></div>
-            <div className="word">Hey Did</div>
+            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
           </Link>
           <nav className="lp-nav">
             <Link to="/">Accueil</Link>
@@ -89,6 +99,11 @@ export default function BlogListPage() {
 
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 48 }}>Chargement…</p>
+        ) : loadError ? (
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <p style={{ color: 'var(--ink-soft)', marginBottom: 16 }}>Impossible de charger les articles pour le moment.</p>
+            <button className="btn btn-primary" onClick={() => setAttempt((n) => n + 1)}>Réessayer</button>
+          </div>
         ) : filtered.length === 0 ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 48 }}>Aucun article pour le moment.</p>
         ) : (
