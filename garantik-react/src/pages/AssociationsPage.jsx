@@ -6,6 +6,7 @@ import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
 import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
+import PublicHeader from '../components/PublicHeader.jsx';
 import '../styles/landing.css';
 
 // Isolée volontairement : le jour où l'app sera packagée en natif
@@ -41,16 +42,7 @@ export default function AssociationsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <header className="lp-header">
-        <div className="lp-header-inner">
-          <Link to={isLoggedIn ? '/dashboard' : '/'} className="lp-logo">
-            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
-          </Link>
-          <Link to={isLoggedIn ? '/account#abonnement' : '/'} className="btn btn-ghost">
-            {isLoggedIn ? '← Retour à mon compte' : "← Retour à l'accueil"}
-          </Link>
-        </div>
-      </header>
+      <PublicHeader active="associations" />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 60px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>

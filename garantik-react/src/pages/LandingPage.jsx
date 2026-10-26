@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
@@ -7,6 +7,7 @@ import '../styles/landing.css';
 
 import { friendlyError } from '../lib/friendlyError.js';
 import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
+import PublicHeader from '../components/PublicHeader.jsx';
 const COMPARISON_ROWS = [
   { label: 'Garanties et contrats suivis', free: '10 max', premium: 'Illimité' },
   { label: 'Scan et analyse par IA', free: true, premium: true },
@@ -105,9 +106,20 @@ function PublicContactModal({ onClose }) {
 export default function LandingPage() {
   usePageMeta(PAGE_META.home);   // titre, description et adresse canonique de l'accueil pour Google (textes dans lib/seoMeta.js)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [charities, setCharities] = useState([]);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+
+  // Les liens « Fonctionnalités / Comment ça marche / Tarifs » de l'en-tête commun mènent à /#section depuis les autres pages : on fait défiler jusqu'à la section
+  // (le routeur ne le fait pas tout seul), y compris à l'arrivée directe sur une adresse du type /#tarifs.
+  // « key » change à chaque clic sur un lien, même vers la même adresse : un 2e clic sur « Tarifs » refait donc défiler jusqu'à la section.
+  const { hash, key } = useLocation();
+  useEffect(() => {
+    if (!hash) return undefined;
+    const el = document.getElementById(hash.slice(1));
+    if (!el) return undefined;
+    const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    return () => clearTimeout(timer);
+  }, [hash, key]);
 
   useEffect(() => {
     supabase.from('charities').select('name, description, image_url').eq('active', true).order('name').limit(6)
@@ -116,40 +128,7 @@ export default function LandingPage() {
 
   return (
     <>
-      <header className="lp-header">
-        <div className="lp-header-inner">
-          <div className="lp-logo">
-            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
-          </div>
-          <nav className="lp-nav">
-            <a href="#fonctionnalites">Fonctionnalités</a>
-            <a href="#comment-ca-marche">Comment ça marche</a>
-            <a href="#tarifs">Tarifs</a>
-            <Link to="/blog">Blog</Link>
-          </nav>
-          <div className="lp-header-actions">
-            <Link to="/auth" className="btn btn-ghost lp-btn-login">Se connecter</Link>
-            <Link to="/auth?mode=signup" className="btn btn-primary lp-btn-signup">Commencer avec Did</Link>
-            <button
-              className="lp-burger"
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              aria-label="Menu"
-            >
-              <span></span><span></span><span></span>
-            </button>
-          </div>
-        </div>
-        {mobileNavOpen && (
-          <div className="lp-mobile-nav">
-            <a href="#fonctionnalites" onClick={() => setMobileNavOpen(false)}>Fonctionnalités</a>
-            <a href="#comment-ca-marche" onClick={() => setMobileNavOpen(false)}>Comment ça marche</a>
-            <a href="#tarifs" onClick={() => setMobileNavOpen(false)}>Tarifs</a>
-            <Link to="/blog" onClick={() => setMobileNavOpen(false)}>Blog</Link>
-            <Link to="/auth" className="btn btn-ghost" style={{ justifyContent: 'center' }} onClick={() => setMobileNavOpen(false)}>Se connecter</Link>
-            <Link to="/auth?mode=signup" className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={() => setMobileNavOpen(false)}>Commencer avec Did</Link>
-          </div>
-        )}
-      </header>
+      <PublicHeader />
 
       <section className="lp-hero">
         <div className="lp-hero-inner">

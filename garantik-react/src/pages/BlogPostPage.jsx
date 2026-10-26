@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { sanityClient, BLOG_POST_QUERY } from '../lib/sanityClient.js';
 import { usePageMeta, articleMeta } from '../lib/seoMeta.js';
+import PublicHeader from '../components/PublicHeader.jsx';
 import { captureError } from '../lib/monitoring.js';
 import '../styles/landing.css';
 
@@ -125,22 +126,7 @@ export default function BlogPostPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#fff' }}>
             {/* Header */}
-      <header className="lp-header" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
-        <div className="lp-header-inner">
-          <Link to="/" className="lp-logo">
-            <div className="mark" style={{ width: 32, height: 32 }}></div>
-            <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
-          </Link>
-          <nav className="lp-nav">
-            <Link to="/">Accueil</Link>
-            <Link to="/blog" style={{ color: 'var(--navy)', fontWeight: 600 }}>Blog</Link>
-          </nav>
-          <div className="lp-header-actions">
-            <Link to="/auth" className="btn btn-ghost lp-btn-login">Se connecter</Link>
-            <Link to="/auth?mode=signup" className="btn btn-primary lp-btn-signup">Essayer gratuitement</Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeader active="blog" />
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px 80px' }}>
         <Link to="/blog" style={{
