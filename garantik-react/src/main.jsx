@@ -18,6 +18,7 @@ import NativeSubscriptionPage from './pages/NativeSubscriptionPage.jsx';
 import { isNativeApp } from './lib/platform.js';
 import HouseholdPage from './pages/HouseholdPage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
+import PublicShell from './components/PublicShell.jsx';
 import WithdrawalPage from './pages/WithdrawalPage.jsx';
 import DeleteAccountPage from './pages/DeleteAccountPage.jsx';
 import PurchaseDetailPage from './pages/PurchaseDetailPage.jsx';
@@ -78,13 +79,16 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/join-household" element={<JoinHouseholdPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/blog" element={<BlogListPage />} />
-        <Route path="/blog/:slug" element={<BlogPostPage />} />
-        <Route path="/associations" element={<AssociationsPage />} />
         <Route path="/legal" element={<LegacyLegalRedirect />} />
-        <Route path="/legal/:page" element={<LegalPage />} />
-        <Route path="/retractation" element={<WithdrawalPage />} />
-        <Route path="/suppression-compte" element={<DeleteAccountPage />} />
+        {/* Blog, associations, pages légales, rétractation, suppression de compte : le site vitrine (en-tête et bas de page communs) pour un visiteur, l'application et ses menus pour une personne connectée */}
+        <Route element={<PublicShell />}>
+          <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/associations" element={<AssociationsPage />} />
+          <Route path="/legal/:page" element={<LegalPage />} />
+          <Route path="/retractation" element={<WithdrawalPage />} />
+          <Route path="/suppression-compte" element={<DeleteAccountPage />} />
+        </Route>
         <Route element={<App />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
