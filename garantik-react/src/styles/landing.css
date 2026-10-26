@@ -683,3 +683,19 @@ a:not([href]) { cursor: pointer; }
   /* Garder "Se connecter" visible et compact */
   .lp-btn-login { display: flex !important; font-size: 13px; padding: 9px 14px; }
 }
+
+/* ============================================================
+   En-tête commun des pages publiques (accueil, blog, articles, associations)
+   ============================================================ */
+/* Avec cinq liens (Fonctionnalités, Comment ça marche, Tarifs, Blog, Associations), l'en-tête réclame environ 1 050 px de large :
+   en dessous, les liens passent dans le menu (bouton à trois traits). Avant, ce passage se faisait à 640 px seulement. */
+@media (max-width: 1100px) {
+  .lp-nav { display: none; }
+  .lp-burger { display: flex; }
+}
+/* Très petits écrans (320 à 380 px) : on retire l'icône du logo pour laisser la place aux boutons */
+@media (max-width: 380px) {
+  .lp-header .lp-logo .mark { display: none; }
+}
+/* Les liens vers /#section depuis les autres pages ne doivent pas cacher le titre de la section sous l'en-tête fixe */
+#comment-ca-marche, #fonctionnalites, #tarifs { scroll-margin-top: 84px; }
