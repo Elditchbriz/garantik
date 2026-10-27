@@ -696,3 +696,19 @@ a:not([href]) { cursor: pointer; }
 }
 /* Les liens vers /#section depuis les autres pages ne doivent pas cacher le titre de la section sous l'en-tête fixe */
 #comment-ca-marche, #fonctionnalites, #tarifs { scroll-margin-top: 84px; }
+
+/* ============================================================
+   Page d'accueil : bloc du haut
+   ============================================================ */
+/* La ligne de rassurance (« Sans engagement · Données hébergées en Europe · 2 minutes pour démarrer ») ne coupe plus jamais le texte
+   d'un élément en deux lignes : quand la place manque, c'est l'élément ENTIER qui passe à la ligne suivante. */
+.lp-hero-trust .item { white-space: nowrap; }
+@media (min-width: 901px) {
+  .lp-hero-trust { flex-wrap: wrap; row-gap: 8px; }
+}
+/* La rangée d'icônes (Garanties, Contrats, Abonnements, Documents) n'avait AUCUN écart avec ce qui la précède : 0 px avec la ligne de
+   rassurance sur ordinateur, 0 px avec le visuel sur tablette et téléphone. */
+.lp-hero-items { margin-top: 40px; }
+@media (max-width: 640px) {
+  .lp-hero-items { margin-top: 32px; }
+}
