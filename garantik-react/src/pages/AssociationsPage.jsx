@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import WebOnly from '../components/WebOnly.jsx';
 import { isNativeApp } from '../lib/platform.js';
-import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
@@ -18,15 +17,10 @@ function openExternalLink(url) {
 
 export default function AssociationsPage() {
   usePageMeta(PAGE_META.associations);
-  const navigate = useNavigate();
   const [charities, setCharities] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Cette page reste accessible sans connexion (liens depuis la landing
-  // page) — elle ne peut donc pas être imbriquée dans le layout de l'app
-  // (qui exige une session). On détecte simplement si un utilisateur est
-  // connecté pour adapter l'en-tête et le bas de page, sans dupliquer
-  // la page ni casser l'accès public.
-  const [isLoggedIn, setIsLoggedIn] = useState(null); // null = en cours de vérification
+  // Page publique, affichée par PublicShell : dans le site vitrine pour un visiteur (son en-tête propose déjà « Commencer avec Did »),
+  // dans l'application pour une personne connectée.
 
   useEffect(() => {
     supabase.from('charities').select('*').eq('active', true).order('name')
@@ -34,9 +28,6 @@ export default function AssociationsPage() {
         setCharities(data || []);
         setLoading(false);
       });
-    supabase.auth.getSession().then(({ data }) => {
-      setIsLoggedIn(!!data.session);
-    });
   }, []);
 
   return (
@@ -90,15 +81,6 @@ export default function AssociationsPage() {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* CTA d'inscription — uniquement pertinent pour un visiteur non connecté */}
-        {!isLoggedIn && (
-          <div style={{ textAlign: 'center', marginTop: 40 }}>
-            <button onClick={() => navigate('/auth?mode=signup')} className="btn btn-primary">
-              <Icon name="rocket" /> Essayer Hey Did gratuitement
-            </button>
           </div>
         )}
       </div>
