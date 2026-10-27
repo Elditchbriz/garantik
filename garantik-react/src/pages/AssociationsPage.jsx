@@ -6,7 +6,6 @@ import Icon from '../components/Icon.jsx';
 import CharityTile from '../components/CharityTile.jsx';
 import { supabase } from '../lib/supabaseClient.js';
 import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
-import PublicHeader from '../components/PublicHeader.jsx';
 import '../styles/landing.css';
 
 // Isolée volontairement : le jour où l'app sera packagée en natif
@@ -41,9 +40,7 @@ export default function AssociationsPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <PublicHeader active="associations" />
-
+    <div style={{ background: 'var(--bg)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 60px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <WebOnly><div className="eyebrow-sm" style={{ justifyContent: 'center', display: 'flex' }}>Hey Did+ a du sens</div></WebOnly>

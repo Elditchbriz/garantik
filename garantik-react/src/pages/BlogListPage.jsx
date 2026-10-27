@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sanityClient, BLOG_LIST_QUERY } from '../lib/sanityClient.js';
 import { usePageMeta, PAGE_META } from '../lib/seoMeta.js';
-import PublicHeader from '../components/PublicHeader.jsx';
 import { captureError } from '../lib/monitoring.js';
 import '../styles/landing.css';
 
@@ -44,9 +43,7 @@ export default function BlogListPage() {
   const [featured, ...rest] = filtered;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff' }}>
-      {/* Header */}
-      <PublicHeader active="blog" />
+    <>
 
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '56px 24px 80px' }}>
         {/* Titre */}
@@ -175,13 +172,6 @@ export default function BlogListPage() {
           </>
         )}
       </main>
-
-      {/* Footer simple */}
-      <footer style={{ borderTop: '1px solid var(--line)', padding: '28px 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 13, color: 'var(--ink-faint)' }}>
-          © 2026 Hey Did · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
-        </p>
-      </footer>
-    </div>
+    </>
   );
 }

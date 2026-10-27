@@ -823,23 +823,25 @@ export default function PurchaseDetailPage() {
                   <Icon name="edit" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Renommer
                 </div>
                 <div style={{ position: 'relative' }}>
-                  <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}
+                  {/* « Catégoriser » : même construction que les autres lignes (icône + libellé à l'identique, sans flèche) ; un clic ouvre le choix de la catégorie. */}
+                  <div className="sort-dropdown-item" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
                     onClick={(e) => { e.stopPropagation(); setCategoryMenuDocId(categoryMenuDocId === doc.id ? null : doc.id); }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégorie
-                    </span>
-                    <Icon name="chevron-down" style={{ fontSize: 12, color: 'var(--ink-faint)', transform: 'rotate(-90deg)' }} />
+                    <Icon name="category" style={{ fontSize: 14, color: 'var(--ink-soft)' }} /> Catégoriser
                   </div>
                   {categoryMenuDocId === doc.id && (
                     <div style={{ background: 'var(--bg)' }}>
-                      {Object.entries(catLabels).map(([key, label]) => (
-                        <div key={key}
-                          className="sort-dropdown-item"
-                          style={{ paddingLeft: 34, fontSize: 12.5, fontWeight: doc.document_category === key ? 700 : 500, color: doc.document_category === key ? 'var(--blue)' : 'var(--ink-soft)' }}
-                          onClick={() => { setOpenDocMenu(null); setCategoryMenuDocId(null); handleChangeCategory(doc.id, key); }}>
-                          {label}
-                        </div>
-                      ))}
+                      {Object.entries(catLabels).map(([key, label]) => {
+                        const isCurrent = doc.document_category === key;
+                        return (
+                          // Même disposition que les lignes du dessus (colonne d'icône, libellé calé comme les autres) ; la catégorie actuelle porte une coche
+                          <div key={key}
+                            className="sort-dropdown-item"
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? 'var(--blue)' : 'var(--ink-soft)' }}
+                            onClick={() => { setOpenDocMenu(null); setCategoryMenuDocId(null); handleChangeCategory(doc.id, key); }}>
+                            {isCurrent ? <Icon name="check" style={{ fontSize: 14 }} /> : <span style={{ width: 14, height: 14, flexShrink: 0 }} />}{label}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

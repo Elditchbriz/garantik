@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { sanityClient, BLOG_POST_QUERY } from '../lib/sanityClient.js';
 import { usePageMeta, articleMeta } from '../lib/seoMeta.js';
-import PublicHeader from '../components/PublicHeader.jsx';
 import { captureError } from '../lib/monitoring.js';
 import '../styles/landing.css';
 
@@ -124,9 +123,7 @@ export default function BlogPostPage() {
   const cat = post?.category ? categoryColors[post.category] : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff' }}>
-            {/* Header */}
-      <PublicHeader active="blog" />
+    <>
 
       <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px 80px' }}>
         <Link to="/blog" style={{
@@ -207,12 +204,6 @@ export default function BlogPostPage() {
           </article>
         )}
       </main>
-
-      <footer style={{ borderTop: '1px solid var(--line)', padding: '28px 24px', textAlign: 'center' }}>
-        <p style={{ fontSize: 13, color: 'var(--ink-faint)' }}>
-          © 2026 Hey Did · <Link to="/" style={{ color: 'var(--blue)' }}>Retour à l'accueil</Link>
-        </p>
-      </footer>
-    </div>
+    </>
   );
 }

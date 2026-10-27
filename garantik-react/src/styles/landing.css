@@ -687,15 +687,12 @@ a:not([href]) { cursor: pointer; }
 /* ============================================================
    En-tête commun des pages publiques (accueil, blog, articles, associations)
    ============================================================ */
-/* Avec cinq liens (Fonctionnalités, Comment ça marche, Tarifs, Blog, Associations), l'en-tête réclame environ 1 050 px de large :
-   en dessous, les liens passent dans le menu (bouton à trois traits). Avant, ce passage se faisait à 640 px seulement. */
-@media (max-width: 1100px) {
+/* Avec cinq liens (Fonctionnalités, Comment ça marche, Tarifs, Blog, Associations), l'en-tête réclame environ 1 010 px de large :
+   en dessous, les liens passent dans le menu (bouton à trois traits). Avant, ce passage se faisait à 640 px seulement.
+   Le seuil de 1 060 px laisse au moins 33 px entre le logo, les liens et les boutons. */
+@media (max-width: 1060px) {
   .lp-nav { display: none; }
   .lp-burger { display: flex; }
-}
-/* Très petits écrans (320 à 380 px) : on retire l'icône du logo pour laisser la place aux boutons */
-@media (max-width: 380px) {
-  .lp-header .lp-logo .mark { display: none; }
 }
 /* Les liens vers /#section depuis les autres pages ne doivent pas cacher le titre de la section sous l'en-tête fixe */
 #comment-ca-marche, #fonctionnalites, #tarifs { scroll-margin-top: 84px; }
