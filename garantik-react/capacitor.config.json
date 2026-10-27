@@ -4,6 +4,7 @@
   "webDir": "dist",
   "server": {
     "url": "https://www.hey-did.fr",
-    "cleartext": false
+    "cleartext": false,
+    "errorPath": "offline.html"
   }
 }
