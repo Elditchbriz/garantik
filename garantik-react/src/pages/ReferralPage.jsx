@@ -21,13 +21,30 @@ const statusLabels = {
 // site en dur, sans dépendre de la façon dont l'app est configurée (aujourd'hui elle charge le site en direct).
 const SITE_URL = 'https://www.hey-did.fr';
 
+// Copie un texte dans le presse-papiers et dit si la copie a RÉUSSI. L'API moderne n'est pas disponible ou autorisée partout
+// (anciens navigateurs, certaines fenêtres intégrées) : on se rabat alors sur l'ancienne méthode, avant de déclarer un échec.
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); return true; }
+  } catch { /* refus ou indisponibilité : on tente le repli */ }
+  try {
+    const area = document.createElement('textarea');
+    area.value = text; area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(area); area.select();
+    const done = document.execCommand('copy');
+    document.body.removeChild(area);
+    return !!done;
+  } catch { return false; }
+}
+
 export default function ReferralPage() {
   const { profile } = useOutletContext();
   const orgId = profile?.organization_id;
 
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(null);   // null | 'code-ok' | 'code-fail' | 'link-ok' | 'link-fail'
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -48,10 +65,12 @@ export default function ReferralPage() {
   const remainingSlots = Math.max(0, MAX_REFERRALS - info.referrals.length);
   const isMaxReached = info.referrals.length >= MAX_REFERRALS;
 
-  function handleCopyLink() {
-    navigator.clipboard.writeText(referralUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // « code » copie UNIQUEMENT le code (ex. CHL35B) ; « link » copie le lien d'invitation complet. (Avant, le bouton placé à côté du code
+  // copiait le lien : la personne qui voulait donner son code à l'oral ou le coller dans un message obtenait toute l'adresse.)
+  async function handleCopy(kind) {
+    const ok = await copyText(kind === 'code' ? info.referralCode : referralUrl);
+    setCopied(`${kind}-${ok ? 'ok' : 'fail'}`);
+    setTimeout(() => setCopied(null), 2000);
   }
 
   async function handleShare() {
@@ -64,7 +83,7 @@ export default function ReferralPage() {
         });
       } catch (e) { /* annulé par l'utilisateur, rien à faire */ }
     } else {
-      handleCopyLink();
+      handleCopy('link');
     }
   }
 
@@ -126,17 +145,24 @@ export default function ReferralPage() {
           <span style={{ flex: 1, fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: '0.1em', textAlign: 'left' }}>
             {info.referralCode}
           </span>
-          <button onClick={handleCopyLink} style={{
+          <button onClick={() => handleCopy('code')} aria-label="Copier le code de parrainage" style={{
             background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 'var(--radius-s)',
             color: '#fff', padding: '8px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
-            <Icon name={copied ? 'check' : 'paperclip'} style={{ fontSize: 14 }} /> {copied ? 'Copié' : 'Copier'}
+            <Icon name={copied === 'code-ok' ? 'check' : 'paperclip'} style={{ fontSize: 14 }} /> {copied === 'code-ok' ? 'Copié' : copied === 'code-fail' ? 'Échec' : 'Copier'}
           </button>
         </div>
 
         <button onClick={handleShare} className="btn btn-amber" style={{ width: '100%', justifyContent: 'center' }}>
           <Icon name="rocket" /> Partager mon lien d'invitation
+        </button>
+        <button onClick={() => handleCopy('link')} style={{
+          background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 'var(--radius-s)', color: '#fff', padding: '10px 16px',
+          fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', marginTop: 10,
+        }}>
+          <Icon name={copied === 'link-ok' ? 'check' : 'paperclip'} style={{ fontSize: 14 }} /> {copied === 'link-ok' ? 'Lien copié' : copied === 'link-fail' ? 'Échec de la copie' : "Copier le lien d'invitation"}
         </button>
 
         {/* Envoi direct par email — alternative au copier-coller manuel */}
