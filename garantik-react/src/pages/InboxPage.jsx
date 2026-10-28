@@ -7,7 +7,8 @@ import AddTypeSheet from '../components/AddTypeSheet.jsx';
 
 // Domaine de réception des emails — à mettre à jour quand le vrai domaine sera configuré
 // Avec Brevo domaine partagé : votre-code@[domaine-brevo-inbound]
-// Avec domaine propre : votre-code@in.hey-did.fr
+// Avec domaine propre : prenom12345678@in.hey-did.fr (adresse mémorisable : prénom du foyer + 8 chiffres aléatoires, créée par la fonction SQL
+// ensure_inbox_address à la première visite) ; l'ancien code (ex. y8cmwm6z@in.hey-did.fr) continue de fonctionner.
 // Sous-domaine DÉDIÉ à la réception — volontairement différent du domaine
 // principal (hey-did.fr, utilisé pour l'envoi), comme recommandé par Brevo
 // pour ne jamais mélanger les enregistrements DNS d'envoi et de réception.
@@ -38,7 +39,8 @@ export default function InboxPage() {
   const orgId = profile?.organization_id;
 
   const [items, setItems] = useState([]);
-  const [inboxCode, setInboxCode] = useState('');
+  const [inboxCode, setInboxCode] = useState('');   // ancien code, toujours valable
+  const [inboxAlias, setInboxAlias] = useState('');  // adresse mémorisable « prénom + 8 chiffres »
   const [loading, setLoading] = useState(true);
   const [viewer, setViewer] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -46,12 +48,18 @@ export default function InboxPage() {
   useEffect(() => {
     if (!orgId) return;
     (async () => {
-      const [{ data: inbox }, { data: org }] = await Promise.all([
+      // L'adresse mémorisable est créée par la base à la première demande. Si cet appel échoue (réseau, base pas encore à jour), on ne bloque rien :
+      // la page montre alors l'ancien code, comme avant.
+      const aliasRequest = Promise.resolve(supabase.rpc('ensure_inbox_address')).catch(() => ({ data: null, error: true }));
+      const [{ data: inbox }, { data: org }, aliasResult] = await Promise.all([
         getEmailInbox(orgId),
         supabase.from('organizations').select('inbox_code').eq('id', orgId).single(),
+        aliasRequest,
       ]);
       setItems(inbox || []);
       setInboxCode(org?.inbox_code || '');
+      const alias = aliasResult && !aliasResult.error ? aliasResult.data : null;
+      setInboxAlias(typeof alias === 'string' && /^[a-z]{1,12}[0-9]{8}$/.test(alias) ? alias : '');   // jamais d'adresse mal formée à l'écran
       setLoading(false);
     })();
   }, [orgId]);
@@ -76,8 +84,13 @@ export default function InboxPage() {
     setProcessingItem(item);
   }
 
+  // Adresse affichée et copiée : la mémorisable avec sa majuscule (« Didier12345678 », les adresses ne tiennent pas compte de la casse), sinon l'ancien code.
+  const mainLocalPart = inboxAlias ? inboxAlias.charAt(0).toUpperCase() + inboxAlias.slice(1) : inboxCode;
+  const mainAddress = mainLocalPart ? `${mainLocalPart}@${INBOX_DOMAIN}` : '';
+
   function copyAddress() {
-    navigator.clipboard.writeText(`${inboxCode}@${INBOX_DOMAIN}`);
+    if (!mainAddress) return;
+    navigator.clipboard.writeText(mainAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -100,13 +113,16 @@ export default function InboxPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <code style={{
-            flex: 1, padding: '10px 14px', background: 'var(--white)', borderRadius: 'var(--radius-s)',
+            // La case exige au moins la largeur de « prénom + chiffres » (unité « ch » = largeur d'un caractère de cette police) : s'il n'y a pas la place à côté
+            // du bouton, c'est le BOUTON qui passe en dessous, jamais l'adresse qui se coupe en plein milieu.
+            flex: `1 1 ${(mainLocalPart || '').length + 4}ch`, minWidth: 0, padding: '10px 14px', background: 'var(--white)', borderRadius: 'var(--radius-s)',
             border: '1px solid var(--line)', fontSize: 14, fontFamily: 'monospace', fontWeight: 600,
-            color: 'var(--navy)', wordBreak: 'break-all',
+            color: 'var(--navy)', overflowWrap: 'anywhere',
           }}>
-            {`${inboxCode}@${INBOX_DOMAIN}`}
+            {/* Coupure possible UNIQUEMENT avant le « @ » : le prénom + chiffres d'un côté, « @in.hey-did.fr » (insécable) de l'autre. Ne change rien au texte copié. */}
+            {mainAddress ? <>{mainLocalPart}<wbr /><span style={{ whiteSpace: 'nowrap' }}>@{INBOX_DOMAIN}</span></> : (loading ? 'Chargement…' : 'Adresse indisponible pour le moment')}
           </code>
-          <button className="btn btn-primary" style={{ flexShrink: 0 }} onClick={copyAddress}>
+          <button className="btn btn-primary" style={{ flexShrink: 0 }} onClick={copyAddress} disabled={!mainAddress}>
             <Icon name={copied ? 'check' : 'paperclip'} /> {copied ? 'Copié !' : 'Copier'}
           </button>
         </div>
@@ -114,6 +130,12 @@ export default function InboxPage() {
           Transférez n'importe quel email contenant un ticket de caisse ou un contrat à cette adresse.
           Les pièces jointes (PDF, images) apparaîtront automatiquement ici, prêtes à être traitées.
         </p>
+        {inboxAlias && inboxCode && (
+          <p style={{ fontSize: 12, color: 'var(--ink-faint)', margin: '8px 0 0', lineHeight: 1.5 }}>
+            Ton ancienne adresse <span style={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }}>{inboxCode}<wbr /><span style={{ whiteSpace: 'nowrap' }}>@{INBOX_DOMAIN}</span></span> continue de fonctionner :
+            si tu l'as déjà utilisée pour un transfert automatique, rien à changer.
+          </p>
+        )}
       </div>
 
       {loading ? (
@@ -123,7 +145,7 @@ export default function InboxPage() {
           <div className="icon-circle"><Icon name="mail" /></div>
           <div className="title">Aucun document en attente</div>
           <div className="sub">
-            Transférez un email avec une pièce jointe à {`${inboxCode}@${INBOX_DOMAIN}`}
+            Transférez un email avec une pièce jointe à {mainAddress ? <>{mainLocalPart}<wbr /><span style={{ whiteSpace: 'nowrap' }}>@{INBOX_DOMAIN}</span></> : 'ton adresse personnelle'}{' '}
             et il apparaîtra ici automatiquement.
           </div>
         </div>
