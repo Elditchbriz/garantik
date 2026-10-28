@@ -135,7 +135,7 @@ export default function ReferralPage() {
         <h2 style={{ color: '#fff', fontSize: 19, marginBottom: 6 }}>1 mois offert, pour vous deux</h2>
         <p style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.85)', marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
           Ton proche reçoit 1 mois de Hey Did+ gratuit dès son inscription. Tu reçois ton mois
-          dès qu'il passe à Hey Did+ à son tour.
+          quand il passe à Hey Did+ à son tour, une fois sa période de réflexion de 14 jours terminée.
         </p>
 
         <div style={{

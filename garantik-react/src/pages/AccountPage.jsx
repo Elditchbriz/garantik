@@ -164,7 +164,7 @@ export default function AccountPage() {
         />
         <MenuRow
           icon="heart-handshake" iconBg="var(--amber-pale)" iconColor="var(--amber-text)"
-          label="Parrainage" meta="1 mois offert par ami inscrit"
+          label="Parrainage" meta="1 mois offert par ami abonné"
           onClick={() => navigate('/invite')}
         />
         {isPremium && (
