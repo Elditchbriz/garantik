@@ -4,6 +4,7 @@ import { supabase, getEmailInbox, deleteInboxItem } from '../lib/supabaseClient.
 import Icon from '../components/Icon.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import AddTypeSheet from '../components/AddTypeSheet.jsx';
+import { captureError } from '../lib/monitoring.js';
 
 // Domaine de réception des emails — à mettre à jour quand le vrai domaine sera configuré
 // Avec Brevo domaine partagé : votre-code@[domaine-brevo-inbound]
@@ -13,6 +14,8 @@ import AddTypeSheet from '../components/AddTypeSheet.jsx';
 // principal (hey-did.fr, utilisé pour l'envoi), comme recommandé par Brevo
 // pour ne jamais mélanger les enregistrements DNS d'envoi et de réception.
 const INBOX_DOMAIN = 'in.hey-did.fr';
+// Plafond horaire depuis l'adresse e-mail d'un membre du foyer : doit rester égal à HOURLY_LIMIT_MEMBER de receive-inbound-email.ts (vérifié par un test).
+const INBOX_HOURLY_LIMIT_MEMBER = 200;
 
 function formatDate(d) {
   if (!d) return '';
@@ -44,22 +47,34 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [viewer, setViewer] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [refusedCount, setRefusedCount] = useState(0);   // documents refusés ces dernières 24 h (plafond horaire atteint)
 
   useEffect(() => {
     if (!orgId) return;
     (async () => {
       // L'adresse mémorisable est créée par la base à la première demande. Si cet appel échoue (réseau, base pas encore à jour), on ne bloque rien :
-      // la page montre alors l'ancien code, comme avant.
-      const aliasRequest = Promise.resolve(supabase.rpc('ensure_inbox_address')).catch(() => ({ data: null, error: true }));
-      const [{ data: inbox }, { data: org }, aliasResult] = await Promise.all([
+      // la page montre alors l'ancien code, comme avant. Mais l'échec est SIGNALÉ (Sentry) : sans cela il passait totalement inaperçu.
+      const aliasRequest = Promise.resolve(supabase.rpc('ensure_inbox_address')).catch((e) => ({ data: null, error: e || { message: 'erreur réseau' } }));
+      const refusedRequest = Promise.resolve(supabase.rpc('inbox_refused_last_24h')).catch(() => ({ data: null, error: true }));
+      const [{ data: inbox }, { data: org }, aliasResult, refusedResult] = await Promise.all([
         getEmailInbox(orgId),
         supabase.from('organizations').select('inbox_code').eq('id', orgId).single(),
         aliasRequest,
+        refusedRequest,
       ]);
       setItems(inbox || []);
       setInboxCode(org?.inbox_code || '');
       const alias = aliasResult && !aliasResult.error ? aliasResult.data : null;
-      setInboxAlias(typeof alias === 'string' && /^[a-z]{1,12}[0-9]{8}$/.test(alias) ? alias : '');   // jamais d'adresse mal formée à l'écran
+      const aliasOk = typeof alias === 'string' && /^[a-z]{1,12}[0-9]{8}$/.test(alias);
+      setInboxAlias(aliasOk ? alias : '');   // jamais d'adresse mal formée à l'écran
+      if (!aliasOk) {
+        const cause = aliasResult?.error
+          ? (typeof aliasResult.error === 'object' && (aliasResult.error.message || aliasResult.error.code)) || 'erreur'
+          : (alias === null || alias === undefined ? 'réponse vide' : 'valeur mal formée');
+        captureError(new Error(`Adresse d'envoi mémorisable indisponible : ${cause}`), { where: 'inbox:adresse-memorisable', extra: { type: aliasResult?.error ? 'erreur' : (alias == null ? 'vide' : 'mal formée') } });
+      }
+      const refused = refusedResult && !refusedResult.error ? Math.floor(Number(refusedResult.data)) : 0;
+      setRefusedCount(Number.isFinite(refused) && refused > 0 ? refused : 0);
       setLoading(false);
     })();
   }, [orgId]);
@@ -137,6 +152,16 @@ export default function InboxPage() {
           </p>
         )}
       </div>
+
+      {refusedCount > 0 && (
+        <div role="status" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '0 0 16px', padding: '12px 14px', background: '#FFF6E0', border: '1px solid #F3D9A0', borderRadius: 'var(--radius-s)', color: '#6B4400', fontSize: 13, lineHeight: 1.5 }}>
+          <span aria-hidden="true">⚠️</span>
+          <div>
+            <strong>{refusedCount === 1 ? "1 document envoyé à ton adresse n'a pas été enregistré" : `${refusedCount} documents envoyés à ton adresse n'ont pas été enregistrés`}</strong> ces dernières 24 h : la limite d'envoi par heure a été atteinte.
+            {' '}Si c'était toi, renvoie-les d'ici une heure. Depuis l'adresse e-mail de ton compte, la limite est plus haute ({INBOX_HOURLY_LIMIT_MEMBER} par heure).
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 32 }}>Chargement…</p>
