@@ -4,7 +4,7 @@
   ],
   "headers": [
     {
-      "source": "/(auth|join-household|reset-password|retractation|suppression-compte)",
+      "source": "/(auth|join-household|reset-password|retractation|suppression-compte|desabonnement)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     },
     {
