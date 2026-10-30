@@ -21,6 +21,7 @@ import LegalPage from './pages/LegalPage.jsx';
 import PublicShell from './components/PublicShell.jsx';
 import WithdrawalPage from './pages/WithdrawalPage.jsx';
 import DeleteAccountPage from './pages/DeleteAccountPage.jsx';
+import UnsubscribePage from './pages/UnsubscribePage.jsx';
 import PurchaseDetailPage from './pages/PurchaseDetailPage.jsx';
 import AddContractPage from './pages/AddContractPage.jsx';
 import ContractDetailPage from './pages/ContractDetailPage.jsx';
@@ -80,7 +81,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/join-household" element={<JoinHouseholdPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/legal" element={<LegacyLegalRedirect />} />
-        {/* Blog, associations, pages légales, rétractation, suppression de compte : le site vitrine (en-tête et bas de page communs) pour un visiteur, l'application et ses menus pour une personne connectée */}
+        {/* Blog, associations, pages légales, rétractation, suppression de compte, désabonnement des e-mails produit : le site vitrine (en-tête et bas de page communs) pour un visiteur, l'application et ses menus pour une personne connectée */}
         <Route element={<PublicShell />}>
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
@@ -88,6 +89,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/legal/:page" element={<LegalPage />} />
           <Route path="/retractation" element={<WithdrawalPage />} />
           <Route path="/suppression-compte" element={<DeleteAccountPage />} />
+          <Route path="/desabonnement" element={<UnsubscribePage />} />
         </Route>
         <Route element={<App />}>
           <Route path="/dashboard" element={<DashboardPage />} />
