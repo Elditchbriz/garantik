@@ -44,6 +44,11 @@ const M = {
   forbidden: ["Cette action n'est pas autorisée avec ce compte.", "Cette action n'est pas autorisée avec ton compte."],
   invalid_data: ['Certaines informations saisies ne sont pas valides.', 'Certaines informations saisies ne sont pas valides.'],
   generic: ['Une erreur est survenue. Veuillez réessayer dans un instant.', 'Une erreur est survenue. Réessaie dans un instant.'],
+  // Inscription uniquement (context: 'signup') : l'échec vient de NOS serveurs, pas de ce que la personne a saisi. Elle doit le savoir, et savoir qui contacter.
+  signup_failed: [
+    "Nous n'avons pas pu créer votre compte à cause d'un problème de notre côté, et non de vos informations. Réessayez dans quelques minutes. Si cela continue, écrivez-nous à contact@hey-did.fr.",
+    "Nous n'avons pas pu créer ton compte à cause d'un problème de notre côté, et non de tes informations. Réessaie dans quelques minutes. Si cela continue, écris-nous à contact@hey-did.fr.",
+  ],
 };
 
 // Codes d'erreur renvoyés par Supabase Auth (error.code)
@@ -94,6 +99,15 @@ const BY_TEXT = [
   [/violates (check|not-null|foreign key|unique) constraint|invalid input syntax/i, 'invalid_data'],
 ];
 
+// « you can only request this after 45 seconds » → « patientez 45 secondes avant de réessayer » ; null si le message ne donne pas de délai.
+function rateLimitWithDelay(message, formal) {
+  const seconds = String(message || '').match(/after (\d+) seconds?/i);
+  if (!seconds) return null;
+  return formal
+    ? `Pour des raisons de sécurité, patientez ${seconds[1]} secondes avant de réessayer.`
+    : `Pour des raisons de sécurité, patiente ${seconds[1]} secondes avant de réessayer.`;
+}
+
 // Un message est considéré comme français s'il contient une lettre accentuée ;
 // sinon on cherche des mots anglais très courants dans les messages techniques.
 function looksEnglish(msg) {
@@ -101,26 +115,40 @@ function looksEnglish(msg) {
   return /\b(the|should|must|cannot|can't|failed|invalid|unable|expired|required|please|already|error|exception|unexpected|something|went|wrong|not found|denied|forbidden|unauthorized)\b/i.test(msg);
 }
 
-export function friendlyError(err, { formal = false } = {}) {
+// Échec du côté de nos serveurs (et non d'une information mal saisie) : code « unexpected_failure » de Supabase Auth, statut 5xx, ou le texte renvoyé
+// quand notre fonction d'inscription échoue (« Database error saving new user ») ou que l'envoi de l'e-mail de confirmation échoue.
+function isServerFailure(err, message) {
+  const status = typeof err === 'object' && err ? Number(err.status) : NaN;
+  const code = typeof err === 'object' && err ? err.code : undefined;
+  return code === 'unexpected_failure' || (status >= 500 && status < 600) || /database error saving new user|error sending confirmation email|internal server error/i.test(message);
+}
+
+// context: 'signup' demande, pour un échec de nos serveurs, le message dédié à l'inscription (et le signale avec le repère « signup:echec-serveur »).
+export function friendlyError(err, { formal = false, context } = {}) {
   const pick = (key) => M[key][formal ? 0 : 1];
   if (!err) return pick('generic');
 
   const message = typeof err === 'string' ? err : (err.message || '');
   const code = typeof err === 'object' ? err.code : undefined;
 
-  if (code && BY_CODE[code]) return pick(BY_CODE[code]);
+  if (code && BY_CODE[code]) {
+    // Limite d'envoi : Supabase donne le délai exact (« …only request this after 45 seconds ») même quand il fournit un code. On le garde plutôt que
+    // de répondre « quelques minutes » (avant, le délai n'était conservé que pour les erreurs SANS code).
+    if (BY_CODE[code] === 'rate_limit') { const delayed = rateLimitWithDelay(message, formal); if (delayed) return delayed; }
+    return pick(BY_CODE[code]);
+  }
 
   for (const [pattern, key] of BY_TEXT) {
     if (pattern.test(message)) {
       // « you can only request this after 45 seconds » : on garde le délai utile
-      if (key === 'rate_limit') {
-        const seconds = message.match(/after (\d+) seconds?/i);
-        if (seconds) return formal
-          ? `Pour des raisons de sécurité, patientez ${seconds[1]} secondes avant de réessayer.`
-          : `Pour des raisons de sécurité, patiente ${seconds[1]} secondes avant de réessayer.`;
-      }
+      if (key === 'rate_limit') { const delayed = rateLimitWithDelay(message, formal); if (delayed) return delayed; }
       return pick(key);
     }
+  }
+
+  if (context === 'signup' && isServerFailure(err, message)) {
+    captureError(err, { where: 'signup:echec-serveur' });
+    return pick('signup_failed');
   }
 
   // Message vide ou en anglais qu'on ne sait pas traduire = erreur inattendue : le client voit un

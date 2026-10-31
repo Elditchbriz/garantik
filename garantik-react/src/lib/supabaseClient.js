@@ -41,6 +41,16 @@ export async function signUpWithEmail(email, password, firstName, lastName, refe
   });
 }
 
+// Renvoie l'e-mail de confirmation d'une inscription restée en attente. C'est l'API prévue pour cela : l'ancien bouton rappelait signUp avec un mot de passe
+// vide, ce qui n'est pas un envoi valide, et n'affichait jamais le résultat.
+export async function resendSignupConfirmation(email) {
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/auth?confirmed=true` },
+  });
+}
+
 export async function signInWithEmail(email, password) {
   return supabase.auth.signInWithPassword({ email, password });
 }
