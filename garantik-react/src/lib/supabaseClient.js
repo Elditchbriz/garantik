@@ -115,31 +115,25 @@ export async function signInWithGoogle(referralCode = null) {
   });
 }
 
-// À appeler une fois après la connexion (ex: dans App.jsx au montage) pour
-// appliquer un code de parrainage en attente suite à une inscription Google.
-export async function applyPendingReferralIfAny(organizationId) {
-  const pending = sessionStorage.getItem('garantik_pending_referral');
+// À appeler une fois après la connexion (App.jsx, au chargement) pour appliquer un code de parrainage mis de côté avant une inscription Google.
+// C'est LE SERVEUR qui décide (fonction claim_referral_code, migration 70) : nouveau compte Google seulement, mêmes règles que l'inscription par
+// e-mail (3 filleuls au maximum par parrain, 1 mois pour le filleul). Avant, le navigateur tentait de tout faire lui-même (lire l'organisation du
+// parrain, écrire dans « referrals », prolonger le premium) sans en avoir le droit : la recherche du parrain ne renvoyait rien et tout s'arrêtait
+// en silence.
+// Le code n'est effacé qu'une fois la réponse du serveur reçue. En cas de panne il est gardé pour le prochain chargement (le serveur refuse de toute
+// façon un compte de plus de 24 h). Cette fonction ne lève JAMAIS d'erreur : App.jsx l'attend avant d'afficher l'application.
+export async function applyPendingReferralIfAny() {
+  let pending = null;
+  try { pending = sessionStorage.getItem('garantik_pending_referral'); } catch { return; }
   if (!pending) return;
-  sessionStorage.removeItem('garantik_pending_referral');
-
-  // On ne fait rien si l'organisation a déjà un parrainage enregistré
-  // (évite d'appliquer deux fois si l'utilisateur recharge la page)
-  const { data: existing } = await supabase.from('referrals').select('id').eq('referred_org_id', organizationId).limit(1);
-  if (existing && existing.length > 0) return;
-
-  const { data: referrerOrg } = await supabase.from('organizations').select('id').eq('referral_code', pending).single();
-  if (!referrerOrg || referrerOrg.id === organizationId) return;
-
-  await supabase.from('organizations').update({
-    premium_until: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-  }).eq('id', organizationId);
-
-  await supabase.from('referrals').insert({
-    referrer_org_id: referrerOrg.id,
-    referred_org_id: organizationId,
-    referral_code: pending,
-    status: 'signed_up',
-  });
+  try {
+    const { error } = await supabase.rpc('claim_referral_code', { p_code: pending });
+    if (error) { captureError(error, { where: 'referral:claim', level: 'warning' }); return; }
+  } catch (err) {
+    captureError(err, { where: 'referral:claim', level: 'warning' });
+    return;
+  }
+  try { sessionStorage.removeItem('garantik_pending_referral'); } catch { /* sans importance */ }
 }
 
 export async function signOut() {
