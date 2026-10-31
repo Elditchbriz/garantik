@@ -73,20 +73,6 @@ export default function ReferralPage() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  async function handleShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Hey Did',
-          text: 'Gère tes garanties et factures sans effort avec Hey Did. Voici 1 mois de Hey Did+ offert :',
-          url: referralUrl,
-        });
-      } catch (e) { /* annulé par l'utilisateur, rien à faire */ }
-    } else {
-      handleCopy('link');
-    }
-  }
-
   async function handleSendInviteEmail() {
     if (!inviteEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)) {
       setInviteError('Adresse email invalide');
@@ -154,13 +140,10 @@ export default function ReferralPage() {
           </button>
         </div>
 
-        <button onClick={handleShare} className="btn btn-amber" style={{ width: '100%', justifyContent: 'center' }}>
-          <Icon name="rocket" /> Partager mon lien d'invitation
-        </button>
         <button onClick={() => handleCopy('link')} style={{
           background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 'var(--radius-s)', color: '#fff', padding: '10px 16px',
           fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', marginTop: 10,
+          width: '100%',
         }}>
           <Icon name={copied === 'link-ok' ? 'check' : 'paperclip'} style={{ fontSize: 14 }} /> {copied === 'link-ok' ? 'Lien copié' : copied === 'link-fail' ? 'Échec de la copie' : "Copier le lien d'invitation"}
         </button>
