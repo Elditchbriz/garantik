@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset } from '../lib/supabaseClient.js';
+import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset, resendSignupConfirmation } from '../lib/supabaseClient.js';
 import Icon from '../components/Icon.jsx';
 import { friendlyError } from '../lib/friendlyError.js';
 import PasswordEyeIcon from '../components/PasswordEyeIcon.jsx';
@@ -36,6 +36,10 @@ export default function AuthPage() {
   const [rgpdError, setRgpdError] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  // Renvoi de l'e-mail de confirmation (écran « Vérifiez vos emails ») : état, message à afficher, et délai avant de pouvoir recommencer
+  const [resendStatus, setResendStatus] = useState(null);   // null | 'sending' | 'sent' | 'error'
+  const [resendError, setResendError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Vérifie le code contre la base dès qu'il change — que ce soit celui
   // arrivé par l'URL (?ref=...) au chargement, ou celui tapé à la main
@@ -57,6 +61,35 @@ export default function AuthPage() {
       .finally(() => { if (!cancelled) setCheckingReferralCode(false); });
     return () => { cancelled = true; };
   }, [referralCode]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const id = setTimeout(() => setResendCooldown((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
+
+  // Quitte l'écran « Vérifiez vos emails » pour la connexion ou le mot de passe oublié. Cet écran s'affiche avant tout le reste : sans remettre
+  // « confirmationSent » à faux, changer de mode ne changeait RIEN à l'écran (le bouton « Se connecter » semblait mort et la personne restait bloquée).
+  function leaveConfirmation(nextMode) {
+    setConfirmationSent(false);
+    setResendStatus(null); setResendError(''); setResendCooldown(0);
+    setErrorMsg(''); setInfoMsg(''); setResetSent(false);
+    setMode(nextMode);
+  }
+
+  async function handleResend() {
+    if (resendStatus === 'sending' || resendCooldown > 0) return;
+    setResendStatus('sending'); setResendError('');
+    const { error } = await resendSignupConfirmation(confirmedEmail);
+    if (error) {
+      setResendStatus('error'); setResendError(friendlyError(error, { formal: true }));
+      // Le bouton se réactive quand le délai annoncé est écoulé (« …only request this after 45 seconds »), et non avant : sinon un nouveau clic redonnerait la même erreur.
+      const asked = Number(String(error.message || '').match(/after (\d+) seconds?/i)?.[1]);
+      setResendCooldown(Number.isFinite(asked) && asked > 0 ? Math.min(asked, 120) : 15);
+      return;
+    }
+    setResendStatus('sent'); setResendCooldown(60);   // 60 s : la limite d'envoi de Supabase est d'un e-mail par minute
+  }
 
   async function handleForgotPassword(e) {
     e.preventDefault();
@@ -89,7 +122,7 @@ export default function AuthPage() {
       setLoading(false);
 
       if (error) {
-        setErrorMsg(friendlyError(error, { formal: true }));
+        setErrorMsg(friendlyError(error, { formal: true, context: 'signup' }));
         return;
       }
       if (data.session) {
@@ -155,15 +188,26 @@ export default function AuthPage() {
               Email non reçu ? Vérifiez vos spams ou
             </p>
             <button
-              onClick={async () => {
-                await signUpWithEmail(confirmedEmail, '', '', '', referralCode);
-              }}
-              style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              type="button"
+              onClick={handleResend}
+              disabled={resendStatus === 'sending' || resendCooldown > 0}
+              style={{ background: 'none', border: 'none', color: resendStatus === 'sending' || resendCooldown > 0 ? 'var(--ink-faint)' : 'var(--blue)', fontSize: 13.5, fontWeight: 600, cursor: resendStatus === 'sending' || resendCooldown > 0 ? 'default' : 'pointer', fontFamily: 'inherit' }}
             >
-              Renvoyer l'email de confirmation
+              {resendStatus === 'sending' ? 'Envoi en cours…' : resendCooldown > 0 ? `Renvoyer l'email de confirmation (${resendCooldown}\u00a0s)` : "Renvoyer l'email de confirmation"}
             </button>
-            <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
-              <button onClick={() => setMode('login')} style={{ background: 'none', border: 'none', color: 'var(--ink-soft)', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <div role="status" aria-live="polite" style={{ minHeight: 20, marginTop: 8 }}>
+              {resendStatus === 'sent' && <p style={{ color: 'var(--green-text)', fontSize: 13, margin: 0 }}>Email renvoyé à {confirmedEmail}.</p>}
+              {resendStatus === 'error' && <p style={{ color: 'var(--red-text)', fontSize: 13, margin: 0 }}>{resendError}</p>}
+            </div>
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
+              {/* Formulation volontairement NEUTRE : elle ne dit pas si l'adresse a déjà un compte (Supabase le cache exprès) et s'affiche donc de la même façon dans tous les cas. */}
+              <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 12 }}>
+                Vous avez déjà un compte avec cette adresse&nbsp;?{' '}
+                <button type="button" onClick={() => leaveConfirmation('login')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--blue)', fontSize: 'inherit', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Connectez-vous</button>
+                {' '}ou{' '}
+                <button type="button" onClick={() => leaveConfirmation('forgot')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--blue)', fontSize: 'inherit', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>réinitialisez votre mot de passe</button>.
+              </p>
+              <button onClick={() => leaveConfirmation('login')} style={{ background: 'none', border: 'none', color: 'var(--ink-soft)', fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>
                 J'ai déjà confirmé mon email → Se connecter
               </button>
             </div>
