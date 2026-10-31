@@ -14,6 +14,8 @@ import { captureError } from '../lib/monitoring.js';
 // principal (hey-did.fr, utilisé pour l'envoi), comme recommandé par Brevo
 // pour ne jamais mélanger les enregistrements DNS d'envoi et de réception.
 const INBOX_DOMAIN = 'in.hey-did.fr';
+// Date de mise en ligne de l'adresse mémorisable (30 octobre 2026) : les foyers créés avant ont pu utiliser l'ancien code.
+const ALIAS_LAUNCH = new Date('2026-10-30T00:00:00Z');
 // Plafond horaire depuis l'adresse e-mail d'un membre du foyer : doit rester égal à HOURLY_LIMIT_MEMBER de receive-inbound-email.ts (vérifié par un test).
 const INBOX_HOURLY_LIMIT_MEMBER = 200;
 
@@ -43,6 +45,7 @@ export default function InboxPage() {
 
   const [items, setItems] = useState([]);
   const [inboxCode, setInboxCode] = useState('');   // ancien code, toujours valable
+  const [hadLegacyAddress, setHadLegacyAddress] = useState(true);   // foyer créé AVANT l'adresse mémorisable : seul concerné par la note « ancienne adresse »
   const [inboxAlias, setInboxAlias] = useState('');  // adresse mémorisable « prénom + 8 chiffres »
   const [loading, setLoading] = useState(true);
   const [viewer, setViewer] = useState(null);
@@ -58,12 +61,16 @@ export default function InboxPage() {
       const refusedRequest = Promise.resolve(supabase.rpc('inbox_refused_last_24h')).catch(() => ({ data: null, error: true }));
       const [{ data: inbox }, { data: org }, aliasResult, refusedResult] = await Promise.all([
         getEmailInbox(orgId),
-        supabase.from('organizations').select('inbox_code').eq('id', orgId).single(),
+        supabase.from('organizations').select('inbox_code, created_at').eq('id', orgId).single(),
         aliasRequest,
         refusedRequest,
       ]);
       setItems(inbox || []);
       setInboxCode(org?.inbox_code || '');
+      // L'ancienne adresse n'a été communiquée qu'aux foyers existants au lancement de l'adresse mémorisable. Un foyer créé ensuite n'en a jamais eu : la note
+      // « Ton ancienne adresse… » le troublerait. Sans date lisible, on garde le comportement d'avant (note affichée).
+      const created = org?.created_at ? new Date(org.created_at) : null;
+      setHadLegacyAddress(!created || Number.isNaN(created.getTime()) || created < ALIAS_LAUNCH);
       const alias = aliasResult && !aliasResult.error ? aliasResult.data : null;
       const aliasOk = typeof alias === 'string' && /^[a-z]{1,12}[0-9]{8}$/.test(alias);
       setInboxAlias(aliasOk ? alias : '');   // jamais d'adresse mal formée à l'écran
@@ -145,7 +152,7 @@ export default function InboxPage() {
           Transférez n'importe quel email contenant un ticket de caisse ou un contrat à cette adresse.
           Les pièces jointes (PDF, images) apparaîtront automatiquement ici, prêtes à être traitées.
         </p>
-        {inboxAlias && inboxCode && (
+        {inboxAlias && inboxCode && hadLegacyAddress && (
           <p style={{ fontSize: 12, color: 'var(--ink-faint)', margin: '8px 0 0', lineHeight: 1.5 }}>
             Ton ancienne adresse <span style={{ fontFamily: 'monospace', overflowWrap: 'anywhere' }}>{inboxCode}<wbr /><span style={{ whiteSpace: 'nowrap' }}>@{INBOX_DOMAIN}</span></span> continue de fonctionner :
             si tu l'as déjà utilisée pour un transfert automatique, rien à changer.
