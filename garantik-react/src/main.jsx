@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
+import RouteTitle from './components/RouteTitle.jsx';
+import { usePageMeta } from './lib/seoMeta.js';
 import { initMonitoring } from './lib/monitoring.js';
 import HomeRoute from './pages/HomeRoute.jsx';
 import AuthPage from './pages/AuthPage.jsx';
@@ -55,6 +57,7 @@ function LegacyLegalRedirect() {
 
 // Toute adresse inconnue : un message clair plutôt qu'une page blanche.
 function NotFoundPage() {
+  usePageMeta({ title: 'Page introuvable | Hey Did', noindex: true });   // titre d'onglet ; « noindex » : une adresse inexistante ne doit pas être indexée
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 40, marginBottom: 8 }}>🧭</div>
@@ -75,6 +78,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <AppErrorBoundary>
     <IconSprite />
     <BrowserRouter>
+      <RouteTitle />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/auth" element={<AuthPage />} />
