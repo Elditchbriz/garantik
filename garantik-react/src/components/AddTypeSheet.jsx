@@ -16,7 +16,11 @@ export default function AddTypeSheet({ onClose, extraParams = '' }) {
     // extraParams permet, par exemple, de transmettre l'id d'un document
     // déjà reçu par email (inbox_id) — la page de destination saute alors
     // l'étape de scan et lance l'analyse directement sur ce fichier.
-    navigate(path + (extraParams ? (path.includes('?') ? extraParams : `?${extraParams.replace(/^&/, '')}`) : ''));
+    // Le séparateur dépend de l'adresse : « ? » si elle n'a pas encore de paramètre, « & » si elle en a déjà un (« /add-contract?type=Abonnement »).
+    // Avant, les deux textes étaient simplement collés dans ce second cas (« …?type=Abonnementinbox_id=… ») : la page ne recevait ni le bon type ni
+    // le document, et redemandait un fichier.
+    const extra = String(extraParams || '').replace(/^[?&]+/, '');   // tolère null, undefined, « inbox_id=… », « &inbox_id=… » et « ?inbox_id=… »
+    navigate(extra ? path + (path.includes('?') ? '&' : '?') + extra : path);
   }
 
   return (
