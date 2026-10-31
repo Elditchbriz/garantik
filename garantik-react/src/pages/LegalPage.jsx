@@ -93,6 +93,15 @@ Pour exercer ce droit, l'utilisateur peut utiliser la fonction « Se rétracter 
 
 Lors de la souscription, l'utilisateur est invité à cocher, sur la page de paiement, une case par laquelle il accepte les présentes conditions et demande expressément que son abonnement Hey Did+ commence immédiatement, avant l'expiration du délai de rétractation. Conformément à l'article L.221-25 du Code de la consommation, s'il exerce ensuite son droit de rétractation, il verse à Hey Did un montant proportionnel à ce qui lui a été fourni jusqu'à la communication de sa décision de se rétracter, calculé sur la base du prix de l'abonnement souscrit. Lorsque cette demande expresse n'a pas été formulée, aucun montant n'est dû pour la période écoulée.`
       },
+      {
+        heading: "12. Médiation de la consommation",
+        content: `En cas de litige entre l'utilisateur et Hey Did, ceux-ci s'efforceront de le résoudre à l'amiable (l'utilisateur adressera une réclamation écrite à Hey Did, à l'adresse contact@hey-did.fr).
+
+À défaut d'accord amiable ou en l'absence de réponse de Hey Did dans un délai raisonnable d'un (1) mois, l'utilisateur consommateur, au sens de l'article L.612-2 du Code de la consommation, a la possibilité de saisir gratuitement, si un désaccord subsiste, le médiateur compétent inscrit sur la liste des médiateurs établie par la Commission d'évaluation et de contrôle de la médiation de la consommation en application de l'article L.615-1 du Code de la consommation, à savoir :
+La Société Médiation Professionnelle
+www.mediateur-consommation-smp.fr
+Alteritae 5 rue Salvaing 12000 Rodez`
+      },
     ]
   },
   confidentialite: {
@@ -177,7 +186,10 @@ Les données des utilisateurs sont stockées exclusivement sur des serveurs situ
       },
       {
         heading: "Médiation",
-        content: `En cas de litige avec Hey Did, vous pouvez recourir gratuitement à la médiation de la consommation conformément à la directive 2013/11/UE. Le médiateur compétent est : [Médiateur à désigner]. La plateforme européenne de règlement en ligne des litiges est également accessible à : ec.europa.eu/consumers/odr`
+        content: `En cas de litige avec Hey Did, vous pouvez recourir gratuitement à la médiation de la consommation conformément à la directive 2013/11/UE, après avoir adressé une réclamation écrite à Hey Did (contact@hey-did.fr) et à défaut d'accord amiable ou de réponse dans un délai d'un (1) mois. Le médiateur de la consommation compétent, inscrit sur la liste établie par la Commission d'évaluation et de contrôle de la médiation de la consommation, est :
+La Société Médiation Professionnelle
+www.mediateur-consommation-smp.fr
+Alteritae 5 rue Salvaing 12000 Rodez`
       },
     ]
   }
