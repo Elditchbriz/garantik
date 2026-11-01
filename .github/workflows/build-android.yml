@@ -120,6 +120,24 @@ jobs:
       - name: Vérifier le manifeste corrigé
         run: cat android/app/src/main/AndroidManifest.xml
 
+      - name: Numéroter la version de l'app
+        # Le modèle Capacitor écrit "versionCode 1" à CHAQUE génération du projet : le Play Store refuse
+        # tout envoi dont le versionCode a déjà été utilisé (« Version code 1 has already been used »).
+        # On prend donc le numéro d'exécution du workflow, qui augmente à chaque lancement.
+        # versionName (ce que voit l'utilisateur) devient 1.0.<numéro>.
+        run: |
+          python3 << 'PYEOF'
+          import os, re
+          run = int(os.environ["GITHUB_RUN_NUMBER"])
+          path = "android/app/build.gradle"
+          s = open(path).read()
+          s2, n1 = re.subn(r"versionCode \d+", f"versionCode {run}", s, count=1)
+          s2, n2 = re.subn(r'versionName "[^"]*"', f'versionName "1.0.{run}"', s2, count=1)
+          assert n1 == 1 and n2 == 1, "versionCode / versionName introuvables dans build.gradle : le modèle Capacitor a changé"
+          open(path, "w").write(s2)
+          print(f"Version de l'app : versionCode {run}, versionName 1.0.{run}")
+          PYEOF
+
       - name: Préparer la clé de signature de release
         working-directory: garantik-react/android/app
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > heydid-release.keystore
