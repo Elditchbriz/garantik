@@ -117,6 +117,25 @@ jobs:
           print("Schéma d'URL et permission biométrique ajoutés avec succès")
           PYEOF
 
+      - name: Retirer l'autorisation d'identifiant publicitaire (AD_ID)
+        run: |
+          python3 << 'PYEOF'
+          import xml.dom.minidom
+          path = "android/app/src/main/AndroidManifest.xml"
+          content = open(path, encoding="utf-8").read()
+          # Une bibliothèque Google embarquée ajoute cette autorisation, alors que l'application n'affiche aucune publicité et déclare « Non » à Google Play.
+          # tools:node="remove" la retire du manifeste final (méthode documentée par Google).
+          remove = '<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />'
+          if 'xmlns:tools=' not in content:
+              content = content.replace('<manifest ', '<manifest xmlns:tools="http://schemas.android.com/tools" ', 1)
+          if remove not in content:
+              content = content.replace('</manifest>', '    ' + remove + '\n</manifest>', 1)
+          assert 'xmlns:tools=' in content and remove in content, "AD_ID : modification du manifeste non appliquée"
+          xml.dom.minidom.parseString(content)   # le manifeste doit rester un XML valide
+          open(path, "w", encoding="utf-8").write(content)
+          print("Autorisation AD_ID retirée du manifeste")
+          PYEOF
+
       - name: Vérifier le manifeste corrigé
         run: cat android/app/src/main/AndroidManifest.xml
 
@@ -180,6 +199,16 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease bundleRelease -Dorg.gradle.java.home="${{ steps.setup-java.outputs.path }}"
+
+      - name: Vérifier que l'AAB ne contient pas l'autorisation AD_ID
+        working-directory: garantik-react/android
+        run: |
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          test -f "$AAB" || { echo "AAB introuvable : $AAB"; exit 1; }
+          if unzip -p "$AAB" base/manifest/AndroidManifest.xml | grep -a -q "com.google.android.gms.permission.AD_ID"; then
+            echo "ERREUR : l'AAB déclare encore l'autorisation AD_ID (Google Play refusera la déclaration « Non »)"; exit 1
+          fi
+          echo "OK : aucune autorisation AD_ID dans l'AAB"
 
       - name: Récupérer l'APK signé (pour tester sur un téléphone)
         uses: actions/upload-artifact@v4
