@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { signUpWithEmail, signInWithEmail, signInWithGoogle, requestPasswordReset, resendSignupConfirmation } from '../lib/supabaseClient.js';
+import { isNativeApp } from '../lib/platform.js';
 import Icon from '../components/Icon.jsx';
 import { friendlyError } from '../lib/friendlyError.js';
 import PasswordEyeIcon from '../components/PasswordEyeIcon.jsx';
 import '../styles/landing.css';
+
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=fr.heydid.app';   // la fiche s'ouvre dans le Play Store : « Ouvrir » si l'application est installée, « Installer » sinon
+const AUTO_LOGIN_MIN_GAP_MS = 5000;
+const AUTO_LOGIN_MAX_TRIES = 30;
+const CONFIRM_PENDING_HINT = "Nous n'avons pas encore pu vous connecter. Si vous venez de cliquer sur le lien de confirmation, réessayez dans un instant ; sinon, ouvrez d'abord le lien reçu par e-mail.";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -40,6 +46,16 @@ export default function AuthPage() {
   const [resendStatus, setResendStatus] = useState(null);   // null | 'sending' | 'sent' | 'error'
   const [resendError, setResendError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Connexion automatique au retour dans l'application : le lien de confirmation s'ouvre dans le NAVIGATEUR, pas dans l'application. Le temps de l'écran
+  // « Vérifiez vos emails », l'adresse et le mot de passe saisis sont gardés EN MÉMOIRE SEULEMENT (jamais écrits dans un stockage, jamais envoyés ailleurs) ;
+  // quand la personne revient dans l'application, on tente la connexion à sa place. Tout est oublié dès qu'elle quitte l'écran.
+  const pendingCreds = useRef(null);   // { email, password } | null
+  const autoLoginBusy = useRef(false);
+  const autoLoginLast = useRef(0);
+  const autoLoginTries = useRef(0);
+  const [checkingConfirm, setCheckingConfirm] = useState(false);
+  const [confirmHint, setConfirmHint] = useState('');
+  const [continueOnWeb, setContinueOnWeb] = useState(false);   // choix « Continuer sur le site » après le clic sur le lien de confirmation
 
   // Vérifie le code contre la base dès qu'il change — que ce soit celui
   // arrivé par l'URL (?ref=...) au chargement, ou celui tapé à la main
@@ -62,6 +78,42 @@ export default function AuthPage() {
     return () => { cancelled = true; };
   }, [referralCode]);
 
+  // Tente la connexion avec les identifiants gardés en mémoire. Automatique (au retour dans l'application) : silencieuse en cas d'échec, au plus une fois toutes
+  // les 5 secondes et 30 fois en tout. Manuelle (bouton) : l'échec affiche un message NEUTRE, identique que l'adresse soit « non confirmée » (compte neuf) ou
+  // « identifiants incorrects » (adresse déjà inscrite avec un autre mot de passe), pour ne pas révéler si un compte existe.
+  async function tryConfirmedLogin(manual) {
+    const creds = pendingCreds.current;
+    if (!creds || autoLoginBusy.current) return;
+    const now = Date.now();
+    if (!manual) {
+      if (now - autoLoginLast.current < AUTO_LOGIN_MIN_GAP_MS || autoLoginTries.current >= AUTO_LOGIN_MAX_TRIES) return;
+      autoLoginTries.current += 1;
+    }
+    autoLoginLast.current = now;
+    autoLoginBusy.current = true;
+    if (manual) { setCheckingConfirm(true); setConfirmHint(''); }
+    let result;
+    try { result = await signInWithEmail(creds.email, creds.password); } catch (e) { result = { error: e || new Error('connexion') }; }
+    autoLoginBusy.current = false;
+    if (manual) setCheckingConfirm(false);
+    if (pendingCreds.current !== creds) return;   // la personne a quitté l'écran pendant l'attente
+    if (!result || !result.error) { pendingCreds.current = null; navigate(redirectTo); return; }
+    if (!manual) return;
+    const err = result.error;
+    const notYet = err.code === 'email_not_confirmed' || err.code === 'invalid_credentials' || /email not confirmed|invalid login credentials/i.test(err.message || '');
+    setConfirmHint(notYet ? CONFIRM_PENDING_HINT : friendlyError(err, { formal: true }));
+  }
+
+  useEffect(() => {
+    if (!confirmationSent) return undefined;
+    const onBack = () => { if (document.visibilityState === 'visible') tryConfirmedLogin(false); };
+    document.addEventListener('visibilitychange', onBack);
+    window.addEventListener('focus', onBack);
+    return () => { document.removeEventListener('visibilitychange', onBack); window.removeEventListener('focus', onBack); };
+  }, [confirmationSent]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => () => { pendingCreds.current = null; }, []);   // démontage de la page : on oublie les identifiants
+
   useEffect(() => {
     if (resendCooldown <= 0) return undefined;
     const id = setTimeout(() => setResendCooldown((n) => n - 1), 1000);
@@ -74,6 +126,7 @@ export default function AuthPage() {
     setConfirmationSent(false);
     setResendStatus(null); setResendError(''); setResendCooldown(0);
     setErrorMsg(''); setInfoMsg(''); setResetSent(false);
+    pendingCreds.current = null; setConfirmHint(''); setCheckingConfirm(false);   // on oublie les identifiants en quittant l'écran
     setMode(nextMode);
   }
 
@@ -129,6 +182,8 @@ export default function AuthPage() {
         navigate(redirectTo);
       } else {
         // Afficher l'écran de confirmation dédié
+        pendingCreds.current = { email, password };   // en mémoire seulement : sert à la connexion automatique au retour dans l'application
+        autoLoginTries.current = 0; autoLoginLast.current = Date.now();
         setConfirmedEmail(email);
         setConfirmationSent(true);
       }
@@ -152,6 +207,38 @@ export default function AuthPage() {
     // Avec la connexion native, il n'y a plus de redirection de navigateur
     // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
     navigate(redirectTo);
+  }
+
+  // Après le clic sur le lien de confirmation, ouvert dans le NAVIGATEUR d'un téléphone Android : sans cet écran, la personne croit être dans l'application.
+  // On ne suppose pas qu'elle vient de l'application (elle a pu s'inscrire sur le site) : deux choix clairs.
+  const showAppReturn = isConfirmed && !continueOnWeb && !isNativeApp() && typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
+  if (showAppReturn) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-panel">
+          <div className="auth-panel-content">
+            <a href="/" className="lp-logo" style={{ marginBottom: 32, display: 'inline-flex' }}>
+              <div className="word"><span className="word-hey">Hey</span> <span className="word-did">Did</span></div>
+            </a>
+            <h2>Did s'occupe de votre administratif</h2>
+            <p>Plus jamais un ticket de caisse perdu, une garantie expirée ou un contrat oublié.</p>
+          </div>
+        </div>
+        <div className="auth-form-side">
+          <div className="auth-form-inner" style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--green-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
+              ✅
+            </div>
+            <h1 style={{ fontSize: 24, marginBottom: 10 }}>Email confirmé</h1>
+            <p style={{ fontSize: 15, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 24 }}>Où souhaitez-vous continuer ?</p>
+            <a href={PLAY_STORE_URL} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: 12, marginBottom: 8, textDecoration: 'none' }}>Retourner dans l'application Hey Did</a>
+            <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5, marginBottom: 24 }}>Vous vous êtes inscrit depuis l'application : vous y serez connecté automatiquement.</p>
+            <button type="button" className="btn btn-secondary" onClick={() => setContinueOnWeb(true)} style={{ width: '100%', justifyContent: 'center', padding: 12, marginBottom: 8 }}>Continuer sur le site</button>
+            <p style={{ fontSize: 13, color: 'var(--ink-faint)', lineHeight: 1.5 }}>Vous vous êtes inscrit depuis le site internet.</p>
+          </div>
+          </div>
+          </div>
+    );
   }
 
   // Écran de confirmation post-inscription
@@ -183,6 +270,15 @@ export default function AuthPage() {
                 <div style={{ marginBottom: 8 }}>🔗 Cliquez sur le lien de confirmation</div>
                 <div>✅ Vous serez redirigé automatiquement</div>
               </div>
+            </div>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.6, marginBottom: 12 }}>
+              Une fois le lien ouvert, revenez ici : vous serez connecté automatiquement.
+            </p>
+            <button type="button" className="btn btn-primary" onClick={() => tryConfirmedLogin(true)} disabled={checkingConfirm} style={{ width: '100%', justifyContent: 'center', padding: 12, marginBottom: 8 }}>
+              {checkingConfirm ? 'Vérification…' : "J'ai confirmé mon adresse"}
+            </button>
+            <div role="status" aria-live="polite" style={{ minHeight: 20, marginBottom: 16 }}>
+              {confirmHint && <p style={{ color: 'var(--ink-soft)', fontSize: 13, margin: 0 }}>{confirmHint}</p>}
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink-faint)', marginBottom: 16 }}>
               Email non reçu ? Vérifiez vos spams ou
