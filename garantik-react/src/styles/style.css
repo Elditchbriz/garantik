@@ -741,17 +741,7 @@ h1, .display { font-weight: 600; }
 .empty-state .sub { font-size: 13.5px; color: var(--ink-soft); max-width: 320px; margin: 0 auto; }
 
 /* ---------- Pills / toggle group ---------- */
-.pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
-.pill {
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--gray-pale);
-  color: var(--ink-soft);
-  border: 1px solid transparent;
-}
-.pill.active { background: var(--blue); color: #fff; }
+/* (les boutons « pill » sont définis plus bas, en un seul endroit) */
 
 /* ---------- Toggle switch ---------- */
 .switch {
@@ -1269,27 +1259,14 @@ h1, .display { font-weight: 600; }
   margin-top: 4px;
 }
 
-/* ---------- pill group (filtres documents) ---------- */
-.pill-group {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-.pill {
-  padding: 7px 14px;
-  border-radius: 99px;
-  background: var(--bg);
-  color: var(--ink-soft);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.pill.active {
-  background: var(--blue);
-  color: #fff;
-}
+/* ---------- pills : boutons de catégorie / onglets (Documents, Recherche, Réglages) ----------
+   UNE seule définition. Avant, il y en avait deux qui se contredisaient : l'une les faisait passer à la ligne, l'autre voulait un défilement mais n'annulait pas
+   le retour à la ligne (d'où deux lignes sur mobile), et le fond des boutons était celui de la page (invisibles). Désormais : une seule ligne qui défile,
+   et des pastilles blanches bordées, lisibles sur le fond de la page comme sur une carte blanche. */
+.pill-group { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.pill-group::-webkit-scrollbar { display: none; }
+.pill { padding: 9px 16px; border-radius: 99px; background: #fff; color: var(--navy); border: 1px solid #CBD5E1; font-size: 13px; font-weight: 600; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
+.pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
 /* ---------- setting-row / label-group / switch ---------- */
 .setting-row {
