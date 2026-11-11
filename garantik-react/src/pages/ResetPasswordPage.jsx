@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="6 caractères minimum"
                       minLength={6}
                       required
                       style={{ paddingRight: 44, width: '100%', boxSizing: 'border-box' }}
@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Saisissez-le à nouveau"
                     minLength={6}
                     required
                   />

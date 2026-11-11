@@ -534,7 +534,7 @@ export default function AuthPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={mode === 'signup' ? '6 caractères minimum' : 'Votre mot de passe'}
                   minLength={6}
                   required
                   style={{ paddingRight: 44, width: '100%', boxSizing: 'border-box' }}
