@@ -126,7 +126,7 @@ export default function StorageConnector({ orgId, navigateTo = (url) => { window
   async function loadConnections() {
     const { data } = await supabase
       .from('storage_connections')
-      .select('*')
+      .select('id, provider, email, folder_name')
       .eq('organization_id', orgId);
     let rows = data || [];
     // Un seul espace de stockage actif à la fois. Si plusieurs connexions coexistent (anciennes connexions, d'avant cette règle), on garde
