@@ -1,0 +1,27 @@
+# Hey Did : consignes aux moteurs de recherche
+User-agent: *
+Allow: /
+
+# Espace connecté : aucun intérêt pour le référencement (un visiteur non connecté y est renvoyé vers la page de connexion).
+# Ces adresses ne sont liées nulle part sur les pages publiques.
+Disallow: /dashboard
+Disallow: /expenses
+Disallow: /add-purchase
+Disallow: /add-contract
+Disallow: /search
+Disallow: /documents
+Disallow: /settings
+Disallow: /account
+Disallow: /purchase/
+Disallow: /contract/
+Disallow: /invite
+Disallow: /inbox
+Disallow: /discussions
+Disallow: /faq
+Disallow: /admin
+
+# Les pages publiques qui ne doivent pas apparaître dans Google (connexion, pages légales, rétractation, suppression de compte)
+# ne sont PAS bloquées ici, volontairement : elles portent un en-tête « noindex » (voir vercel.json), et Google ne peut le lire
+# que s'il a le droit de visiter la page. Les bloquer ici les laisserait apparaître dans les résultats, sans description.
+
+Sitemap: https://www.hey-did.fr/sitemap.xml

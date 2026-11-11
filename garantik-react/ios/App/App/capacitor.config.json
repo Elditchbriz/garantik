@@ -1,0 +1,17 @@
+{
+	"appId": "fr.heydid.app",
+	"appName": "Hey Did",
+	"webDir": "dist",
+	"server": {
+		"url": "https://www.hey-did.fr",
+		"cleartext": false,
+		"errorPath": "offline.html"
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"DocumentScannerPlugin",
+		"NativeBiometricPlugin",
+		"SocialLoginPlugin"
+	]
+}
