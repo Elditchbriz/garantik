@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react
 import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import RouteTitle from './components/RouteTitle.jsx';
+import UpdateBanner from './components/UpdateBanner.jsx';
 import { usePageMeta } from './lib/seoMeta.js';
 import { initMonitoring } from './lib/monitoring.js';
 import HomeRoute from './pages/HomeRoute.jsx';
@@ -79,6 +80,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <IconSprite />
     <BrowserRouter>
       <RouteTitle />
+      <UpdateBanner />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/auth" element={<AuthPage />} />
