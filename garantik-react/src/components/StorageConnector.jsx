@@ -57,6 +57,7 @@ const ONEDRIVE_CLIENT_ID = import.meta.env.VITE_ONEDRIVE_CLIENT_ID;
 const ONEDRIVE_TENANT = import.meta.env.VITE_ONEDRIVE_TENANT || 'consumers';
 const ONEDRIVE_SCOPES = 'Files.ReadWrite.AppFolder offline_access User.Read';   // accès limité au dossier de l'application
 const REDIRECT_URI = `${window.location.origin}/settings`;
+const PENDING_KEY = 'heydid_oauth_pending';   // connexion en cours, pour mettre la liste à jour au retour dans l'application
 const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/drive.file', // Accès aux fichiers créés par l'app uniquement
   'https://www.googleapis.com/auth/userinfo.email',
@@ -71,7 +72,7 @@ async function functionErrorMessage(fnError) {
   return fnError.message;
 }
 
-export default function StorageConnector({ orgId }) {
+export default function StorageConnector({ orgId, navigateTo = (url) => { window.location.href = url; } }) {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(null);
@@ -85,6 +86,42 @@ export default function StorageConnector({ orgId }) {
     loadConnections();
     handleOAuthCallback();
   }, [orgId]);
+
+  // Retour dans l'application après une connexion faite dans le navigateur : la liste des connexions se met à jour toute seule.
+  useEffect(() => {
+    if (!orgId) return undefined;
+    async function onBack() {
+      if (document.visibilityState !== 'visible') return;
+      let pending = null;
+      try { pending = JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null'); } catch { /* ignoré */ }
+      if (!pending) return;
+      if (Date.now() - pending.at > 15 * 60 * 1000) { try { sessionStorage.removeItem(PENDING_KEY); } catch { /* ignoré */ } return; }
+      const { data } = await supabase.from('storage_connections').select('provider').eq('organization_id', orgId);
+      if (!pending.wasConnected && (data || []).some((c) => c.provider === pending.provider)) {
+        try { sessionStorage.removeItem(PENDING_KEY); } catch { /* ignoré */ }
+        await loadConnections();
+        setJustConnected(pending.provider);
+        setJustReplaced([]);
+        setTimeout(() => setJustConnected(null), 5000);
+      }
+    }
+    document.addEventListener('visibilitychange', onBack);
+    window.addEventListener('focus', onBack);
+    return () => { document.removeEventListener('visibilitychange', onBack); window.removeEventListener('focus', onBack); };
+  }, [orgId]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Le « state » OAuth est SIGNÉ par le serveur (fonction storage-oauth-start) : il porte l'organisation, si bien que le retour peut être traité même dans un navigateur
+  // où la personne n'est pas connectée (voir StorageReturnGate), et que personne ne peut rattacher un stockage à une organisation qui n'est pas la sienne.
+  async function startOAuth(provider, authUrl) {
+    const { data, error: fnError } = await supabase.functions.invoke('storage-oauth-start', { body: { provider } });
+    if (fnError || !data?.state) {
+      alert('Impossible de démarrer la connexion. Réessayez dans un instant.');
+      return;
+    }
+    authUrl.searchParams.set('state', data.state);
+    try { sessionStorage.setItem(PENDING_KEY, JSON.stringify({ provider, at: Date.now(), wasConnected: connections.some((c) => c.provider === provider) })); } catch { /* facultatif */ }
+    navigateTo(authUrl.toString());
+  }
 
   async function loadConnections() {
     const { data } = await supabase
@@ -111,6 +148,7 @@ export default function StorageConnector({ orgId }) {
     const code = params.get('code');
     const state = params.get('state');
     const error = params.get('error');
+    if (state && state.includes('.')) return;   // état signé : le retour est traité par StorageReturnGate (le code OAuth ne sert qu'une fois)
 
     if (error) {
       console.error('OAuth error:', error);
@@ -157,7 +195,7 @@ export default function StorageConnector({ orgId }) {
     window.history.replaceState({}, '', window.location.pathname);
   }
 
-  function connectDropbox() {
+  async function connectDropbox() {
     if (!DROPBOX_APP_KEY) {
       alert('Configuration Dropbox manquante. Contactez le support.');
       return;
@@ -167,12 +205,11 @@ export default function StorageConnector({ orgId }) {
     authUrl.searchParams.set('client_id', DROPBOX_APP_KEY);
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('state', 'dropbox');
     authUrl.searchParams.set('token_access_type', 'offline');
-    window.location.href = authUrl.toString();
+    await startOAuth('dropbox', authUrl);
   }
 
-  function connectOneDrive() {
+  async function connectOneDrive() {
     if (!ONEDRIVE_CLIENT_ID) {
       alert('Configuration OneDrive manquante. Contactez le support.');
       return;
@@ -184,11 +221,10 @@ export default function StorageConnector({ orgId }) {
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('response_mode', 'query');
     authUrl.searchParams.set('scope', ONEDRIVE_SCOPES);
-    authUrl.searchParams.set('state', 'onedrive');
-    window.location.href = authUrl.toString();
+    await startOAuth('onedrive', authUrl);
   }
 
-  function connectGoogleDrive() {
+  async function connectGoogleDrive() {
     if (!GOOGLE_CLIENT_ID) {
       alert('Configuration Google Drive manquante. Contactez le support.');
       return;
@@ -199,10 +235,9 @@ export default function StorageConnector({ orgId }) {
     authUrl.searchParams.set('redirect_uri', REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('scope', GOOGLE_SCOPES);
-    authUrl.searchParams.set('state', 'google_drive');
     authUrl.searchParams.set('access_type', 'offline'); // Pour obtenir un refresh_token
     authUrl.searchParams.set('prompt', 'consent'); // Forcer le consentement pour avoir le refresh_token
-    window.location.href = authUrl.toString();
+    await startOAuth('google_drive', authUrl);
   }
 
   async function disconnectProvider(provider) {
