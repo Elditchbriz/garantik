@@ -49,6 +49,15 @@ const M = {
     "Nous n'avons pas pu créer votre compte à cause d'un problème de notre côté, et non de vos informations. Réessayez dans quelques minutes. Si cela continue, écrivez-nous à contact@hey-did.fr.",
     "Nous n'avons pas pu créer ton compte à cause d'un problème de notre côté, et non de tes informations. Réessaie dans quelques minutes. Si cela continue, écris-nous à contact@hey-did.fr.",
   ],
+  // Connexion Google (context: 'google') : le plugin Android renvoie des erreurs techniques en anglais (« Google Sign-In failed: [16] Account reauth failed… »).
+  google_failed: [
+    "La connexion avec Google n'a pas abouti. Réessayez, ou continuez avec votre adresse e-mail.",
+    "La connexion avec Google n'a pas abouti. Réessaie, ou continue avec ton adresse e-mail.",
+  ],
+  google_no_account: [
+    "Aucun compte Google n'a été trouvé sur ce téléphone. Ajoutez-en un dans les réglages d'Android, ou continuez avec votre adresse e-mail.",
+    "Aucun compte Google n'a été trouvé sur ce téléphone. Ajoutes-en un dans les réglages d'Android, ou continue avec ton adresse e-mail.",
+  ],
 };
 
 // Codes d'erreur renvoyés par Supabase Auth (error.code)
@@ -123,7 +132,15 @@ function isServerFailure(err, message) {
   return code === 'unexpected_failure' || (status >= 500 && status < 600) || /database error saving new user|error sending confirmation email|internal server error/i.test(message);
 }
 
+// Connexion Google : annulation VOLONTAIRE (la personne ferme la fenêtre de choix du compte), absence de compte Google sur le téléphone, ou échec technique.
+// L'annulation n'est pas une erreur : rien n'est affiché. Le texte français de notre propre code (« Connexion Google annulée ou échouée », renvoyé quand Google ne
+// donne aucun jeton) n'est PAS une annulation volontaire : c'est un échec.
+const GOOGLE_CANCEL = /\bcancel+ed\b|\bcancelled\b|\bcancel\b|\b12501\b|dismissed by user|user closed/i;
+const GOOGLE_NO_ACCOUNT = /no credentials? available|NoCredentialException|no google account/i;
+const GOOGLE_FAILURE = /google sign-?in|credential ?manager|googleprovider|reauth|social ?login|id ?token|nonce|connexion google/i;
+
 // context: 'signup' demande, pour un échec de nos serveurs, le message dédié à l'inscription (et le signale avec le repère « signup:echec-serveur »).
+// context: 'google' demande les messages dédiés à la connexion Google (repères « google:echec » et « google:aucun-compte »).
 export function friendlyError(err, { formal = false, context } = {}) {
   const pick = (key) => M[key][formal ? 0 : 1];
   if (!err) return pick('generic');
@@ -149,6 +166,12 @@ export function friendlyError(err, { formal = false, context } = {}) {
   if (context === 'signup' && isServerFailure(err, message)) {
     captureError(err, { where: 'signup:echec-serveur' });
     return pick('signup_failed');
+  }
+
+  if (context === 'google') {
+    if (GOOGLE_CANCEL.test(message)) return '';   // la personne a fermé la fenêtre : aucune erreur à afficher
+    if (GOOGLE_NO_ACCOUNT.test(message)) { captureError(err, { where: 'google:aucun-compte' }); return pick('google_no_account'); }
+    if (GOOGLE_FAILURE.test(message)) { captureError(err, { where: 'google:echec' }); return pick('google_failed'); }
   }
 
   // Message vide ou en anglais qu'on ne sait pas traduire = erreur inattendue : le client voit un
