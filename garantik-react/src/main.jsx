@@ -5,6 +5,7 @@ import App from './App.jsx';
 import AppErrorBoundary from './components/AppErrorBoundary.jsx';
 import RouteTitle from './components/RouteTitle.jsx';
 import UpdateBanner from './components/UpdateBanner.jsx';
+import StorageReturnGate from './components/StorageReturnGate.jsx';
 import { usePageMeta } from './lib/seoMeta.js';
 import { initMonitoring } from './lib/monitoring.js';
 import HomeRoute from './pages/HomeRoute.jsx';
@@ -81,6 +82,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <RouteTitle />
       <UpdateBanner />
+      <StorageReturnGate />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/auth" element={<AuthPage />} />
