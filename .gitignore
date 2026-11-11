@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .gitignore de Hey Did : ce que Git ne doit JAMAIS suivre. À placer à la RACINE du dépôt.
+# Ce dépôt est PUBLIC : tout fichier ajouté ici par erreur serait lisible par tout le monde.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── SECRETS ET CONFIGURATION LOCALE : ne jamais publier ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+keystore.properties
+*service-account*.json
+*-credentials.json
+secrets/
+
+# ── Dépendances et sorties de construction (elles se régénèrent à chaque construction) ──
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# ── Android : fichiers produits par la construction ──
+garantik-react/android/
+*.apk
+*.aab
+local.properties
+.gradle/
+
+# ── Journaux et fichiers du système ou de l'éditeur ──
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
