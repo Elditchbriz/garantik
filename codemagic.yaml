@@ -8,7 +8,6 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
 
     scripts:
       - name: Install dependencies and build web app
@@ -22,18 +21,19 @@ workflows:
           cd "$CM_BUILD_DIR/garantik-react"
           npx cap sync ios
 
-      - name: Install iOS CocoaPods
+      - name: Resolve Swift packages
         script: |
-          cd "$CM_BUILD_DIR/garantik-react/ios/App"
-          pod install
-          ls -la App.xcworkspace
+          cd "$CM_BUILD_DIR/garantik-react"
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App
 
       - name: Build iOS application without signing
         script: |
           cd "$CM_BUILD_DIR/garantik-react"
 
           xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
@@ -63,4 +63,3 @@ workflows:
 
     artifacts:
       - artifacts/*.ipa
-      - /tmp/xcodebuild_logs/*.log
