@@ -203,7 +203,7 @@ export default function AuthPage() {
     setErrorMsg('');
     const safeReferralCode = referralCodeValid === true ? referralCode : null;
     const { error } = await signInWithGoogle(safeReferralCode);
-    if (error) { setErrorMsg(friendlyError(error, { formal: true })); return; }
+    if (error) { setErrorMsg(friendlyError(error, { formal: true, context: 'google' })); return; }
     // Avec la connexion native, il n'y a plus de redirection de navigateur
     // pour amener naturellement sur /dashboard — il faut le faire nous-mêmes.
     navigate(redirectTo);
