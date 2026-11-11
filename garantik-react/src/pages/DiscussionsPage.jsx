@@ -70,7 +70,7 @@ export default function DiscussionsPage() {
     <div>
       <PageHeader
         title="Did"
-        subtitle="Pose tes questions à Did, il connaît tes garanties et contrats"
+        subtitle="Pose tes questions à Did : il te répond à partir de ce que tu as enregistré"
         showHelp={false}
       />
 
@@ -88,8 +88,8 @@ export default function DiscussionsPage() {
         {loading ? (
           <p style={{ textAlign: 'center', color: 'var(--ink-faint)', padding: 24 }}>Chargement…</p>
         ) : messages.length === 0 ? (
-          <div className="didier-card">
-            <div className="didier-avatar" style={{ width: 72, height: 72 }}><img src="/didier-headshot.jpg" alt="Did" /></div>
+          <div className="didier-card" style={{ flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14 }}>
+            <div className="didier-avatar" style={{ width: 128, height: 128 }}><img src="/didier-headshot.jpg" alt="Did" /></div>
             <div className="didier-card-text">
               <div className="t">Bonjour ! Je suis Did.</div>
               <div className="d">Pose-moi une question sur tes garanties, contrats ou abonnements : je te réponds à partir de ce que tu as enregistré dans Hey Did.</div>
@@ -103,7 +103,7 @@ export default function DiscussionsPage() {
                 flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
               }}>
                 {m.role === 'assistant' && (
-                  <div className="didier-avatar" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                  <div className="didier-avatar" style={{ width: 52, height: 52, flexShrink: 0 }}>
                     <img src="/didier-headshot.jpg" alt="Did" />
                   </div>
                 )}
@@ -120,7 +120,7 @@ export default function DiscussionsPage() {
             ))}
             {sending && (
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <div className="didier-avatar" style={{ width: 44, height: 44, flexShrink: 0 }}>
+                <div className="didier-avatar" style={{ width: 52, height: 52, flexShrink: 0 }}>
                   <img src="/didier-headshot.jpg" alt="Did" />
                 </div>
                 <div style={{

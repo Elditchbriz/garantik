@@ -291,7 +291,7 @@ function DidCard({ surveillerItems, documentsThisMonth, inboxCount, priceIncreas
   return (
     <div className="didier-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div className="didier-avatar" style={{ width: 68, height: 68 }}>
+        <div className="didier-avatar" style={{ width: 88, height: 88 }}>
           <img src="/didier-headshot.jpg" alt="Did" />
         </div>
         <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>
