@@ -208,15 +208,13 @@ export default function DocumentsPage() {
     <>
       <PageHeader title="Mes documents" subtitle="Retrouve tous tes documents achats et contrats en sécurité" />
 
-      {/* Filtres par catégorie : une seule ligne qui défile sur mobile (le style commun les laissait passer à la ligne), et des boutons visibles
-          (leur fond était celui de la page : blanc sur blanc). Réglé ici seulement : la recherche et les réglages utilisent la même classe « pill ». */}
-      <div className="pill-group" role="group" aria-label="Filtrer par catégorie"
-        style={{ marginBottom: 20, flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: 6, WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+      {/* Filtres par catégorie : l'apparence (une seule ligne qui défile, pastilles bordées) est définie une fois pour toutes dans style.css (.pill), comme pour la recherche et les réglages. */}
+      <div className="pill-group" role="group" aria-label="Filtrer par catégorie" style={{ marginBottom: 20 }}>
         {Object.keys(catLabels).map(c => {
           const active = filter === c;
           return (
             <div key={c} role="button" tabIndex={0} aria-pressed={active} className={`pill ${active ? 'active' : ''}`}
-              style={{ cursor: 'pointer', padding: '9px 16px', ...(active ? { border: '1px solid var(--blue)' } : { background: '#fff', color: 'var(--navy)', border: '1px solid var(--line)' }) }}
+              style={{ cursor: 'pointer' }}
               onClick={() => setFilter(c)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFilter(c); } }}>
               {catLabels[c]}
             </div>
